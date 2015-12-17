@@ -1,4 +1,4 @@
-# LXDMXEWiFi_library
+# LXDMXWiFi_library
 Library for ESP8266 implements Art-Net and sACN with example sketches showing both DMX input to and DMX output from network.
 
 LXDMXWiFi encapsulates functionality for sending and receiving DMX over an ESP8266 WiFi connection
