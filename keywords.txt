@@ -1,0 +1,36 @@
+#######################################
+# Syntax Coloring Map For LXDMXWiFi Library
+####################################### 
+# Class
+#######################################
+
+LXDMXWiFi		KEYWORD1
+LXWiFiArtNet	KEYWORD1
+LXWiFiSACN		KEYWORD1
+
+#######################################
+# Methods and Functions 
+#######################################	
+
+dmxPort				KEYWORD2
+universe				KEYWORD2
+setUniverse			KEYWORD2
+numberOfSlots		KEYWORD2
+setNumberOfSlots	KEYWORD2
+getSlot				KEYWORD2
+setSlot				KEYWORD2
+dmxData				KEYWORD2
+readDMXPacket		KEYWORD2
+sendDMX				KEYWORD2
+
+setSubnetUniverse		KEYWORD2
+sendDMX					KEYWORD2
+send_art_poll_reply	KEYWORD2
+
+#######################################
+# Constants
+#######################################
+ 
+DMX_MIN_SLOTS	LITERAL1
+DMX_MAX_SLOTS	LITERAL1
+
