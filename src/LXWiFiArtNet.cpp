@@ -337,7 +337,7 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	//[96][97][98][99]                  input universe   ch 1 to 4
 	//[100][101][102][103]               output universe   ch 1 to 4
 	setUniverseAddress(_packet_buffer[100]);
-	//[102][103][104][105]                      subnet   ch 1 to 4
+	//[104]                              subnet
 	setSubnetAddress(_packet_buffer[104]);
 	//[105]                                   reserved
 	uint8_t command = _packet_buffer[106]; // command

@@ -30,11 +30,14 @@
 #include <LXWiFiArtNet.h>
 #include <LXWiFiSACN.h>
 
+// *** modify the following for setting up the WiFi connection ***
 const char* ssid = "ESP2DMX";
 const char* pwd = "***";
 uint8_t make_access_point = 1;
 uint8_t chan = 2;
 
+// *** modify the following for setting up the network protocol ***
+//     Set use_sacn = 0 for Art-Net
 uint8_t use_sacn = 1;
 uint8_t use_multicast = 1;
 
@@ -58,6 +61,20 @@ void blinkLED() {
     led_state = 1;
   }
 }
+
+/************************************************************************
+
+  Setup creates the WiFi connection.
+  
+  It also creates the network protocol object,
+  either an instance of LXWiFiArtNet or LXWiFiSACN.
+  
+  It then starts listening on the appropriate UDP port.
+  
+  And, it starts the dmx_output object sending serial DMX via the UART1 TX pin.
+  (see the LXESP8266DMX library documentation for driver details)
+
+*************************************************************************/
 
 void setup() {
   Serial.begin(112500);
@@ -109,10 +126,10 @@ void setup() {
 
 /************************************************************************
 
-  The main loop checks for and reads packets from UDP ethernet socket
-  connection.  When a packet is recieved, it is checked to see if
-  it is valid Art-Net and the art DMXReceived function is called, sending
-  the DMX values to the output.
+  The main loop checks for and reads packets from WiFi UDP socket
+  connection.  readDMXPacket() returns true when a DMX packet is received.
+  In which case, the data is copied to the dmx_output object which is driving
+  the UART serial DMX output.
 
 *************************************************************************/
 

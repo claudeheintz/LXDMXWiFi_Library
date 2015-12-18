@@ -88,6 +88,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief set universe for sending and receiving
 * @discussion First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 * 0x7f is no change, otherwise if high bit is set, low nibble becomes universe (subnet remains the same)
+* This method is primarily used by parse_art_address().
 * @param u universe 0-16 + flag 0x80
 */
    void    setUniverseAddress ( uint8_t u );
@@ -95,6 +96,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief set subnet for sending and receiving
 * @discussion First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 * 0x7f is no change, otherwise if high bit is set, low nibble becomes subnet (universe remains the same)
+* This method is primarily used by parse_art_address().
 * @param s subnet 0-16 + flag 0x80
 */
    void    setSubnetAddress   ( uint8_t s );
@@ -187,9 +189,9 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	IPAddress _my_address;
 /// if subnet is supplied in constructor, holds address to broadcast poll replies
   	IPAddress _broadcast_address;
-/// first sender of an ArtDMX packet (subsequent senders ignored until cancelMerge)
+/// first sender of an ArtDMX packet
   	IPAddress _dmx_sender_a;
-/// second sender of an ArtDMX packet (subsequent senders ignored until cancelMerge)
+/// second sender of an ArtDMX packet (3rd and subsequent senders ignored until cancelMerge)
   	IPAddress _dmx_sender_b;
 
 /*!

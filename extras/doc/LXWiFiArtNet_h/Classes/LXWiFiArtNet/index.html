@@ -610,6 +610,7 @@ Otherwise, reply is unicast to remoteIP belonging to the sender of the poll
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetAddress/void/(uint8_t);name=start --><p>First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 0x7f is no change, otherwise if high bit is set, low nibble becomes subnet (universe remains the same)
+This method is primarily used by parse_art_address().
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetAddress/void/(uint8_t);name=end --><!-- end discussion -->
 <hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetUniverse/void/(uint8_t,uint8_t);   name=LXWiFiArtNet::setSubnetUniverse -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetUniverse/void/(uint8_t,uint8_t)"></a>
@@ -678,6 +679,7 @@ Otherwise, reply is unicast to remoteIP belonging to the sender of the poll
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/setUniverseAddress/void/(uint8_t);name=start --><p>First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 0x7f is no change, otherwise if high bit is set, low nibble becomes universe (subnet remains the same)
+This method is primarily used by parse_art_address().
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/setUniverseAddress/void/(uint8_t);name=end --><!-- end discussion -->
 <hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/universe/uint8_t/();   name=LXWiFiArtNet::universe -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/universe/uint8_t/()"></a>
@@ -743,7 +745,7 @@ When receiving, data is extracted into one of two buffers
 depending on the source IP of the sender
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer;name=end --><!-- end discussion -->
 <p class="gapBeforeFooter">&nbsp;</p><hr class="afterFooter"><div class="hd_copyright_and_timestamp">
-<p class="hd_timestamp">Last Updated: Wednesday, December 16, 2015
+<p class="hd_timestamp">Last Updated: Thursday, December 17, 2015
 </p></div>
 </td></tr></table>
 </body></html>

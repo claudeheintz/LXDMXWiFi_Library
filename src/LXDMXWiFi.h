@@ -63,12 +63,18 @@ class LXDMXWiFi {
 /*!
 * @brief universe for sending and receiving dmx
 * @discussion First universe is zero for Art-Net and one for sACN E1.31.
+* Art-Net divides the universe byte with the  high nibble equal to the subnet,
+* and the low nibble representing the universe.
 * @return universe 0/1-255
 */
    virtual uint8_t universe      ( void );
 /*!
 * @brief set universe for sending and receiving
 * @discussion First universe is zero for Art-Net and one for sACN E1.31.
+* Additionally, for Art-Net high nibble is subnet, low nibble is universe.
+* For example, setUniverse(0x12) with Art-Net is subnet 1, universe 2,
+* the same as setSubnetUniverse(1,2).
+* With sACN, setUniverse(0x12) is universe 18.
 * @param u universe 0/1-255
 */
    virtual void    setUniverse   ( uint8_t u );

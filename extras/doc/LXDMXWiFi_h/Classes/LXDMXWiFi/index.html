@@ -461,6 +461,10 @@ is required.
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/setUniverse/void/(uint8_t);name=start --><p>First universe is zero for Art-Net and one for sACN E1.31.
+Additionally, for Art-Net high nibble is subnet, low nibble is universe.
+For example, setUniverse(0x12) with Art-Net is subnet 1, universe 2,
+the same as setSubnetUniverse(1,2).
+With sACN, setUniverse(0x12) is universe 18.
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/setUniverse/void/(uint8_t);name=end --><!-- end discussion -->
 <hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXDMXWiFi/universe/uint8_t/();   name=LXDMXWiFi::universe -->
 <a name="//apple_ref/cpp/instm/LXDMXWiFi/universe/uint8_t/()"></a>
@@ -476,9 +480,11 @@ is required.
 
 <!-- end return value --></p><h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/universe/uint8_t/();name=start --><p>First universe is zero for Art-Net and one for sACN E1.31.
+Art-Net divides the universe byte with the  high nibble equal to the subnet,
+and the low nibble representing the universe.
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/universe/uint8_t/();name=end --><!-- end discussion -->
 <p class="gapBeforeFooter">&nbsp;</p><hr class="afterFooter"><div class="hd_copyright_and_timestamp">
-<p class="hd_timestamp">Last Updated: Wednesday, December 16, 2015
+<p class="hd_timestamp">Last Updated: Thursday, December 17, 2015
 </p></div>
 </td></tr></table>
 </body></html>
