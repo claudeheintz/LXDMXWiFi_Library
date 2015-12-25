@@ -96,14 +96,16 @@ void setup() {
     }
   }
 
-  if ( use_sacn ) {                  // Initialize Interface
+  if ( use_sacn ) {                       // Initialize Interface (defaults to first universe)
     interface = new LXWiFiSACN();
+    //interface->setUniverse(1);	         // for different universe, change this line and the multicast address below
   } else {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
     use_multicast = 0;
+    //((LXWiFiArtNet*)interface)->setSubnetUniverse(0, 0);  //for different subnet/universe, change this line
   }
 
-  if ( use_multicast ) {  // Start listening for UDP on port
+  if ( use_multicast ) {                  // Start listening for UDP on port
     if ( make_access_point ) {
       wUDP.beginMulticast(WiFi.softAPIP(), IPAddress(239,255,0,1), interface->dmxPort());
     } else {

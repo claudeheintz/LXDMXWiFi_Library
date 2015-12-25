@@ -26,8 +26,8 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <LXDMXWiFi.h>
-#include <LXArtNet.h>
-#include <LXSACN.h>
+#include <LXWiFiArtNet.h>
+#include <LXWiFiSACN.h>
 
 const char* ssid = "ESP2DMX";
 const char* pwd = 0;
@@ -80,11 +80,13 @@ void setup() {
     }
   }
 
-  if ( use_sacn ) {                  // Initialize Interface
-    interface = new LXSACN();
+  if ( use_sacn ) {                      // Initialize Interface (defaults to first universe)
+    interface = new LXWiFiSACN();
+    //interface->setUniverse(1);	        // for different universe, change this line and the multicast address below
   } else {
-    interface = new LXArtNet(WiFi.localIP(), WiFi.subnetMask());
+    interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
     use_multicast = 0;
+    //((LXWiFiArtNet*)interface)->setSubnetUniverse(0, 0); // for different subnet/universe, change this line
   }
 
   if ( use_multicast ) {  // *not necessary to start listening for UDP on port
