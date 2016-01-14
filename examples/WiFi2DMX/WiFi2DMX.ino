@@ -81,19 +81,28 @@ void setup() {
   Serial.setDebugOutput(1); //use uart0 for debugging
   pinMode(BUILTIN_LED, OUTPUT);
 
+  if ( use_sacn == 0 ) {
+    use_multicast = 0;    //multicast not used with Art-Net
+  }
+
   if ( make_access_point ) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid);
+    // static IP for Art-Net  may need to be edited for a particular network
     WiFi.softAPConfig(IPAddress(10,110,115,10), IPAddress(10,1,1,1), IPAddress(255,0,0,0));
   } else {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid,pwd);
-    WiFi.config(IPAddress(10,110,115,15), IPAddress(192,168,1,1), IPAddress(255,0,0,0));
 
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(100);
-      blinkLED();
+    // static IP for Art-Net  may need to be edited for a particular network
+    if ( use_multicast == 0 ) {  
+      WiFi.config(IPAddress(10,110,115,15), IPAddress(192,168,1,1), IPAddress(255,0,0,0));
     }
+  }
+
+  while (WiFi.status() != WL_CONNECTED) {
+     delay(100);
+     blinkLED();
   }
 
   if ( use_sacn ) {                       // Initialize Interface (defaults to first universe)
@@ -101,7 +110,6 @@ void setup() {
     //interface->setUniverse(1);	         // for different universe, change this line and the multicast address below
   } else {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-    use_multicast = 0;
     //((LXWiFiArtNet*)interface)->setSubnetUniverse(0, 0);  //for different subnet/universe, change this line
   }
 
@@ -125,7 +133,6 @@ void setup() {
   Serial.println("\nsetup complete");
   blinkLED();
 }
-
 /************************************************************************
 
   The main loop checks for and reads packets from WiFi UDP socket
