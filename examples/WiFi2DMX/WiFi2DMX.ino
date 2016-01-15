@@ -98,11 +98,11 @@ void setup() {
     if ( use_multicast == 0 ) {  
       WiFi.config(IPAddress(10,110,115,15), IPAddress(192,168,1,1), IPAddress(255,0,0,0));
     }
-  }
-
-  while (WiFi.status() != WL_CONNECTED) {
-     delay(100);
-     blinkLED();
+    
+    while (WiFi.status() != WL_CONNECTED) {
+		delay(100);
+		blinkLED();
+	 }
   }
 
   if ( use_sacn ) {                       // Initialize Interface (defaults to first universe)
