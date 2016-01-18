@@ -3,7 +3,7 @@
     @file     WiFi2DMX.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015 by Claude Heintz All Rights Reserved
+    @copyright 2015-2016 by Claude Heintz All Rights Reserved
 
     Example using LXEDMXWiFi_Library for output of Art-Net or E1.31 sACN from
     ESP 8266 WiFi connection to DMX
@@ -19,7 +19,8 @@
 
     @section  HISTORY
 
-    v1.0 - First release
+    v1.00 - First release
+    v1.01 - Updated for change to LXESP8266UARTDMX library
 */
 /**************************************************************************/
 
@@ -43,9 +44,6 @@ uint8_t use_multicast = 1;
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
-
-// LX8266DMXOutput instance for DMX output using UART1/GPIO2
-LX8266DMXOutput* dmx_output = new LX8266DMXOutput();
 
 // An EthernetUDP instance to let us send and receive UDP packets
 WiFiUDP wUDP;
@@ -71,7 +69,7 @@ void blinkLED() {
   
   It then starts listening on the appropriate UDP port.
   
-  And, it starts the dmx_output object sending serial DMX via the UART1 TX pin.
+  And, it starts the dmx_driver object sending serial DMX via the UART1 TX pin.
   (see the LXESP8266DMX library documentation for driver details)
 
 *************************************************************************/
@@ -80,7 +78,7 @@ void setup() {
   Serial.begin(112500);
   Serial.setDebugOutput(1); //use uart0 for debugging
   pinMode(BUILTIN_LED, OUTPUT);
-
+  
   if ( use_sacn == 0 ) {
     use_multicast = 0;    //multicast not used with Art-Net
   }
@@ -88,7 +86,6 @@ void setup() {
   if ( make_access_point ) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid);
-    // static IP for Art-Net  may need to be edited for a particular network
     WiFi.softAPConfig(IPAddress(10,110,115,10), IPAddress(10,1,1,1), IPAddress(255,0,0,0));
   } else {
     WiFi.mode(WIFI_STA);
@@ -128,16 +125,17 @@ void setup() {
      ((LXWiFiArtNet*)interface)->send_art_poll_reply(wUDP);
   }
 
-  dmx_output->start();
+  ESP8266DMX.startOutput();
 
   Serial.println("\nsetup complete");
   blinkLED();
 }
+
 /************************************************************************
 
   The main loop checks for and reads packets from WiFi UDP socket
   connection.  readDMXPacket() returns true when a DMX packet is received.
-  In which case, the data is copied to the dmx_output object which is driving
+  In which case, the data is copied to the dmx_driver object which is driving
   the UART serial DMX output.
 
 *************************************************************************/
@@ -147,7 +145,7 @@ void loop() {
 
   if ( good_dmx ) {
      for (int i = 1; i <= interface->numberOfSlots(); i++) {
-        dmx_output->setSlot(i , interface->getSlot(i));
+        ESP8266DMX.setSlot(i , interface->getSlot(i));
      }
      blinkLED();
   }

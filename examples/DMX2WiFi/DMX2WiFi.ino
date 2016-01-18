@@ -3,7 +3,7 @@
     @file     DMX2WiFi.ino
     @author   Claude Heintz
     @license  BSD (see LXESP8266DMX LICENSE)
-    @copyright 2015 by Claude Heintz
+    @copyright 2015-2016 by Claude Heintz
 
     Example using LXEDMXWiFi_Library for input from DMX to Art-Net or E1.31 sACN
     sent via ESP 8266 WiFi connection
@@ -19,7 +19,8 @@
     
     @section  HISTORY
 
-    v1.0 - First release
+    v1.00 - First release
+    v1.01 - Updated for change to LXESP8266UARTDMX library
 */
 /**************************************************************************/
 #include <LXESP8266UARTDMX.h>
@@ -39,9 +40,6 @@ uint8_t use_multicast = 1;
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
-
-// LX8266DMXInput instance
-LX8266DMXInput* dmx_input = new LX8266DMXInput();
 
 // An EthernetUDP instance to let us send and receive UDP packets
 WiFiUDP wUDP;
@@ -68,11 +66,11 @@ void setup() {
   if ( make_access_point ) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid);
-    WiFi.softAPConfig(IPAddress(10,110,115,10), IPAddress(10,1,1,1), IPAddress(255,0,0,0));
+    WiFi.softAPConfig(IPAddress(10,110,115,20), IPAddress(10,1,1,1), IPAddress(255,0,0,0));
   } else {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid,pwd);
-    WiFi.config(IPAddress(10,110,115,20), IPAddress(192,168,1,1), IPAddress(255,0,0,0));
+    WiFi.config(IPAddress(10,110,115,25), IPAddress(192,168,1,1), IPAddress(255,0,0,0));
 
     while (WiFi.status() != WL_CONNECTED) {
       delay(100);
@@ -101,8 +99,8 @@ void setup() {
     send_address = IPAddress(10,255,255,255);   // change if unicast is desired
   }
 
-  dmx_input->setDataReceivedCallback(&gotDMXCallback);
-  dmx_input->start();
+  ESP8266DMX.setDataReceivedCallback(&gotDMXCallback);
+  ESP8266DMX.startInput();
 
   //note requires v2.1 of ESP8266WiFi library for >494 slots Art-Net
   //prior to fix, total packet size is limited to 512 bytes
@@ -126,7 +124,7 @@ void loop() {
   if ( got_dmx ) {
     //interface->setNumberOfSlots(got_dmx);
     for(int i=1; i<=got_dmx; i++) {
-      interface->setSlot(i, dmx_input->getSlot(i));
+      interface->setSlot(i, ESP8266DMX.getSlot(i));
     }
     if ( use_multicast ) {
        if ( make_access_point ) {
