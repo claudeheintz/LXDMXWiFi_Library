@@ -48,6 +48,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @param address sent in ArtPollReply
 */   
    LXWiFiArtNet  ( IPAddress address );
+   
 /*!
 * @brief constructor creates broadcast address for Poll Reply
 * @param address sent in ArtPollReply
@@ -56,7 +57,15 @@ class LXWiFiArtNet : public LXDMXWiFi {
 	LXWiFiArtNet  ( IPAddress address, IPAddress subnet_mask );
 	
 /*!
-* @brief destructor for LXWiFiArtNet (does nothing at present)
+* @brief constructor creates instance with external buffer for UDP packet
+* @param address sent in ArtPollReply
+* @param subnet_mask used to set broadcast address
+* @param buffer external buffer for UDP packets
+*/ 
+	LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask, uint8_t* buffer );
+	
+/*!
+* @brief destructor for LXWiFiArtNet (frees packet buffer if allocated with constructor)
 */ 
    ~LXWiFiArtNet ( void );
 
@@ -138,11 +147,26 @@ class LXWiFiArtNet : public LXDMXWiFi {
  */    
    uint8_t  readDMXPacket       ( WiFiUDP wUDP );
  /*!
+ * @brief read contents of packet from _packet_buffer
+ * @discussion _packet_buffer should already contain packet payload when this is called
+ * @param wUDP WiFiUDP
+ * @param packetSize size of received packet
+ * @return 1 if packet contains dmx
+ */      
+   uint8_t readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
+ /*!
  * @brief process packet, reading it into _packet_buffer
  * @param wUDP WiFiUDP (used for Poll Reply if applicable)
  * @return Art-Net opcode of packet
  */
-   uint16_t readArtNetPacket    ( WiFiUDP wUDP );
+   uint16_t readArtNetPacket    ( WiFiUDP wUDP );  
+ /*!
+ * @brief read contents of packet from _packet_buffer
+ * @param wUDP WiFiUDP (used for Poll Reply if applicable)
+ * @param packetSize size of received packet
+ * @return Art-Net opcode of packet
+ */   
+   uint16_t readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
  /*!
  * @brief send Art-Net ArtDMX packet for dmx output from network
  * @param wUDP WiFiUDP object to be used for sending UDP packet
@@ -165,8 +189,14 @@ class LXWiFiArtNet : public LXDMXWiFi {
 *             When receiving, data is extracted into one of two buffers
 *             depending on the source IP of the sender
 */
-  	uint8_t   _packet_buffer[ARTNET_BUFFER_MAX];
-
+  	//uint8_t   _packet_buffer[ARTNET_BUFFER_MAX];
+  	uint8_t*   _packet_buffer;
+  	
+/*!
+* @brief indicates was created by constructor
+*/
+	uint8_t   _owns_buffer;
+	
 /*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
 * @discussion data is read into _dmx_buffer_a or _dmx_buffer_b depending on the
@@ -180,6 +210,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	int       _dmx_slots;
   	int       _dmx_slots_a;
   	int       _dmx_slots_b;
+
 /// high nibble subnet, low nibble universe
   	uint8_t   _universe;
 /// sequence number for sending ArtDMX packets
@@ -204,6 +235,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @return opcode in case command changes dmx data
 */
    uint16_t  parse_art_address   ( void );
+   
+/*!
+* @brief initialize data structures
+*/
+   void  initialize  ( uint8_t* b );
    
 };
 

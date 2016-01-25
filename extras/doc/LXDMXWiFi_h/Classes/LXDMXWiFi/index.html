@@ -287,6 +287,9 @@ is required.
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacket/uint8_t/(WiFiUDP)" target="_top">readDMXPacket</a></tt></dt>
 <dd><p>read UDP packet
 </dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)" target="_top">readDMXPacketContents</a></tt></dt>
+<dd><p>read contents of packet from _packet_buffer
+</dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXDMXWiFi/sendDMX/void/(WiFiUDP,IPAddress,IPAddress)" target="_top">sendDMX</a></tt></dt>
 <dd><p>send packet for dmx output from network
 </dd>
@@ -372,7 +375,34 @@ is required.
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
 
-<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXDMXWiFi/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);   name=LXDMXWiFi::sendDMX -->
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);   name=LXDMXWiFi::readDMXPacketContents -->
+<a name="//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)"></a>
+<h3><a name="readDMXPacketContents">readDMXPacketContents</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><!-- begin abstract --><p>read contents of packet from _packet_buffer
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><span class="keyword">virtual</span> <!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents //apple_ref/cpp/clm/LXDMXWiFi/readDMXPacketContents //apple_ref/cpp/intfcm/LXDMXWiFi/readDMXPacketContents //apple_ref/cpp/intfm/LXDMXWiFi/readDMXPacketContents //apple_ref/cpp/func/readDMXPacketContents //apple_ref/cpp/ftmplt/LXDMXWiFi/readDMXPacketContents //apple_ref/cpp/defn/readDMXPacketContents //apple_ref/cpp/macro/readDMXPacketContents //apple_ref/doc/anysymbol/readDMXPacketContents" machineGenerated="true" --><span class="function">readDMXPacketContents</span><!-- /a --> (
+    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <span class="param">packetSize</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
+<div class='param_indent'>
+<dl>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXDMXWiFi/readDMXPacketContents/wUDP;   name=readDMXPacketContents::wUDP -->
+<a name="//apple_ref/doc/functionparam/LXDMXWiFi/readDMXPacketContents/wUDP"></a>
+<code>wUDP</code></dt><dd><p>WiFiUDP</dd>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXDMXWiFi/readDMXPacketContents/packetSize;   name=readDMXPacketContents::packetSize -->
+<a name="//apple_ref/doc/functionparam/LXDMXWiFi/readDMXPacketContents/packetSize"></a>
+<code>packetSize</code></dt><dd><p>size of received packet</dd>
+</dl>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
+
+<!-- end return value --></p><h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
+<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><p>_packet_buffer should already contain packet payload when this is called
+<!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --><!-- end discussion -->
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXDMXWiFi/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);   name=LXDMXWiFi::sendDMX -->
 <a name="//apple_ref/cpp/instm/LXDMXWiFi/sendDMX/void/(WiFiUDP,IPAddress,IPAddress)"></a>
 <h3><a name="sendDMX">sendDMX</a></h3>
 <hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXDMXWiFi/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);name=start --><!-- begin abstract --><p>send packet for dmx output from network
@@ -484,7 +514,7 @@ Art-Net divides the universe byte with the  high nibble equal to the subnet,
 and the low nibble representing the universe.
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXDMXWiFi/universe/uint8_t/();name=end --><!-- end discussion -->
 <p class="gapBeforeFooter">&nbsp;</p><hr class="afterFooter"><div class="hd_copyright_and_timestamp">
-<p class="hd_timestamp">Last Updated: Thursday, December 17, 2015
+<p class="hd_timestamp">Last Updated: Monday, January 25, 2016
 </p></div>
 </td></tr></table>
 </body></html>

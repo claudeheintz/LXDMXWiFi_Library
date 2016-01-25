@@ -38,7 +38,12 @@ class LXWiFiSACN : public LXDMXWiFi {
 */  
 	LXWiFiSACN  ( void );
 /*!
-* @brief destructor for LXWiFiSACN (does nothing at present)
+* @brief constructor for LXWiFiSACN with external buffer fro UDP packets
+* @param external packet buffer
+*/  
+	LXWiFiSACN ( uint8_t* buffer );
+/*!
+* @brief destructor for LXWiFiSACN  (frees packet buffer if allocated with constructor)
 */  
    ~LXWiFiSACN ( void );
 
@@ -112,6 +117,16 @@ class LXWiFiSACN : public LXDMXWiFi {
  * @return number of dmx slots read or 0 if not dmx/invalid
  */
    uint16_t readSACNPacket ( WiFiUDP wUDP );
+   
+ /*!
+ * @brief read contents of packet from _packet_buffer
+ * @discussion _packet_buffer should already contain packet payload when this is called
+ * @param wUDP WiFiUDP
+ * @param packetSize size of received packet
+ * @return 1 if packet contains dmx
+ */      
+   uint8_t readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
+   
  /*!
  * @brief send sACN E1.31 packet for dmx output from network
  * @param wUDP EthernetUDP object to be used for sending UDP packet
@@ -129,7 +144,11 @@ class LXWiFiSACN : public LXDMXWiFi {
 *             at the same time it is merged HTP into _dmx_buffer_c
 *             DMX data to be sent is written directly to _packet_buffer
 */
-  	uint8_t   _packet_buffer[SACN_BUFFER_MAX];
+  	uint8_t*   _packet_buffer;
+/*!
+* @brief indicates was created by constructor
+*/
+	uint8_t   _owns_buffer;
   	
 /*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
@@ -162,6 +181,12 @@ class LXWiFiSACN : public LXDMXWiFi {
   	uint16_t  parse_framing_layer ( uint16_t size );	
   	uint16_t  parse_dmp_layer     ( uint16_t size );
   	uint8_t   checkFlagsAndLength ( uint8_t* flb, uint16_t size );
+  	
+/*!
+* @brief initialize data structures
+*/
+   void  initialize  ( uint8_t* b );
+   
 };
 
 #endif // ifndef LXWIFISACNDMX_H

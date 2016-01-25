@@ -3,7 +3,7 @@
     @file     LXWiFiArtNet.cpp
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015 by Claude Heintz All Rights Reserved
+    @copyright 2015-2016 by Claude Heintz All Rights Reserved
     
     Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
 
@@ -12,36 +12,58 @@
     @section  HISTORY
 
     v1.0 - First release
+    v1.1 - adds ability to use external packet buffer
 */
 /**************************************************************************/
 
 #include "LXWiFiArtNet.h"
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address )
-{
-	//zero buffer including _dmx_data[0] which is start code
-    for (int n=0; n<ARTNET_BUFFER_MAX; n++) {
-    	_packet_buffer[n] = 0;
-    	if ( n < DMX_UNIVERSE_SIZE ) {
-    	   _dmx_buffer_a[n] = 0;
-	   	_dmx_buffer_b[n] = 0;
-	   	_dmx_buffer_c[n] = 0;
-    	}
-    }
-    
-    _dmx_slots = 0;
-    _dmx_slots_a = 0;
-    _dmx_slots_b = 0;
-    _universe = 0;
+{	
+	 initialize(0);
+	 
     _my_address = address;
     _broadcast_address = INADDR_NONE;
-    _dmx_sender_a = INADDR_NONE;
-    _dmx_sender_b = INADDR_NONE;
-    _sequence = 1;
 }
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
 {
+	 initialize(0);
+	 
+    _my_address = address;
+    uint32_t a = (uint32_t) address;
+    uint32_t s = (uint32_t) subnet_mask;
+    _broadcast_address = IPAddress(a | ~s);
+}
+
+LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask, uint8_t* buffer )
+{
+	 initialize(buffer);
+	 
+    _my_address = address;
+    uint32_t a = (uint32_t) address;
+    uint32_t s = (uint32_t) subnet_mask;
+    _broadcast_address = IPAddress(a | ~s);
+}
+
+LXWiFiArtNet::~LXWiFiArtNet ( void )
+{
+	if ( _owns_buffer ) {		// if we created this buffer, then free the memory
+		free(_packet_buffer);
+	}
+}
+
+void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
+	if ( b == 0 ) {
+		// create buffer
+		_packet_buffer = (uint8_t*) malloc(ARTNET_BUFFER_MAX);
+		_owns_buffer = 1;
+	} else {
+		// external buffer
+		_packet_buffer = b;
+		_owns_buffer = 0;
+	}
+	
 	//zero buffer including _dmx_data[0] which is start code
     for (int n=0; n<ARTNET_BUFFER_MAX; n++) {
     	_packet_buffer[n] = 0;
@@ -56,18 +78,10 @@ LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
     _dmx_slots_a = 0;
     _dmx_slots_b = 0;
     _universe = 0;
-    _my_address = address;
-    uint32_t a = (uint32_t) address;
-    uint32_t s = (uint32_t) subnet_mask;
-    _broadcast_address = IPAddress(a | ~s);
+    
     _dmx_sender_a = INADDR_NONE;
     _dmx_sender_b = INADDR_NONE;
     _sequence = 1;
-}
-
-LXWiFiArtNet::~LXWiFiArtNet ( void )
-{
-    //no need for specific destructor
 }
 
 uint8_t  LXWiFiArtNet::universe ( void ) {
@@ -125,6 +139,11 @@ uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
    return ( opcode == ARTNET_ART_DMX );
 }
 
+uint8_t LXWiFiArtNet::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+	uint16_t opcode = readArtNetPacketContents(wUDP, packetSize);
+   return ( opcode == ARTNET_ART_DMX );
+}
+
 /*
   attempts to read a packet from the supplied EthernetUDP object
   returns opcode
@@ -133,89 +152,98 @@ uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
   only returns ARTNET_ART_DMX if packet contained dmx data for this universe
   Packet size checks that packet is >= expected size to allow zero termination or padding
 */
+
 uint16_t LXWiFiArtNet::readArtNetPacket ( WiFiUDP wUDP ) {
-   uint16_t packetSize = wUDP.parsePacket();
+	uint16_t packetSize = wUDP.parsePacket();
    uint16_t opcode = ARTNET_NOP;
    if ( packetSize ) {
       packetSize = wUDP.read(_packet_buffer, ARTNET_BUFFER_MAX);
-      _dmx_slots = 0;
-      /* Buffer now may not contain dmx data for desired universe.
-         After reading the packet into the buffer, check to make sure
-         that it is an Art-Net packet and retrieve the opcode that
-         tells what kind of message it is.                            */
-      opcode = parse_header();
-      switch ( opcode ) {
-		   case ARTNET_ART_DMX:
-		   	// ignore sequence[12], physical[13] and subnet/universe hi byte[15]
-				if (( _packet_buffer[14] == _universe ) && ( _packet_buffer[11] >= 14 )) { //protocol version [10] hi byte [11] lo byte 
-					packetSize -= 18;
-					uint16_t slots = _packet_buffer[17];
-					slots += _packet_buffer[16] << 8;
-				   if ( packetSize >= slots ) {
-						if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
-							_dmx_sender_a = wUDP.remoteIP();
-						}
-						if ( _dmx_sender_a == wUDP.remoteIP() ) {
-						   _dmx_slots_a  = slots;
-						   if ( _dmx_slots_a > _dmx_slots_b ) {
-						   	_dmx_slots = _dmx_slots_a;
-						   } else {
-						      _dmx_slots = _dmx_slots_b;
-						   }
-						   int di;
-						   int dc = _dmx_slots;
-						   int dt = ARTNET_ADDRESS_OFFSET + 1;
-						     for (di=0; di<dc; di++) {
-						       _dmx_buffer_a[di] = _packet_buffer[dt+di];
-						   	if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
-						   	   _dmx_buffer_c[di] = _dmx_buffer_a[di];
-						   	} else {
-						   	   _dmx_buffer_c[di] = _dmx_buffer_b[di];
-						   	}
-						   }
-						} else { // matched sender a
-							if ( (uint32_t)_dmx_sender_b == 0 ) {		//if first sender, remember address
-								_dmx_sender_b = wUDP.remoteIP();
-							}
-							if ( _dmx_sender_b == wUDP.remoteIP() ) {
-						     _dmx_slots_b  = slots;
-						      if ( _dmx_slots_a > _dmx_slots_b ) {
-						   	   _dmx_slots = _dmx_slots_a;
-						      } else {
-						         _dmx_slots = _dmx_slots_b;
-						      }
-						     int di;
-						     int dc = _dmx_slots;
-						     int dt = ARTNET_ADDRESS_OFFSET + 1;
-						     for (di=0; di<dc; di++) {
-						       _dmx_buffer_b[di] = _packet_buffer[dt+di];
-						       if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
-						   	   _dmx_buffer_c[di] = _dmx_buffer_a[di];
-						   	 } else {
-						   	   _dmx_buffer_c[di] = _dmx_buffer_b[di];
-						   	 }
-						     }
-						   }  // matched sender b
-						}     // did not match sender a
-					}		   // matched size
-				}			   // matched universe
-				if ( _dmx_slots == 0 ) {	//only set >0 if all of above matched
-					opcode = ARTNET_NOP;
-				}
-				break;
-			case ARTNET_ART_ADDRESS:
-				if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
-		   	   opcode = parse_art_address();
-		   	   send_art_poll_reply( wUDP );
-		   	}
-		   	break;
-			case ARTNET_ART_POLL:
-				if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
-				   send_art_poll_reply( wUDP );
-				}
-				break;
-		}
+      opcode = readArtNetPacketContents(wUDP, packetSize);
    }
+   return opcode;
+}
+      
+
+uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+   uint16_t opcode = ARTNET_NOP;
+
+	_dmx_slots = 0;
+	/* Buffer now may not contain dmx data for desired universe.
+		After reading the packet into the buffer, check to make sure
+		that it is an Art-Net packet and retrieve the opcode that
+		tells what kind of message it is.                            */
+	opcode = parse_header();
+	switch ( opcode ) {
+		case ARTNET_ART_DMX:
+			// ignore sequence[12], physical[13] and subnet/universe hi byte[15]
+			if (( _packet_buffer[14] == _universe ) && ( _packet_buffer[11] >= 14 )) { //protocol version [10] hi byte [11] lo byte 
+				packetSize -= 18;
+				uint16_t slots = _packet_buffer[17];
+				slots += _packet_buffer[16] << 8;
+				if ( packetSize >= slots ) {
+					if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
+						_dmx_sender_a = wUDP.remoteIP();
+					}
+					if ( _dmx_sender_a == wUDP.remoteIP() ) {
+						_dmx_slots_a  = slots;
+						if ( _dmx_slots_a > _dmx_slots_b ) {
+							_dmx_slots = _dmx_slots_a;
+						} else {
+							_dmx_slots = _dmx_slots_b;
+						}
+						int di;
+						int dc = _dmx_slots;
+						int dt = ARTNET_ADDRESS_OFFSET + 1;
+						  for (di=0; di<dc; di++) {
+							 _dmx_buffer_a[di] = _packet_buffer[dt+di];
+							if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
+								_dmx_buffer_c[di] = _dmx_buffer_a[di];
+							} else {
+								_dmx_buffer_c[di] = _dmx_buffer_b[di];
+							}
+						}
+					} else { // matched sender a
+						if ( (uint32_t)_dmx_sender_b == 0 ) {		//if first sender, remember address
+							_dmx_sender_b = wUDP.remoteIP();
+						}
+						if ( _dmx_sender_b == wUDP.remoteIP() ) {
+						  _dmx_slots_b  = slots;
+							if ( _dmx_slots_a > _dmx_slots_b ) {
+								_dmx_slots = _dmx_slots_a;
+							} else {
+								_dmx_slots = _dmx_slots_b;
+							}
+						  int di;
+						  int dc = _dmx_slots;
+						  int dt = ARTNET_ADDRESS_OFFSET + 1;
+						  for (di=0; di<dc; di++) {
+							 _dmx_buffer_b[di] = _packet_buffer[dt+di];
+							 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
+								_dmx_buffer_c[di] = _dmx_buffer_a[di];
+							 } else {
+								_dmx_buffer_c[di] = _dmx_buffer_b[di];
+							 }
+						  }
+						}  // matched sender b
+					}     // did not match sender a
+				}		   // matched size
+			}			   // matched universe
+			if ( _dmx_slots == 0 ) {	//only set >0 if all of above matched
+				opcode = ARTNET_NOP;
+			}
+			break;
+		case ARTNET_ART_ADDRESS:
+			if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
+				opcode = parse_art_address();
+				send_art_poll_reply( wUDP );
+			}
+			break;
+		case ARTNET_ART_POLL:
+			if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
+				send_art_poll_reply( wUDP );
+			}
+			break;
+	}
    return opcode;
 }
 

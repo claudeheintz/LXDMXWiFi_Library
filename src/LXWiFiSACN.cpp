@@ -3,7 +3,7 @@
     @file     LXWiFiSACN.cpp
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015 by Claude Heintz All Rights Reserved
+    @copyright 2015-2016 by Claude Heintz All Rights Reserved
 
     LXWiFiSACN partially implements E1.31, Lightweight streaming protocol
     for transport of DMX512 using ACN, via ESP8266 WiFi connection.
@@ -14,6 +14,7 @@
     @section  HISTORY
 
     v1.0 - First release
+    v1.1 - adds ability to use external packet buffer
 */
 /**************************************************************************/
 
@@ -21,6 +22,32 @@
 
 LXWiFiSACN::LXWiFiSACN ( void )
 {
+	initialize(0);
+}
+
+LXWiFiSACN::LXWiFiSACN ( uint8_t* buffer )
+{
+	initialize(buffer);
+}
+
+LXWiFiSACN::~LXWiFiSACN ( void )
+{
+    if ( _owns_buffer ) {		// if we created this buffer, then free the memory
+		free(_packet_buffer);
+	}
+}
+
+void  LXWiFiSACN::initialize  ( uint8_t* b ) {
+	if ( b == 0 ) {
+		// create buffer
+		_packet_buffer = (uint8_t*) malloc(SACN_BUFFER_MAX);
+		_owns_buffer = 1;
+	} else {
+		// external buffer
+		_packet_buffer = b;
+		_owns_buffer = 0;
+	}
+	
 	//zero buffer including _dmx_data[0] which is start code
     for (int n=0; n<SACN_BUFFER_MAX; n++) {
     	_packet_buffer[n] = 0;
@@ -38,11 +65,6 @@ LXWiFiSACN::LXWiFiSACN ( void )
     _dmx_slots = 0;
     _universe = 1;                    // NOTE: unlike Art-Net, sACN universes begin at 1
     _sequence = 1;
-}
-
-LXWiFiSACN::~LXWiFiSACN ( void )
-{
-    //no need for specific destructor
 }
 
 uint8_t  LXWiFiSACN::universe ( void ) {
@@ -83,6 +105,13 @@ uint8_t* LXWiFiSACN::dmxData( void ) {
 
 uint8_t LXWiFiSACN::readDMXPacket ( WiFiUDP wUDP ) {
    if ( readSACNPacket(wUDP) > 0 ) {
+   	return ( startCode() == 0 );
+   }	
+   return 0;
+}
+
+uint8_t LXWiFiSACN::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+	if ( parse_root_layer(packetSize) > 0 ) {
    	return ( startCode() == 0 );
    }	
    return 0;
@@ -174,7 +203,7 @@ uint16_t LXWiFiSACN::parse_framing_layer( uint16_t size ) {
    uint16_t tsize = size - 22;
    if ( checkFlagsAndLength(&_packet_buffer[38], tsize) ) {     // framing pdu length
      if ( _packet_buffer[43] == 0x02 ) {                        // vector dmp is 1.31
-        if ( _packet_buffer[114] == _universe ) {// implementation has 255 universe limit
+        if ( _packet_buffer[114] == _universe ) { // implementation has 255 universe limit
           return parse_dmp_layer( tsize );       
         }
      }

@@ -285,6 +285,12 @@ reply directly to the sender of the poll.
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/getSlot/uint8_t/(int)" target="_top">getSlot</a></tt></dt>
 <dd><p>get merged level data from slot/address/channel
 </dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/initialize/void/(uint8_t*)" target="_top">initialize</a></tt></dt>
+<dd><p>initialize data structures
+</dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress,IPAddress,uint8_t*)" target="_top">LXWiFiArtNet</a></tt></dt>
+<dd><p>constructor creates instance with external buffer for UDP packet
+</dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress)" target="_top">LXWiFiArtNet(IPAddress)</a></tt></dt>
 <dd><p>constructor with address used for ArtPollReply
 </dd>
@@ -303,8 +309,14 @@ reply directly to the sender of the poll.
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacket/uint16_t/(WiFiUDP)" target="_top">readArtNetPacket</a></tt></dt>
 <dd><p>process packet, reading it into _packet_buffer
 </dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t)" target="_top">readArtNetPacketContents</a></tt></dt>
+<dd><p>read contents of packet from _packet_buffer
+</dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacket/uint8_t/(WiFiUDP)" target="_top">readDMXPacket</a></tt></dt>
 <dd><p>read UDP packet
+</dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)" target="_top">readDMXPacketContents</a></tt></dt>
+<dd><p>read contents of packet from _packet_buffer
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP)" target="_top">send_art_poll_reply</a></tt></dt>
 <dd><p>send ArtPoll Reply packet for dmx output from network
@@ -334,7 +346,7 @@ reply directly to the sender of the poll.
 <dd><p>universe for sending and receiving dmx
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//()" target="_top">~LXWiFiArtNet</a></tt></dt>
-<dd><p>destructor for LXWiFiArtNet (does nothing at present)
+<dd><p>destructor for LXWiFiArtNet (frees packet buffer if allocated with constructor)
 </dd>
 </dl>
 <hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/dmxData/uint8_t*/();   name=LXWiFiArtNet::dmxData -->
@@ -379,7 +391,43 @@ reply directly to the sender of the poll.
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>level for slot (0-255)
 
-<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress);   name=LXWiFiArtNet::LXWiFiArtNet -->
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/initialize/void/(uint8_t*);   name=LXWiFiArtNet::initialize -->
+<a name="//apple_ref/cpp/instm/LXWiFiArtNet/initialize/void/(uint8_t*)"></a>
+<h3><a name="initialize">initialize</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/initialize/void/(uint8_t*);name=start --><!-- begin abstract --><p>initialize data structures
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/initialize/void/(uint8_t*);name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>private</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/void //apple_ref/cpp/tdef/void //apple_ref/cpp/tag/void //apple_ref/cpp/struct/void //apple_ref/cpp/intf/void //apple_ref/doc/anysymbol/void" machineGenerated="true" --><span class="type">void</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiArtNet/initialize //apple_ref/cpp/clm/LXWiFiArtNet/initialize //apple_ref/cpp/intfcm/LXWiFiArtNet/initialize //apple_ref/cpp/intfm/LXWiFiArtNet/initialize //apple_ref/cpp/func/initialize //apple_ref/cpp/ftmplt/LXWiFiArtNet/initialize //apple_ref/cpp/defn/initialize //apple_ref/cpp/macro/initialize //apple_ref/doc/anysymbol/initialize" machineGenerated="true" --><span class="function">initialize</span><!-- /a --> (
+    <!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <span class="type">*</span><span class="param">b</span> ); </pre>
+</div>
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress,IPAddress,uint8_t*);   name=LXWiFiArtNet::LXWiFiArtNet -->
+<a name="//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress,IPAddress,uint8_t*)"></a>
+<h3><a name="LXWiFiArtNet">LXWiFiArtNet</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress,IPAddress,uint8_t*);name=start --><!-- begin abstract --><p>constructor creates instance with external buffer for UDP packet
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress,IPAddress,uint8_t*);name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet //apple_ref/cpp/clm/LXWiFiArtNet/LXWiFiArtNet //apple_ref/cpp/intfcm/LXWiFiArtNet/LXWiFiArtNet //apple_ref/cpp/intfm/LXWiFiArtNet/LXWiFiArtNet //apple_ref/cpp/func/LXWiFiArtNet //apple_ref/cpp/ftmplt/LXWiFiArtNet/LXWiFiArtNet //apple_ref/cpp/defn/LXWiFiArtNet //apple_ref/cpp/macro/LXWiFiArtNet //apple_ref/doc/anysymbol/LXWiFiArtNet" machineGenerated="true" --><span class="function">LXWiFiArtNet</span><!-- /a --> (
+    <!-- a logicalPath="//apple_ref/cpp/cl/IPAddress //apple_ref/cpp/tdef/IPAddress //apple_ref/cpp/tag/IPAddress //apple_ref/cpp/struct/IPAddress //apple_ref/cpp/intf/IPAddress //apple_ref/doc/anysymbol/IPAddress" machineGenerated="true" --><span class="type">IPAddress</span><!-- /a --> <span class="param">address</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/IPAddress //apple_ref/cpp/tdef/IPAddress //apple_ref/cpp/tag/IPAddress //apple_ref/cpp/struct/IPAddress //apple_ref/cpp/intf/IPAddress //apple_ref/doc/anysymbol/IPAddress" machineGenerated="true" --><span class="type">IPAddress</span><!-- /a --> <span class="param">subnet_mask</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <span class="type">*</span><span class="param">buffer</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
+<div class='param_indent'>
+<dl>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/address;   name=LXWiFiArtNet::address -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/address"></a>
+<code>address</code></dt><dd><p>sent in ArtPollReply</dd>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/subnet_mask;   name=LXWiFiArtNet::subnet_mask -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/subnet_mask"></a>
+<code>subnet_mask</code></dt><dd><p>used to set broadcast address</dd>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/buffer;   name=LXWiFiArtNet::buffer -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/LXWiFiArtNet/buffer"></a>
+<code>buffer</code></dt><dd><p>external buffer for UDP packets</dd>
+</dl>
+</div>
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress);   name=LXWiFiArtNet::LXWiFiArtNet -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress)"></a>
 <h3><a name="LXWiFiArtNet(IPAddress)">LXWiFiArtNet(IPAddress)</a></h3>
 <hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/LXWiFiArtNet//(IPAddress);name=start --><!-- begin abstract --><p>constructor with address used for ArtPollReply
@@ -478,6 +526,30 @@ reply directly to the sender of the poll.
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>Art-Net opcode of packet
 
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t);   name=LXWiFiArtNet::readArtNetPacketContents -->
+<a name="//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t)"></a>
+<h3><a name="readArtNetPacketContents">readArtNetPacketContents</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t);name=start --><!-- begin abstract --><p>read contents of packet from _packet_buffer
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t);name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents //apple_ref/cpp/clm/LXWiFiArtNet/readArtNetPacketContents //apple_ref/cpp/intfcm/LXWiFiArtNet/readArtNetPacketContents //apple_ref/cpp/intfm/LXWiFiArtNet/readArtNetPacketContents //apple_ref/cpp/func/readArtNetPacketContents //apple_ref/cpp/ftmplt/LXWiFiArtNet/readArtNetPacketContents //apple_ref/cpp/defn/readArtNetPacketContents //apple_ref/cpp/macro/readArtNetPacketContents //apple_ref/doc/anysymbol/readArtNetPacketContents" machineGenerated="true" --><span class="function">readArtNetPacketContents</span><!-- /a --> (
+    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <span class="param">packetSize</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
+<div class='param_indent'>
+<dl>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/readArtNetPacketContents/wUDP;   name=readArtNetPacketContents::wUDP -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/readArtNetPacketContents/wUDP"></a>
+<code>wUDP</code></dt><dd><p>WiFiUDP (used for Poll Reply if applicable)</dd>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/readArtNetPacketContents/packetSize;   name=readArtNetPacketContents::packetSize -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/readArtNetPacketContents/packetSize"></a>
+<code>packetSize</code></dt><dd><p>size of received packet</dd>
+</dl>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>Art-Net opcode of packet
+
 <!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacket/uint8_t/(WiFiUDP);   name=LXWiFiArtNet::readDMXPacket -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacket/uint8_t/(WiFiUDP)"></a>
 <h3><a name="readDMXPacket">readDMXPacket</a></h3>
@@ -498,7 +570,34 @@ reply directly to the sender of the poll.
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
 
-<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP);   name=LXWiFiArtNet::send_art_poll_reply -->
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);   name=LXWiFiArtNet::readDMXPacketContents -->
+<a name="//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)"></a>
+<h3><a name="readDMXPacketContents">readDMXPacketContents</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><!-- begin abstract --><p>read contents of packet from _packet_buffer
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents //apple_ref/cpp/clm/LXWiFiArtNet/readDMXPacketContents //apple_ref/cpp/intfcm/LXWiFiArtNet/readDMXPacketContents //apple_ref/cpp/intfm/LXWiFiArtNet/readDMXPacketContents //apple_ref/cpp/func/readDMXPacketContents //apple_ref/cpp/ftmplt/LXWiFiArtNet/readDMXPacketContents //apple_ref/cpp/defn/readDMXPacketContents //apple_ref/cpp/macro/readDMXPacketContents //apple_ref/doc/anysymbol/readDMXPacketContents" machineGenerated="true" --><span class="function">readDMXPacketContents</span><!-- /a --> (
+    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <span class="param">packetSize</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
+<div class='param_indent'>
+<dl>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/readDMXPacketContents/wUDP;   name=readDMXPacketContents::wUDP -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/readDMXPacketContents/wUDP"></a>
+<code>wUDP</code></dt><dd><p>WiFiUDP</dd>
+<dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiArtNet/readDMXPacketContents/packetSize;   name=readDMXPacketContents::packetSize -->
+<a name="//apple_ref/doc/functionparam/LXWiFiArtNet/readDMXPacketContents/packetSize"></a>
+<code>packetSize</code></dt><dd><p>size of received packet</dd>
+</dl>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
+
+<!-- end return value --></p><h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
+<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><p>_packet_buffer should already contain packet payload when this is called
+<!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --><!-- end discussion -->
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP);   name=LXWiFiArtNet::send_art_poll_reply -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP)"></a>
 <h3><a name="send_art_poll_reply">send_art_poll_reply</a></h3>
 <hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP);name=start --><!-- begin abstract --><p>send ArtPoll Reply packet for dmx output from network
@@ -699,7 +798,7 @@ This method is primarily used by parse_art_address().
 <hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//();   name=LXWiFiArtNet::~LXWiFiArtNet -->
 <a name="//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//()"></a>
 <h3><a name="~LXWiFiArtNet">~LXWiFiArtNet</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//();name=start --><!-- begin abstract --><p>destructor for LXWiFiArtNet (does nothing at present)
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//();name=start --><!-- begin abstract --><p>destructor for LXWiFiArtNet (frees packet buffer if allocated with constructor)
 <!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiArtNet/~LXWiFiArtNet//();name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>public</tt>
@@ -712,6 +811,9 @@ This method is primarily used by parse_art_address().
 <dl>
 <dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_dmx_buffer_a" target="_top">_dmx_buffer_a</a></tt></dt>
 <dd><p>buffers that hold DMX data from source a, source b and HTP composite
+</dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer" target="_top">_owns_buffer</a></tt></dt>
+<dd><p>indicates was created by constructor
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer" target="_top">_packet_buffer</a></tt></dt>
 <dd><p>buffer that holds contents of incoming or outgoing packet
@@ -730,6 +832,15 @@ This method is primarily used by parse_art_address().
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiArtNet/_dmx_buffer_a;name=start --><p>data is read into _dmx_buffer_a or _dmx_buffer_b depending on the
 IP address of the sender, at the same time it is merged into _dmx_buffer_c.
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiArtNet/_dmx_buffer_a;name=end --><!-- end discussion -->
+<hr class="betweenAPIEntries"><!-- headerDoc=data;  uid=//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer;   name=LXWiFiArtNet::_owns_buffer -->
+<a name="//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer"></a>
+<h3><a name="_owns_buffer">_owns_buffer</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer;name=start --><!-- begin abstract --><p>indicates was created by constructor
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer;name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>private</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/econst/_owns_buffer //apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer //apple_ref/cpp/data/_owns_buffer //apple_ref/cpp/clconst/LXWiFiArtNet/_owns_buffer " machineGenerated="true" --><span class="var">_owns_buffer</span><!-- /a -->; </pre>
+</div>
 <hr class="betweenAPIEntries"><!-- headerDoc=data;  uid=//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer;   name=LXWiFiArtNet::_packet_buffer -->
 <a name="//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer"></a>
 <h3><a name="_packet_buffer">_packet_buffer</a></h3>
@@ -737,7 +848,7 @@ IP address of the sender, at the same time it is merged into _dmx_buffer_c.
 <!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer;name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>private</tt>
-<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/cl/_packet_buffer //apple_ref/cpp/tdef/_packet_buffer //apple_ref/cpp/tag/_packet_buffer //apple_ref/cpp/struct/_packet_buffer //apple_ref/cpp/intf/_packet_buffer //apple_ref/doc/anysymbol/_packet_buffer" machineGenerated="true" --><span class="type">_packet_buffer</span><!-- /a -->[<!-- a logicalPath="//apple_ref/cpp/cl/ARTNET_BUFFER_MAX //apple_ref/cpp/tdef/ARTNET_BUFFER_MAX //apple_ref/cpp/tag/ARTNET_BUFFER_MAX //apple_ref/cpp/struct/ARTNET_BUFFER_MAX //apple_ref/cpp/intf/ARTNET_BUFFER_MAX //apple_ref/doc/anysymbol/ARTNET_BUFFER_MAX" machineGenerated="true" --><span class="type">ARTNET_BUFFER_MAX</span><!-- /a -->]; </pre>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --><span class="type">*</span> <!-- a logicalPath="//apple_ref/cpp/econst/_packet_buffer //apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer //apple_ref/cpp/data/_packet_buffer //apple_ref/cpp/clconst/LXWiFiArtNet/_packet_buffer " machineGenerated="true" --><span class="var">_packet_buffer</span><!-- /a -->; </pre>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
 <!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer;name=start --><p>DMX data is written directly into packet buffer when sending
@@ -745,7 +856,7 @@ When receiving, data is extracted into one of two buffers
 depending on the source IP of the sender
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer;name=end --><!-- end discussion -->
 <p class="gapBeforeFooter">&nbsp;</p><hr class="afterFooter"><div class="hd_copyright_and_timestamp">
-<p class="hd_timestamp">Last Updated: Thursday, December 17, 2015
+<p class="hd_timestamp">Last Updated: Monday, January 25, 2016
 </p></div>
 </td></tr></table>
 </body></html>

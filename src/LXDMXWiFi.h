@@ -1,5 +1,5 @@
 /* LXDMXWiFi.h
-   Copyright 2015 by Claude Heintz Design
+   Copyright 2015-2016 by Claude Heintz Design
    All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,6 +114,15 @@ class LXDMXWiFi {
  * @return 1 if packet contains dmx
  */   
    virtual uint8_t readDMXPacket ( WiFiUDP wUDP );
+   
+ /*!
+ * @brief read contents of packet from _packet_buffer
+ * @discussion _packet_buffer should already contain packet payload when this is called
+ * @param wUDP WiFiUDP
+ * @param packetSize size of received packet
+ * @return 1 if packet contains dmx
+ */      
+   virtual uint8_t readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
    
  /*!
  * @brief send packet for dmx output from network
