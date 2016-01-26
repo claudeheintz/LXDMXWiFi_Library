@@ -114,6 +114,13 @@ void setup() {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask(), &packetBuffer[0]);
     //((LXWiFiArtNet*)interface)->setSubnetUniverse(0, 0);  //for different subnet/universe, change this line
     
+    // this interface will handle poll replies, set reply fields for second port
+    uint8_t* pollReply = ((LXWiFiArtNet*)interface)->replyData();
+    pollReply[173] = 2;    // number of ports
+  	 pollReply[175] = 128;  //  can output from network (port2)
+  	 pollReply[183] = 128;  //  good output... change if error  (port2)
+    pollReply[191] = 1;    //  universe  (port2)
+    
     interfaceUniverse2 = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask(), &packetBuffer[0]);
     ((LXWiFiArtNet*)interfaceUniverse2)->setSubnetUniverse(0, 1);
   }
@@ -153,19 +160,19 @@ void loop() {
   uint16_t packetSize = wUDP.parsePacket();
   if ( packetSize ) {
   	  packetSize = wUDP.read(packetBuffer, SACN_BUFFER_MAX);
-	  uint8_t good_dmx = interface->readDMXPacketContents(wUDP, packetSize);
-	  uint8_t good_dmx2 = 0;
+	  uint8_t read_result = interface->readDMXPacketContents(wUDP, packetSize);
+	  uint8_t read_result2 = 0;
 
-	  if ( good_dmx ) {
+	  if ( read_result == RESULT_DMX_RECEIVED ) {
 	     analogWrite(12,2*interface->getSlot(1));
 	  	  // for bandwidth testing, both universes are sent to output
 	     // Note:  ESP8266DMX can only output a single universe
 		  for (int i = 1; i <= interface->numberOfSlots(); i++) {
 			  ESP8266DMX.setSlot(i , interface->getSlot(i));
 		  }
-	  } else {				// if not good_dmx first universe, try 2nd
-	     good_dmx2 = interfaceUniverse2->readDMXPacketContents(wUDP, packetSize);
-	     if ( good_dmx2 ) {
+	  } else if ( read_result == RESULT_NONE ) {				// if not good_dmx first universe, try 2nd
+	     read_result2 = interfaceUniverse2->readDMXPacketContents(wUDP, packetSize);
+	     if ( read_result2 == RESULT_DMX_RECEIVED ) {
 	     		// for bandwidth testing, first universe interface is sent to DMX output again
 	         // Note:  ESP8266DMX can only output a single universe
 	     		for (int i = 1; i <= interface->numberOfSlots(); i++) {
@@ -174,7 +181,7 @@ void loop() {
 		  		analogWrite(14,2*interfaceUniverse2->getSlot(512));
 	     }
 	  }
-	  if ( good_dmx || good_dmx2 ) {
+	  if ( read_result || read_result2 ) {
 	  	  blinkLED();
 	  }
 	}

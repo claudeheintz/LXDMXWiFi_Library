@@ -141,9 +141,9 @@ void setup() {
 *************************************************************************/
 
 void loop() {
-  uint8_t good_dmx = interface->readDMXPacket(wUDP);
+  uint8_t read_result = interface->readDMXPacket(wUDP);
 
-  if ( good_dmx ) {
+  if ( read_result == RESULT_DMX_RECEIVED ) {
      for (int i = 1; i <= interface->numberOfSlots(); i++) {
         ESP8266DMX.setSlot(i , interface->getSlot(i));
      }
