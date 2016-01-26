@@ -82,6 +82,7 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     _dmx_sender_a = INADDR_NONE;
     _dmx_sender_b = INADDR_NONE;
     _sequence = 1;
+    initializePollReply();
 }
 
 uint8_t  LXWiFiArtNet::universe ( void ) {
@@ -132,16 +133,29 @@ uint8_t* LXWiFiArtNet::dmxData( void ) {
 	return &_packet_buffer[ARTNET_ADDRESS_OFFSET+1];
 }
 
+uint8_t* LXWiFiArtNet::replyData( void ) {
+	return &_reply_buffer[0];
+}
+
 uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
 	//digitalWrite(4,HIGH);
    uint16_t opcode = readArtNetPacket(wUDP);
    //digitalWrite(4,LOW);
-   return ( opcode == ARTNET_ART_DMX );
+   if ( opcode == ARTNET_ART_DMX ) {
+   	return RESULT_DMX_RECEIVED;
+   }
+   return RESULT_NONE;
 }
 
 uint8_t LXWiFiArtNet::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
 	uint16_t opcode = readArtNetPacketContents(wUDP, packetSize);
-   return ( opcode == ARTNET_ART_DMX );
+   if ( opcode == ARTNET_ART_DMX ) {
+   	return RESULT_DMX_RECEIVED;
+   }
+   if ( opcode == ARTNET_ART_POLL ) {
+   	return RESULT_PACKET_COMPLETE;
+   }
+   return RESULT_NONE;
 }
 
 /*
@@ -284,64 +298,14 @@ void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceA
   includes my_ip as address of this node
 */
 void LXWiFiArtNet::send_art_poll_reply( WiFiUDP wUDP ) {
-  unsigned char  replyBuffer[ARTNET_REPLY_SIZE];
-  int i;
-  for ( i = 0; i < ARTNET_REPLY_SIZE; i++ ) {
-    replyBuffer[i] = 0;
-  }
-  replyBuffer[0] = 'A';
-  replyBuffer[1] = 'r';
-  replyBuffer[2] = 't';
-  replyBuffer[3] = '-';
-  replyBuffer[4] = 'N';
-  replyBuffer[5] = 'e';
-  replyBuffer[6] = 't';
-  replyBuffer[7] = 0;
-  replyBuffer[8] = 0;        // op code lo-hi
-  replyBuffer[9] = 0x21;
-  replyBuffer[10] = ((uint32_t)_my_address) & 0xff;      //ip address
-  replyBuffer[11] = ((uint32_t)_my_address) >> 8;
-  replyBuffer[12] = ((uint32_t)_my_address) >> 16;
-  replyBuffer[13] = ((uint32_t)_my_address) >>24;
-  replyBuffer[14] = 0x36;    // port lo first always 0x1936
-  replyBuffer[15] = 0x19;
-  replyBuffer[16] = 0;       // firmware hi-lo
-  replyBuffer[17] = 0;
-  replyBuffer[18] = 0;       // subnet hi-lo
-  replyBuffer[19] = 0;
-  replyBuffer[20] = 0;       // oem hi-lo
-  replyBuffer[21] = 0;
-  replyBuffer[22] = 0;       // ubea
-  replyBuffer[23] = 0;       // status
-  replyBuffer[24] = 0x50;    //     Mfg Code
-  replyBuffer[25] = 0x12;    //     seems DMX workshop reads these bytes backwards
-  replyBuffer[26] = 'A';     // short name
-  replyBuffer[27] = 'r';
-  replyBuffer[28] = 'd';
-  replyBuffer[29] = 'u';
-  replyBuffer[30] = 'i';
-  replyBuffer[31] = 'n';
-  replyBuffer[32] = 'o';
-  replyBuffer[33] =  0;
-  replyBuffer[44] = 'A';     // long name
-  replyBuffer[45] = 'r';
-  replyBuffer[46] = 'd';
-  replyBuffer[47] = 'u';
-  replyBuffer[48] = 'i';
-  replyBuffer[49] = 'n';
-  replyBuffer[50] = 'o';
-  replyBuffer[51] =  0;
-  replyBuffer[173] = 1;    // number of ports
-  replyBuffer[174] = 128;  // can output from network
-  replyBuffer[182] = 128;  //  good output... change if error
-  replyBuffer[190] = _universe;
+  _reply_buffer[190] = _universe;
   
   IPAddress a = _broadcast_address;
   if ( a == INADDR_NONE ) {
     a = wUDP.remoteIP();   // reply directly if no broadcast address is supplied
   }
   wUDP.beginPacket(a, ARTNET_PORT);
-  wUDP.write(replyBuffer, ARTNET_REPLY_SIZE);
+  wUDP.write(_reply_buffer, ARTNET_REPLY_SIZE);
   wUDP.endPacket();
 }
 
@@ -388,4 +352,59 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	   	break;
 	}
 	return ARTNET_ART_ADDRESS;
+}
+
+void  LXWiFiArtNet::initializePollReply  ( void ) {
+	int i;
+  for ( i = 0; i < ARTNET_REPLY_SIZE; i++ ) {
+    _reply_buffer[i] = 0;
+  }
+  _reply_buffer[0] = 'A';
+  _reply_buffer[1] = 'r';
+  _reply_buffer[2] = 't';
+  _reply_buffer[3] = '-';
+  _reply_buffer[4] = 'N';
+  _reply_buffer[5] = 'e';
+  _reply_buffer[6] = 't';
+  _reply_buffer[7] = 0;
+  _reply_buffer[8] = 0;        // op code lo-hi
+  _reply_buffer[9] = 0x21;
+  _reply_buffer[10] = ((uint32_t)_my_address) & 0xff;      //ip address
+  _reply_buffer[11] = ((uint32_t)_my_address) >> 8;
+  _reply_buffer[12] = ((uint32_t)_my_address) >> 16;
+  _reply_buffer[13] = ((uint32_t)_my_address) >>24;
+  _reply_buffer[14] = 0x36;    // port lo first always 0x1936
+  _reply_buffer[15] = 0x19;
+  _reply_buffer[16] = 0;       // firmware hi-lo
+  _reply_buffer[17] = 0;
+  _reply_buffer[18] = 0;       // subnet hi-lo
+  _reply_buffer[19] = 0;
+  _reply_buffer[20] = 0;       // oem hi-lo
+  _reply_buffer[21] = 0;
+  _reply_buffer[22] = 0;       // ubea
+  _reply_buffer[23] = 0;       // status
+  _reply_buffer[24] = 0x50;    //     Mfg Code
+  _reply_buffer[25] = 0x12;    //     seems DMX workshop reads these bytes backwards
+  _reply_buffer[26] = 'L';     // short name
+  _reply_buffer[27] = 'X';
+  _reply_buffer[28] = 'E';
+  _reply_buffer[29] = 'S';
+  _reply_buffer[30] = 'P';
+  _reply_buffer[31] = 'D';
+  _reply_buffer[32] = 'M';
+  _reply_buffer[33] = 'X';
+  _reply_buffer[34] =  0;
+  _reply_buffer[44] = 'L';     // long name
+  _reply_buffer[45] = 'X';
+  _reply_buffer[46] = 'E';
+  _reply_buffer[47] = 'S';
+  _reply_buffer[48] = 'P';
+  _reply_buffer[49] = 'D';
+  _reply_buffer[50] = 'M';
+  _reply_buffer[51] = 'X';
+  _reply_buffer[52] =  0;
+  _reply_buffer[173] = 1;    // number of ports
+  _reply_buffer[174] = 128;  // can output from network
+  _reply_buffer[182] = 128;  //  good output... change if error
+  _reply_buffer[190] = _universe;
 }

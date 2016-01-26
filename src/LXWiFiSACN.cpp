@@ -105,16 +105,20 @@ uint8_t* LXWiFiSACN::dmxData( void ) {
 
 uint8_t LXWiFiSACN::readDMXPacket ( WiFiUDP wUDP ) {
    if ( readSACNPacket(wUDP) > 0 ) {
-   	return ( startCode() == 0 );
+   	if ( startCode() == 0 ) {
+   		return RESULT_DMX_RECEIVED;
+   	}
    }	
-   return 0;
+   return RESULT_NONE;
 }
 
 uint8_t LXWiFiSACN::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
 	if ( parse_root_layer(packetSize) > 0 ) {
-   	return ( startCode() == 0 );
+   	if ( startCode() == 0 ) {
+   		return RESULT_DMX_RECEIVED;
+   	}
    }	
-   return 0;
+   return RESULT_NONE;
 }
 
 uint16_t LXWiFiSACN::readSACNPacket ( WiFiUDP wUDP ) {
@@ -293,4 +297,4 @@ uint8_t LXWiFiSACN::checkFlagsAndLength( uint8_t* flb, uint16_t size ) {
 		}
 	}
 	return 0;
-} 
+}

@@ -139,6 +139,12 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @return uint8_t* to dmx data portion of packet buffer
  */ 
    uint8_t* dmxData      ( void );
+   
+    /*!
+ * @brief direct pointer to poll reply packet contents
+ * @return uint8_t* to poll reply packet contents
+ */ 
+   uint8_t* replyData      ( void );
 
  /*!
  * @brief read UDP packet
@@ -184,18 +190,26 @@ class LXWiFiArtNet : public LXDMXWiFi {
    
   private:
 /*!
-* @brief buffer that holds contents of incoming or outgoing packet
-* @discussion DMX data is written directly into packet buffer when sending
+* @brief array that holds contents of incoming or outgoing packet
+* @discussion DMX data is written directly into packet buffer when sending.
 *             When receiving, data is extracted into one of two buffers
-*             depending on the source IP of the sender
+*             depending on the source IP of the sender.  These source buffers are merged
+				  into a composite buffer.
+				  The packet buffer is created and kept private unless it is supplied to the constructor.
+				  When used, an external buffer can be shared between instances so that each can
+				  read a packet's data.
 */
-  	//uint8_t   _packet_buffer[ARTNET_BUFFER_MAX];
   	uint8_t*   _packet_buffer;
   	
 /*!
-* @brief indicates was created by constructor
+* @brief indicates the _packet_buffer was allocated by the constructor and is private.
 */
 	uint8_t   _owns_buffer;
+
+/*!
+* @brief array that holds contents of outgoing ArtPollReply packet
+*/	
+	uint8_t _reply_buffer[ARTNET_REPLY_SIZE];
 	
 /*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
@@ -240,6 +254,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief initialize data structures
 */
    void  initialize  ( uint8_t* b );
+   
+/*!
+* @brief initialize poll reply buffer
+*/
+   void  initializePollReply  ( void );
    
 };
 
