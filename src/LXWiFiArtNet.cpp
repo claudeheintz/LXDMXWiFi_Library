@@ -18,6 +18,9 @@
 
 #include "LXWiFiArtNet.h"
 
+//static buffer for sending poll replies
+uint8_t LXWiFiArtNet::_reply_buffer[ARTNET_REPLY_SIZE];
+
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address )
 {	
 	 initialize(0);

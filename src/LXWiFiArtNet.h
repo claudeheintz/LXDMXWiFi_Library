@@ -209,7 +209,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
 /*!
 * @brief array that holds contents of outgoing ArtPollReply packet
 */	
-	uint8_t _reply_buffer[ARTNET_REPLY_SIZE];
+	static uint8_t _reply_buffer[ARTNET_REPLY_SIZE];
 	
 /*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
