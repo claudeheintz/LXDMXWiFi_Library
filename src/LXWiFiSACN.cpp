@@ -63,6 +63,8 @@ void  LXWiFiSACN::initialize  ( uint8_t* b ) {
     }
     
     _dmx_slots = 0;
+    _dmx_slots_a = 0;
+    _dmx_slots_b = 0;
     _universe = 1;                    // NOTE: unlike Art-Net, sACN universes begin at 1
     _sequence = 1;
 }
