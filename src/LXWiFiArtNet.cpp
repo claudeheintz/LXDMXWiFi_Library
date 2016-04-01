@@ -136,14 +136,21 @@ uint8_t* LXWiFiArtNet::dmxData( void ) {
 	return &_packet_buffer[ARTNET_ADDRESS_OFFSET+1];
 }
 
+uint8_t* LXWiFiArtNet::packetBuffer( void ) {
+	return &_packet_buffer[0];
+}
+
+uint16_t LXWiFiArtNet::packetSize( void ) {
+	return _packetSize;
+}
+
 uint8_t* LXWiFiArtNet::replyData( void ) {
 	return &_reply_buffer[0];
 }
 
 uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
-	//digitalWrite(4,HIGH);
+	_packetSize = 0;
    uint16_t opcode = readArtNetPacket(wUDP);
-   //digitalWrite(4,LOW);
    if ( opcode == ARTNET_ART_DMX ) {
    	return RESULT_DMX_RECEIVED;
    }
@@ -174,8 +181,8 @@ uint16_t LXWiFiArtNet::readArtNetPacket ( WiFiUDP wUDP ) {
 	uint16_t packetSize = wUDP.parsePacket();
    uint16_t opcode = ARTNET_NOP;
    if ( packetSize ) {
-      packetSize = wUDP.read(_packet_buffer, ARTNET_BUFFER_MAX);
-      opcode = readArtNetPacketContents(wUDP, packetSize);
+      _packetSize = wUDP.read(_packet_buffer, ARTNET_BUFFER_MAX);
+      opcode = readArtNetPacketContents(wUDP, _packetSize);
    }
    return opcode;
 }

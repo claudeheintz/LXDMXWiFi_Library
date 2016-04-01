@@ -105,7 +105,16 @@ uint8_t* LXWiFiSACN::dmxData( void ) {
 	return &_packet_buffer[SACN_ADDRESS_OFFSET];
 }
 
+uint8_t* LXWiFiSACN::packetBuffer( void ) {
+	return &_packet_buffer[0];
+}
+
+uint16_t LXWiFiSACN::packetSize( void ) {
+	return _packetSize;
+}
+
 uint8_t LXWiFiSACN::readDMXPacket ( WiFiUDP wUDP ) {
+	_packetSize = 0;
    if ( readSACNPacket(wUDP) > 0 ) {
    	if ( startCode() == 0 ) {
    		return RESULT_DMX_RECEIVED;
@@ -127,8 +136,8 @@ uint16_t LXWiFiSACN::readSACNPacket ( WiFiUDP wUDP ) {
    _dmx_slots = 0;
    uint16_t packetSize = wUDP.parsePacket();
    if ( packetSize ) {
-      packetSize = wUDP.read(_packet_buffer, SACN_BUFFER_MAX);
-      _dmx_slots = parse_root_layer(packetSize);
+      _packetSize = wUDP.read(_packet_buffer, SACN_BUFFER_MAX);
+      _dmx_slots = parse_root_layer(_packetSize);
    }
    return _dmx_slots;
 }
@@ -210,7 +219,7 @@ uint16_t LXWiFiSACN::parse_framing_layer( uint16_t size ) {
    if ( checkFlagsAndLength(&_packet_buffer[38], tsize) ) {     // framing pdu length
      if ( _packet_buffer[43] == 0x02 ) {                        // vector dmp is 1.31
         if ( _packet_buffer[114] == _universe ) { // implementation has 255 universe limit
-          return parse_dmp_layer( tsize );       
+          return parse_dmp_layer( tsize );    
         }
      }
    }

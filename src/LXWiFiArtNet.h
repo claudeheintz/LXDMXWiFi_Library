@@ -140,6 +140,18 @@ class LXWiFiArtNet : public LXDMXWiFi {
  */ 
    uint8_t* dmxData      ( void );
    
+ /*!
+ * @brief direct pointer to packet buffer uint8_t[]
+ * @return uint8_t* to packet buffer
+ */ 
+   uint8_t* packetBuffer      ( void );
+   
+/*!
+ * @brief size of last packet received with readDMXPacket
+ * @return uint16_t last packet size
+ */ 
+   uint16_t packetSize      ( void );
+   
     /*!
  * @brief direct pointer to poll reply packet contents
  * @return uint8_t* to poll reply packet contents
@@ -179,7 +191,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param to_ip target address
  * @param interfaceAddr multicast unused for Art-Net
  */    
-   void     sendDMX             ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   void     sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr );
  /*!
  * @brief send ArtPoll Reply packet for dmx output from network
  * @discussion If broadcast address is defined by passing subnet to constructor, reply is broadcast
@@ -205,6 +217,10 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief indicates the _packet_buffer was allocated by the constructor and is private.
 */
 	uint8_t   _owns_buffer;
+
+/*!
+* @brief size of last packet that was read with readDMXPacket
+*/	uint16_t  _packetSize;
 
 /*!
 * @brief array that holds contents of outgoing ArtPollReply packet

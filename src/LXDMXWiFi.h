@@ -42,6 +42,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RESULT_DMX_RECEIVED 1
 #define RESULT_PACKET_COMPLETE 2
 
+struct DMXWiFiConfig {
+   char    ident[8];      // ESP-DMX\0
+   uint8_t opcode;		  // data = 0, query = '?', set ='!'
+   char    ssid[64];      // max is actually 32
+   char    pwd[64];       // depends on security 8, 13, 8-63
+   uint8_t wifi_mode;
+   uint8_t protocol_mode;
+   uint8_t ap_chan;
+   uint32_t ap_address;
+   uint32_t ap_gateway;		//141
+   uint32_t ap_subnet;
+   uint32_t sta_address;
+   uint32_t sta_gateway;
+   uint32_t sta_subnet;
+   uint32_t multi_address;
+   uint8_t sacn_universe;   //should match multicast address
+   uint8_t artnet_subnet;
+   uint8_t artnet_universe;
+   uint8_t reserved[61];
+};
+
+#define ESPDMX_IDENT "ESP-DMX"
+#define DMXWiFiConfigSIZE 232
+
+#define STATION_MODE 0
+#define AP_MODE 1
+
+#define ARTNET_MODE 0
+#define SACN_MODE 1
+#define STATIC_MODE 2
+#define MULTICAST_MODE 4
+
 /*!   
 *  @class LXDMXWiFi
 *  @abstract
@@ -49,8 +81,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *     It is a virtual class with concrete subclasses LXWiFiArtNet and LXWiFiSACN which specifically
 *     implement the Artistic Licence Art-Net and PLASA sACN 1.31 protocols.
 *     
-*     Note:  LXDMXWiFi_library requires
-*            WiFiUdp included with the ESP8266 Arduino package.
+*     Note:  LXDMXWiFi_library requires WiFiUdp 
+*            included with the ESP8266 Arduino package.
 *
 *            Note:  For sending packets larger than 512 bytes, ESP8266 WiFi Library v2.1
 *            is required.
@@ -112,6 +144,18 @@ class LXDMXWiFi {
  * @return uint8_t* to dmx data buffer
  */  
    virtual uint8_t* dmxData      ( void );
+   
+ /*!
+ * @brief direct pointer to packet buffer uint8_t[]
+ * @return uint8_t* to packet buffer
+ */ 
+   virtual uint8_t* packetBuffer      ( void );
+
+/*!
+ * @brief size of last packet received with readDMXPacket
+ * @return uint16_t last packet size
+ */ 
+   virtual uint16_t packetSize      ( void );
 
  /*!
  * @brief read UDP packet

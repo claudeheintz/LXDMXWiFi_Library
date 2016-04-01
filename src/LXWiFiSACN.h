@@ -106,6 +106,18 @@ class LXWiFiSACN : public LXDMXWiFi {
    uint8_t* dmxData      ( void );
 
  /*!
+ * @brief direct pointer to packet buffer uint8_t[]
+ * @return uint8_t* to packet buffer
+ */ 
+   uint8_t* packetBuffer      ( void );
+   
+/*!
+ * @brief size of last packet received with readDMXPacket
+ * @return uint16_t last packet size
+ */ 
+   uint16_t packetSize      ( void );
+
+ /*!
  * @brief read UDP packet
  * @param wUDP EthernetUDP object to be used for getting UDP packet
  * @return 1 if packet contains dmx
@@ -149,6 +161,9 @@ class LXWiFiSACN : public LXDMXWiFi {
 * @brief indicates was created by constructor
 */
 	uint8_t   _owns_buffer;
+/*!
+* @brief size of last packet that was read
+*/	uint16_t  _packetSize;
   	
 /*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
