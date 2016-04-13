@@ -16,6 +16,8 @@ Included examples of the library's use:
             This example includes Eagle files and photos of completed project using this example
             It also includes python script for remote management of protocol/wifi settings
             
+Photo shows complete WiFi to DMX unit with RJ45 connector for DMX output:
+            
 ![Photo](esp-dmx.jpg)
             
 
