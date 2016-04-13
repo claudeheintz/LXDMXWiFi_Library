@@ -12,7 +12,7 @@ Included examples of the library's use:
             This example includes Eagle files and photos of completed project using this example
             It also includes python script for remote management of protocol/wifi settings
             
-            ![Photo](esp-dmx.jpg)
+![Photo](esp-dmx.jpg)
             
          DMX input to network using UART and MAX485 driver chip
 
