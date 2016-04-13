@@ -29,7 +29,7 @@
 #include <LXESP8266UARTDMX.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
-#include <LXDMXWiFi.h>
+#include "LXDMXWiFi.h"
 #include <LXWiFiArtNet.h>
 #include <LXWiFiSACN.h>
 #include <EEPROM.h>
@@ -59,6 +59,12 @@ void initConfig(DMXWiFiConfig* cfptr) {
   cfptr->sacn_universe   = 1;
   cfptr->artnet_universe = 0;
   cfptr->artnet_subnet   = 0;
+
+  strcpy((char*)cfptr->node_name, "com.claudeheintzdesign.esp-dmx");
+  int i;
+  for (i=0; i<29; i++) {
+    cfptr->reserved[i] = 0;
+  }
 }
 
 //remove password
@@ -86,6 +92,19 @@ void blinkLED() {
     led_state = 1;
   }
 }
+
+//artAddress callback
+void artAddressReceived() {
+  int u = ((LXWiFiArtNet*)interface)->universe();
+  esp_config->artnet_universe = u & 0x0F;
+  esp_config->artnet_subnet = (u>>4) & 0x0F;
+  strncpy((char*)esp_config->node_name, ((LXWiFiArtNet*)interface)->longName(), 31);
+  esp_config->node_name[32] = 0;
+  esp_config->opcode = 0;
+  EEPROM.write(8,0);
+  EEPROM.commit();
+}
+
 
 /************************************************************************
 
@@ -155,6 +174,11 @@ void setup() {
   } else {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
     ((LXWiFiArtNet*)interface)->setSubnetUniverse(esp_config->artnet_subnet, esp_config->artnet_universe);
+    ((LXWiFiArtNet*)interface)->setArtAddressReceivedCallback(&artAddressReceived);
+    if ( esp_config->node_name[0] != 0 ) {
+      esp_config->node_name[32] = 0;      //insure zero termination of string
+      strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)esp_config->node_name);
+    }
   }
   Serial.print("interface created, ");
   
@@ -183,6 +207,8 @@ void setup() {
   connection.  readDMXPacket() returns true when a DMX packet is received.
   In which case, the data is copied to the dmx_driver object which is driving
   the UART serial DMX output.
+  
+  If the packet is an ESP-DMX packet,
 
 *************************************************************************/
 
@@ -195,20 +221,26 @@ void loop() {
      }
      blinkLED();
   } else {
-    if ( strcmp(ESPDMX_IDENT, (const char *) interface->packetBuffer()) == 0 ) {
+    if ( strcmp(ESPDMX_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
       Serial.print("ESP-DMX received, ");
       uint8_t reply = 0;
-      if ( interface->packetBuffer()[8] == '?' ) {
+      if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
         EEPROM.begin(DMXWiFiConfigSIZE);            //deletes data (ie esp_config) and reads from flash
         esp_config = (DMXWiFiConfig*)EEPROM.getDataPtr();
         reply = 1;
-      } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) {
+      } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
         int k;
         uint8_t* p = (uint8_t*) esp_config;
         for(k=0; k<171; k++) {
           p[k] = interface->packetBuffer()[k]; //copy packet to config
         }
-        esp_config->opcode = 0;
+        esp_config->opcode = 0;               // reply packet opcode is data
+        if (interface->packetSize() >= 203) {
+          for(k=171; k<232; k++) {
+            p[k] = interface->packetBuffer()[k]; //copy node_name to config
+          }
+          strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)&interface->packetBuffer()[171]);
+        }
         EEPROM.write(8,0);  //opcode is zero for data (also sets dirty flag)
         EEPROM.commit();
         reply = 1;

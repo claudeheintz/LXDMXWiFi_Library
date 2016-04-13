@@ -44,6 +44,7 @@
 #  to WiFi2DMX can be used. 
 
 from Tkinter import *
+import tkMessageBox
 import socket
 
 root = Tk()
@@ -77,6 +78,7 @@ sv_stsn= StringVar()
 sv_mcip = StringVar()
 sv_acnu = StringVar()
 sv_ansn = StringVar()
+sv_nn = StringVar()
 sv_anu = StringVar()
 sv_tar = StringVar()
 
@@ -121,7 +123,7 @@ def ipstr2bytes(s, d, i):
 def recvWiFiConfig(d,a):
    h = d[0:7]
    if h != "ESP-DMX":
-      return
+      return -1
    if ord(d[8]) == 0:
       global sv_ssid
       sv_ssid.set(d[9:73])
@@ -183,20 +185,28 @@ def recvWiFiConfig(d,a):
       sv_ansn.set(str(ord(d[169])))
       global sv_anu
       sv_anu.set(str(ord(d[170])))
+      global sv_nn
+      sv_nn.set(d[171:203])
       global sb
       sb['state'] = 'normal'
       global sv_tar
       sv_tar.set(a[0])
+      return 0
+   return 1
    
 def readPacket():
    global udpsocket
+   rv = 0
    try:
       data,addr = udpsocket.recvfrom(512)
-      recvWiFiConfig(data, addr)
+      rv = recvWiFiConfig(data, addr)
    except:
       global sb
       sb['state'] = 'disabled'
       print "exception reading packet"
+      sv_ssid.set("??")
+      rv = -1
+   return rv
    
 def sendQuery():
    setupSocket()
@@ -209,14 +219,19 @@ def sendQuery():
    global sv_tar
    post_addr = sv_tar.get()
    udpsocket.sendto(packet, (post_addr, udpport)) #10.110.115.255 0x1936
-   if post_addr.endswith(".255"):
-      readPacket() #1st read is our own broadcast packet we just sent
-   readPacket()
-   closeSocket()
+   merr = readPacket() #1st read might be our own broadcast packet we just sent
+   if merr != 0:
+      merr = readPacket(); #2nd try
+   if merr != 0:
+      merr = readPacket(); #3rd try
+   if ( merr == 0 ):
+      tkMessageBox.showinfo("Success", "Located configuration for ESP-DMX node.")
+   else:
+      tkMessageBox.showerror("Connection Error", "Could not retrieve configuration.")
    
 def upload():
    setupSocket()
-   spacket = bytearray(172)
+   spacket = bytearray(204)
    for k in range(0,171):
       spacket[k] = 0
    spacket[0:7] = "ESP-DMX"
@@ -225,11 +240,17 @@ def upload():
    global sv_ssid
    s = sv_ssid.get()
    spacket[9:9+len(s)] = s
-   global sv_pwdd
-   s = sv_pwd.get()
-   spacket[73:73+len(s)] = s
    
    global c1v
+   global sv_pwd
+   s = sv_pwd.get()
+   # don't upload obscured password for station
+   if c1v.get() == 0 and s.startswith("****"):
+      tkMessageBox.showerror("invalid password", "enter password")
+      sv_pwd.set("**** enter password ****")
+      return
+   spacket[73:73+len(s)] = s
+   
    spacket[137] = c1v.get()
    global c3v
    global c5v
@@ -258,16 +279,74 @@ def upload():
    spacket[169] = int(sv_ansn.get())
    global sv_anu
    spacket[170] = int(sv_anu.get())
+   s = sv_nn.get()
+   sl = len(s)
+   if ( sl > 31 ):
+      sl = 31
+   spacket[171:171+len(s)] = s
+   spacket[203] = 0
    
    global udpsocket
    global sv_tar
    post_addr = sv_tar.get()
-   udpsocket.sendto(spacket, (post_addr, udpport))
-   if post_addr.endswith(".255"):
-      readPacket() #1st read is our own broadcast packet we just sent
-   readPacket()
+   try:
+      udpsocket.sendto(spacket, (post_addr, udpport))
+   except:
+      tkMessageBox.showerror("Connection Error", "Upload failed.")
+      closeSocket()
+      return
+   merr = readPacket() #1st read might be our own broadcast packet we just sent
+   if merr != 0:
+      merr = readPacket(); #2nd try
+   if merr != 0:
+      merr = readPacket(); #3rd try
+   if ( merr == 0 ):
+      tkMessageBox.showinfo("Upload Success!", "Configuration confirmation reply received.")
+   else:
+      tkMessageBox.showerror("Upload Confirmation Error", "Could not confirm upload.")
    closeSocket()
-
+   
+def cancel_merge():
+   setupSocket()
+   spacket = bytearray(107)
+   for k in range(0,106):
+      spacket[k] = 0
+   spacket[0:7] = "Art-Net"
+   spacket[9] = 0x60 #opcode
+   spacket[11] = 14  #protocol version
+   spacket[106] = 0x01  #cancel merge command
+   
+   global udpsocket
+   global sv_tar
+   post_addr = sv_tar.get()
+   try:
+      udpsocket.sendto(spacket, (post_addr, udpport))
+   except:
+      tkMessageBox.showerror("Connection Error", "ArtAddress cancel merge failed.")
+      closeSocket()
+      return
+      
+def clear_output():
+   setupSocket()
+   spacket = bytearray(107)
+   for k in range(0,106):
+      spacket[k] = 0
+   spacket[0:7] = "Art-Net"
+   spacket[9] = 0x60 #opcode
+   spacket[11] = 14  #protocol version
+   spacket[106] = 0x90  #clear output command
+   
+   global udpsocket
+   global sv_tar
+   post_addr = sv_tar.get()
+   try:
+      udpsocket.sendto(spacket, (post_addr, udpport))
+   except:
+      tkMessageBox.showerror("Connection Error", "ArtAddress clear failed.")
+      closeSocket()
+      return
+   
+   
 ###########################################################  
 #################### command functions ####################
 
@@ -357,10 +436,16 @@ def get_info_cmd():
 def upload_cmd():
    upload()
    
+def cancelmerge_cmd():
+   cancel_merge()
+   
+def clearoutput_cmd():
+   clear_output()
+   
 ###########################################################  
 #################### Tk initialization ####################
 
-f = Frame(root, height=580, width=580)
+f = Frame(root, height=600, width=580)
 f.pack()
 f.pack_propagate(0)
 
@@ -484,7 +569,18 @@ h10 = Label(g10, text="Art-Net universe:", width=20, anchor="e")
 h10.pack(side="left")
 e10 = Entry(g10, width=16, textvariable=sv_anu)
 e10.pack(side="left")
+sb = Button(g10, text="Art-Net Cancel Merge", width=15, command=cancelmerge_cmd)
+sb.pack(side="left")
 g10.pack(fill=X, side="top")
+
+g11 = Frame(f)
+h11 = Label(g11, text="Art-Net node name:", width=20, anchor="e")
+h11.pack(side="left")
+e11 = Entry(g11, width=16, textvariable=sv_nn)
+e11.pack(side="left")
+sb = Button(g11, text="Art-Net Clear Output", width=15, command=clearoutput_cmd)
+sb.pack(side="left")
+g11.pack(fill=X, side="top")
 
 sf2 = Frame(f, height=20)
 sf2.pack(fill=X, side="top")
@@ -510,6 +606,7 @@ c9 = Checkbutton(gp, text="sACN port", width=14, variable=c9v, command=cb9_cmd)
 c9.pack(side="left")
 gp.pack(fill=X, side="top")
 c10v.set(1)
+
 
 root.title("ESP-DMX Configuration Utility")
 root.protocol("WM_DELETE_WINDOW", windowwillclose)

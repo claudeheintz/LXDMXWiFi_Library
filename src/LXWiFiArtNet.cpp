@@ -13,6 +13,7 @@
 
     v1.0 - First release
     v1.1 - adds ability to use external packet buffer
+    v1.2 - fixes cancel merge
 */
 /**************************************************************************/
 
@@ -85,6 +86,11 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     _dmx_sender_a = INADDR_NONE;
     _dmx_sender_b = INADDR_NONE;
     _sequence = 1;
+    
+    strcpy(_short_name, "ESP-DMX");
+    strcpy(_long_name, "com.claudeheintzdesign.esp-dmx");
+    _artaddress_receive_callback = 0;
+    
     initializePollReply();
 }
 
@@ -148,6 +154,14 @@ uint8_t* LXWiFiArtNet::replyData( void ) {
 	return &_reply_buffer[0];
 }
 
+char* LXWiFiArtNet::shortName( void ) {
+	return &_short_name[0];
+}
+
+char* LXWiFiArtNet::longName( void ) {
+	return &_long_name[0];
+}
+
 uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
 	_packetSize = 0;
    uint16_t opcode = readArtNetPacket(wUDP);
@@ -207,6 +221,9 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetS
 				if ( packetSize >= slots ) {
 					if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
 						_dmx_sender_a = wUDP.remoteIP();
+						for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
+							_dmx_buffer_b[j] = 0;	//insure clear buffer 'b' so cancel merge works properly
+						}
 					}
 					if ( _dmx_sender_a == wUDP.remoteIP() ) {
 						_dmx_slots_a  = slots;
@@ -272,14 +289,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetS
 }
 
 void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
-   _packet_buffer[0] = 'A';
-   _packet_buffer[1] = 'r';
-   _packet_buffer[2] = 't';
-   _packet_buffer[3] = '-';
-   _packet_buffer[4] = 'N';
-   _packet_buffer[5] = 'e';
-   _packet_buffer[6] = 't';
-   _packet_buffer[7] = 0;
+   strcpy((char*)_packet_buffer, "Art-Net");
    _packet_buffer[8] = 0;        //op code lo-hi
    _packet_buffer[9] = 0x50;
    _packet_buffer[10] = 0;
@@ -308,6 +318,8 @@ void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceA
   includes my_ip as address of this node
 */
 void LXWiFiArtNet::send_art_poll_reply( WiFiUDP wUDP ) {
+  strcpy((char*)&_reply_buffer[26], _short_name);
+  strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[190] = _universe;
   
   IPAddress a = _broadcast_address;
@@ -317,6 +329,10 @@ void LXWiFiArtNet::send_art_poll_reply( WiFiUDP wUDP ) {
   wUDP.beginPacket(a, ARTNET_PORT);
   wUDP.write(_reply_buffer, ARTNET_REPLY_SIZE);
   wUDP.endPacket();
+}
+
+void LXWiFiArtNet::setArtAddressReceivedCallback(ArtAddressRecvCallback callback) {
+	_artaddress_receive_callback = callback;
 }
 
 uint16_t LXWiFiArtNet::parse_header( void ) {
@@ -338,12 +354,24 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	//[32] to [95] long name  <= 64 bytes
 	//[96][97][98][99]                  input universe   ch 1 to 4
 	//[100][101][102][103]               output universe   ch 1 to 4
+	if ( _packet_buffer[14] != 0 ) {
+		strcpy(_short_name, (char*) &_packet_buffer[14]);
+	}
+	if ( _packet_buffer[32] != 0 ) {
+		strcpy(_long_name, (char*) &_packet_buffer[32]);
+	}
+	
 	setUniverseAddress(_packet_buffer[100]);
 	//[104]                              subnet
 	setSubnetAddress(_packet_buffer[104]);
 	//[105]                                   reserved
 	uint8_t command = _packet_buffer[106]; // command
 	switch ( command ) {
+	   case 0x00:
+	      if ( _artaddress_receive_callback != NULL ) {	//notify settings may have changed
+				_artaddress_receive_callback();
+			}
+			break;
 	   case 0x01:	//cancel merge: resets ip address used to identify dmx sender
 	   	_dmx_sender_a = INADDR_NONE;
 	   	_dmx_sender_b = INADDR_NONE;
@@ -361,6 +389,7 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	   	   						   // knows there has been a change in levels
 	   	break;
 	}
+	
 	return ARTNET_ART_ADDRESS;
 }
 
@@ -369,14 +398,7 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   for ( i = 0; i < ARTNET_REPLY_SIZE; i++ ) {
     _reply_buffer[i] = 0;
   }
-  _reply_buffer[0] = 'A';
-  _reply_buffer[1] = 'r';
-  _reply_buffer[2] = 't';
-  _reply_buffer[3] = '-';
-  _reply_buffer[4] = 'N';
-  _reply_buffer[5] = 'e';
-  _reply_buffer[6] = 't';
-  _reply_buffer[7] = 0;
+  strcpy((char*)_reply_buffer, "Art-Net");
   _reply_buffer[8] = 0;        // op code lo-hi
   _reply_buffer[9] = 0x21;
   _reply_buffer[10] = ((uint32_t)_my_address) & 0xff;      //ip address
@@ -395,24 +417,8 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   _reply_buffer[23] = 0;       // status
   _reply_buffer[24] = 0x50;    //     Mfg Code
   _reply_buffer[25] = 0x12;    //     seems DMX workshop reads these bytes backwards
-  _reply_buffer[26] = 'L';     // short name
-  _reply_buffer[27] = 'X';
-  _reply_buffer[28] = 'E';
-  _reply_buffer[29] = 'S';
-  _reply_buffer[30] = 'P';
-  _reply_buffer[31] = 'D';
-  _reply_buffer[32] = 'M';
-  _reply_buffer[33] = 'X';
-  _reply_buffer[34] =  0;
-  _reply_buffer[44] = 'L';     // long name
-  _reply_buffer[45] = 'X';
-  _reply_buffer[46] = 'E';
-  _reply_buffer[47] = 'S';
-  _reply_buffer[48] = 'P';
-  _reply_buffer[49] = 'D';
-  _reply_buffer[50] = 'M';
-  _reply_buffer[51] = 'X';
-  _reply_buffer[52] =  0;
+  strcpy((char*)&_reply_buffer[26], _short_name);
+  strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[173] = 1;    // number of ports
   _reply_buffer[174] = 128;  // can output from network
   _reply_buffer[182] = 128;  //  good output... change if error

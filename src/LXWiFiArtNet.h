@@ -17,12 +17,16 @@
 #define ARTNET_BUFFER_MAX 530
 #define ARTNET_REPLY_SIZE 239
 #define ARTNET_ADDRESS_OFFSET 17
+#define ARTNET_SHORT_NAME_LENGTH 18
+#define ARTNET_LONG_NAME_LENGTH 64
 
 #define ARTNET_ART_POLL 0x2000
 #define ARTNET_ART_POLL_REPLY 0x2100
 #define ARTNET_ART_DMX 0x5000
 #define ARTNET_ART_ADDRESS 0x6000
 #define ARTNET_NOP 0
+
+typedef void (*ArtAddressRecvCallback)(void);
 
 /*!
 *  @class LXWiFiArtNet
@@ -152,11 +156,23 @@ class LXWiFiArtNet : public LXDMXWiFi {
  */ 
    uint16_t packetSize      ( void );
    
-    /*!
+/*!
  * @brief direct pointer to poll reply packet contents
  * @return uint8_t* to poll reply packet contents
  */ 
    uint8_t* replyData      ( void );
+   
+/*!
+ * @brief direct pointer to short name
+ * @return char* to short name 
+ */  
+   char* shortName();
+   
+/*!
+ * @brief direct pointer to short name
+ * @return char* to short name 
+ */  
+   char* longName();
 
  /*!
  * @brief read UDP packet
@@ -200,6 +216,13 @@ class LXWiFiArtNet : public LXDMXWiFi {
  */  
    void     send_art_poll_reply ( WiFiUDP wUDP );
    
+/*!
+ * @brief Function called when ArtAddress packet is received
+ * @discussion Sets a pointer to a function that is called
+ *             when an ArtAddress packet is received
+*/
+   void setArtAddressReceivedCallback(ArtAddressRecvCallback callback);
+   
   private:
 /*!
 * @brief array that holds contents of incoming or outgoing packet
@@ -228,6 +251,16 @@ class LXWiFiArtNet : public LXDMXWiFi {
 	static uint8_t _reply_buffer[ARTNET_REPLY_SIZE];
 	
 /*!
+* @brief string containing short name of node for poll reply
+*/	
+	char _short_name[ARTNET_SHORT_NAME_LENGTH];
+	
+/*!
+* @brief string containing long name of node for poll reply
+*/	
+	char _long_name[ARTNET_LONG_NAME_LENGTH];
+	
+/*!
 * @brief buffers that hold DMX data from source a, source b and HTP composite
 * @discussion data is read into _dmx_buffer_a or _dmx_buffer_b depending on the
 *             IP address of the sender, at the same time it is merged into _dmx_buffer_c.
@@ -254,6 +287,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	IPAddress _dmx_sender_a;
 /// second sender of an ArtDMX packet (3rd and subsequent senders ignored until cancelMerge)
   	IPAddress _dmx_sender_b;
+  	
+	/*!
+    * @brief Pointer to art address received callback function
+   */
+  	ArtAddressRecvCallback _artaddress_receive_callback;
 
 /*!
 * @brief checks packet for "Art-Net" header

@@ -25,12 +25,25 @@ sendDMX				KEYWORD2
 
 setSubnetUniverse		KEYWORD2
 sendDMX					KEYWORD2
-send_art_poll_reply	KEYWORD2
+
+replyData							KEYWORD2
+send_art_poll_reply				KEYWORD2
+shortName							KEYWORD2
+longName								KEYWORD2
+setArtAddressReceivedCallback	KEYWORD2
+
+DMXWiFiConfig				KEYWORD2
+ArtAddressRecvCallback	KEYWORD2
+
 
 #######################################
 # Constants
 #######################################
  
-DMX_MIN_SLOTS	LITERAL1
-DMX_MAX_SLOTS	LITERAL1
+DMX_MIN_SLOTS		LITERAL1
+DMX_MAX_SLOTS		LITERAL1
+DMX_UNIVERSE_SIZE	LITERAL1
 
+RESULT_NONE					LITERAL1
+RESULT_DMX_RECEIVED		LITERAL1
+RESULT_PACKET_COMPLETE	LITERAL1

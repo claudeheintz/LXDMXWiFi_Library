@@ -60,7 +60,8 @@ struct DMXWiFiConfig {
    uint8_t sacn_universe;   //should match multicast address
    uint8_t artnet_subnet;
    uint8_t artnet_universe;
-   uint8_t reserved[61];
+   uint8_t node_name[32];
+   uint8_t reserved[29];
 };
 
 #define ESPDMX_IDENT "ESP-DMX"
