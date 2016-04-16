@@ -49,7 +49,7 @@ struct DMXWiFiConfig {
    char    pwd[64];       // depends on security 8, 13, 8-63
    uint8_t wifi_mode;
    uint8_t protocol_mode;
-   uint8_t ap_chan;
+   uint8_t ap_chan;			//unimplemented
    uint32_t ap_address;
    uint32_t ap_gateway;		//141
    uint32_t ap_subnet;

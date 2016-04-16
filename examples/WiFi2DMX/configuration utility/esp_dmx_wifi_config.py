@@ -68,7 +68,6 @@ c10v = IntVar()
 
 sv_ssid = StringVar()
 sv_pwd = StringVar()
-sv_wfch = StringVar()
 sv_apip = StringVar()
 sv_apgw = StringVar()
 sv_apsn= StringVar()
@@ -163,8 +162,6 @@ def recvWiFiConfig(d,a):
          c7v.set(1)
          c8v.set(0)
          
-      global sv_wfch
-      sv_wfch.set(str(ord(d[139])))
       global sv_apip
       sv_apip.set(bytes2ipstr(d,140))
       global sv_apgw
@@ -257,8 +254,7 @@ def upload():
    global c7v
    spacket[138] = c3v.get() + 2*c5v.get() + 4*c7v.get()
    
-   global sv_wfch
-   spacket[139] = int(sv_wfch.get())
+   spacket[139] = 2 #not implemented
    global sv_apip
    ipstr2bytes(sv_apip.get(), spacket, 140)
    global sv_apgw
@@ -466,7 +462,7 @@ ep = Entry(gp, width=32, textvariable=sv_pwd)
 ep.pack(side="left")
 gp.pack(fill=X, side="top")
 
-ga = Frame(f, padx=100)
+ga = Frame(f, padx=100, pady=10)
 c1 = Checkbutton(ga, text="Access Point", width=14, variable=c1v, command=cb1_cmd)
 c1.pack(side="left")
 c2 = Checkbutton(ga, text="Station", width=14, variable=c2v, command=cb2_cmd)
@@ -493,13 +489,6 @@ c7.pack(side="left")
 c8 = Checkbutton(gd, text="Broadcast", width=14, variable=c8v, command=cb8_cmd)
 c8.pack(side="left")
 gd.pack(fill=X, side="top")
-
-g11 = Frame(f)
-hc = Label(g11, text="WiFi channel:", width=20, anchor="e")
-hc.pack(side="left")
-ec = Entry(g11, width=4, textvariable=sv_wfch)
-ec.pack(side="left")
-g11.pack(fill=X, side="top")
 
 g1 = Frame(f)
 h1 = Label(g1, text="ap address:", width=20, anchor="e")
