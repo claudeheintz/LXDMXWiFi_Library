@@ -51,7 +51,7 @@ struct DMXWiFiConfig {
    uint8_t protocol_mode;
    uint8_t ap_chan;			//unimplemented
    uint32_t ap_address;
-   uint32_t ap_gateway;		//141
+   uint32_t ap_gateway;		//140
    uint32_t ap_subnet;
    uint32_t sta_address;
    uint32_t sta_gateway;
@@ -61,7 +61,8 @@ struct DMXWiFiConfig {
    uint8_t artnet_subnet;
    uint8_t artnet_universe;
    uint8_t node_name[32];
-   uint8_t reserved[29];
+   uint32_t input_address;
+   uint8_t reserved[25];
 };
 
 #define ESPDMX_IDENT "ESP-DMX"
@@ -74,6 +75,9 @@ struct DMXWiFiConfig {
 #define SACN_MODE 1
 #define STATIC_MODE 2
 #define MULTICAST_MODE 4
+
+#define OUTPUT_FROM_NETWORK_MODE 0
+#define INPUT_TO_NETWORK_MODE 8
 
 /*!   
 *  @class LXDMXWiFi

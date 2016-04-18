@@ -23,6 +23,7 @@
     v2.0 - Added remote configuration with DMXWiFiConfig packets
            Configure by holding pin 16 low on power up to force access point mode.
            Use python script esp_dmx_wifi_config.py to examine & change protocol and connection settings
+    v2.1   Modified remote config to support DMX input (this example is output only)
 */
 /**************************************************************************/
 
@@ -42,7 +43,14 @@ struct DMXWiFiConfig* esp_config;
 // *** modify the following for setting up the default WiFi connection ***
 
 void initConfig(DMXWiFiConfig* cfptr) {
-  strncpy((char*)cfptr, ESPDMX_IDENT, sizeof(*esp_config)); //add ident and zero the rest
+//zero the complete config struct
+  uint8_t* p = (uint8_t*) esp_config;
+  uint8_t k;
+  for(k=0; k<DMXWiFiConfigSIZE; k++) {
+    p[k] = 0;
+  }
+  
+  strncpy((char*)cfptr, ESPDMX_IDENT, 8); //add ident
   strncpy(cfptr->ssid, "ESP-DMX-WiFi", 63);
   strncpy(cfptr->pwd, "********", 63);
   cfptr->wifi_mode = AP_MODE;                       // AP_MODE or STATION_MODE
@@ -59,12 +67,8 @@ void initConfig(DMXWiFiConfig* cfptr) {
   cfptr->sacn_universe   = 1;
   cfptr->artnet_universe = 0;
   cfptr->artnet_subnet   = 0;
-
   strcpy((char*)cfptr->node_name, "com.claudeheintzdesign.esp-dmx");
-  int i;
-  for (i=0; i<29; i++) {
-    cfptr->reserved[i] = 0;
-  }
+  cfptr->input_address = IPAddress(10,255,255,255);		// this example is output only
 }
 
 //remove password
@@ -236,7 +240,7 @@ void loop() {
         }
         esp_config->opcode = 0;               // reply packet opcode is data
         if (interface->packetSize() >= 203) {
-          for(k=171; k<232; k++) {
+          for(k=171; k<interface->packetSize(); k++) {
             p[k] = interface->packetBuffer()[k]; //copy node_name to config
           }
           strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)&interface->packetBuffer()[171]);
