@@ -162,7 +162,7 @@ char* LXWiFiArtNet::longName( void ) {
 	return &_long_name[0];
 }
 
-uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
+uint8_t LXWiFiArtNet::readDMXPacket ( UDP* wUDP ) {
 	_packetSize = 0;
    uint16_t opcode = readArtNetPacket(wUDP);
    if ( opcode == ARTNET_ART_DMX ) {
@@ -171,7 +171,7 @@ uint8_t LXWiFiArtNet::readDMXPacket ( WiFiUDP wUDP ) {
    return RESULT_NONE;
 }
 
-uint8_t LXWiFiArtNet::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 	uint16_t opcode = readArtNetPacketContents(wUDP, packetSize);
    if ( opcode == ARTNET_ART_DMX ) {
    	return RESULT_DMX_RECEIVED;
@@ -191,18 +191,18 @@ uint8_t LXWiFiArtNet::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize 
   Packet size checks that packet is >= expected size to allow zero termination or padding
 */
 
-uint16_t LXWiFiArtNet::readArtNetPacket ( WiFiUDP wUDP ) {
-	uint16_t packetSize = wUDP.parsePacket();
+uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
+	uint16_t packetSize = wUDP->parsePacket();
    uint16_t opcode = ARTNET_NOP;
    if ( packetSize ) {
-      _packetSize = wUDP.read(_packet_buffer, ARTNET_BUFFER_MAX);
+      _packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);
       opcode = readArtNetPacketContents(wUDP, _packetSize);
    }
    return opcode;
 }
       
 
-uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize ) {
    uint16_t opcode = ARTNET_NOP;
 
 	_dmx_slots = 0;
@@ -220,12 +220,12 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetS
 				slots += _packet_buffer[16] << 8;
 				if ( packetSize >= slots ) {
 					if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
-						_dmx_sender_a = wUDP.remoteIP();
+						_dmx_sender_a = wUDP->remoteIP();
 						for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
 							_dmx_buffer_b[j] = 0;	//insure clear buffer 'b' so cancel merge works properly
 						}
 					}
-					if ( _dmx_sender_a == wUDP.remoteIP() ) {
+					if ( _dmx_sender_a == wUDP->remoteIP() ) {
 						_dmx_slots_a  = slots;
 						if ( _dmx_slots_a > _dmx_slots_b ) {
 							_dmx_slots = _dmx_slots_a;
@@ -245,9 +245,9 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetS
 						}
 					} else { // matched sender a
 						if ( (uint32_t)_dmx_sender_b == 0 ) {		//if first sender, remember address
-							_dmx_sender_b = wUDP.remoteIP();
+							_dmx_sender_b = wUDP->remoteIP();
 						}
-						if ( _dmx_sender_b == wUDP.remoteIP() ) {
+						if ( _dmx_sender_b == wUDP->remoteIP() ) {
 						  _dmx_slots_b  = slots;
 							if ( _dmx_slots_a > _dmx_slots_b ) {
 								_dmx_slots = _dmx_slots_a;
@@ -288,7 +288,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetS
    return opcode;
 }
 
-void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
+void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
    strcpy((char*)_packet_buffer, "Art-Net");
    _packet_buffer[8] = 0;        //op code lo-hi
    _packet_buffer[9] = 0x50;
@@ -307,9 +307,9 @@ void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceA
    _packet_buffer[17] = _dmx_slots & 0xFF;
    //assume dmx data has been set
   
-   wUDP.beginPacket(to_ip, ARTNET_PORT);
-   wUDP.write(_packet_buffer, _dmx_slots+18);
-   wUDP.endPacket();
+   wUDP->beginPacket(to_ip, ARTNET_PORT);
+   wUDP->write(_packet_buffer, _dmx_slots+18);
+   wUDP->endPacket();
 }
 
 /*
@@ -317,18 +317,18 @@ void LXWiFiArtNet::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceA
   ( remoteIP is set when parsePacket() is called )
   includes my_ip as address of this node
 */
-void LXWiFiArtNet::send_art_poll_reply( WiFiUDP wUDP ) {
+void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[190] = _universe;
   
   IPAddress a = _broadcast_address;
   if ( a == INADDR_NONE ) {
-    a = wUDP.remoteIP();   // reply directly if no broadcast address is supplied
+    a = wUDP->remoteIP();   // reply directly if no broadcast address is supplied
   }
-  wUDP.beginPacket(a, ARTNET_PORT);
-  wUDP.write(_reply_buffer, ARTNET_REPLY_SIZE);
-  wUDP.endPacket();
+  wUDP->beginPacket(a, ARTNET_PORT);
+  wUDP->write(_reply_buffer, ARTNET_REPLY_SIZE);
+  wUDP->endPacket();
 }
 
 void LXWiFiArtNet::setArtAddressReceivedCallback(ArtAddressRecvCallback callback) {

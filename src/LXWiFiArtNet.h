@@ -9,8 +9,6 @@
 #define LXWIFIARTNET_H
 
 #include <Arduino.h>
-#include <WiFiUdp.h>
-#include <inttypes.h>
 #include "LXDMXWiFi.h"
 
 #define ARTNET_PORT 0x1936
@@ -179,42 +177,42 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param wUDP WiFiUDP object to be used for getting UDP packet
  * @return 1 if packet contains dmx
  */    
-   uint8_t  readDMXPacket       ( WiFiUDP wUDP );
+   uint8_t  readDMXPacket       ( UDP* wUDP );
  /*!
  * @brief read contents of packet from _packet_buffer
  * @discussion _packet_buffer should already contain packet payload when this is called
- * @param wUDP WiFiUDP
+ * @param wUDP pointer to UDP object
  * @param packetSize size of received packet
  * @return 1 if packet contains dmx
  */      
-   uint8_t readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
+   uint8_t readDMXPacketContents ( UDP* wUDP, uint16_t packetSize );
  /*!
  * @brief process packet, reading it into _packet_buffer
- * @param wUDP WiFiUDP (used for Poll Reply if applicable)
+ * @param wUDP pointer to UDP object (used for Poll Reply if applicable)
  * @return Art-Net opcode of packet
  */
-   uint16_t readArtNetPacket    ( WiFiUDP wUDP );  
+   uint16_t readArtNetPacket    ( UDP* wUDP );  
  /*!
  * @brief read contents of packet from _packet_buffer
- * @param wUDP WiFiUDP (used for Poll Reply if applicable)
+ * @param wUDP pointer to UDP object (used for Poll Reply if applicable)
  * @param packetSize size of received packet
  * @return Art-Net opcode of packet
  */   
-   uint16_t readArtNetPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
+   uint16_t readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize );
  /*!
  * @brief send Art-Net ArtDMX packet for dmx output from network
- * @param wUDP WiFiUDP object to be used for sending UDP packet
+ * @param wUDP pointer to UDP object to be used for sending UDP packet
  * @param to_ip target address
  * @param interfaceAddr multicast unused for Art-Net
  */    
-   void     sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   void     sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
  /*!
  * @brief send ArtPoll Reply packet for dmx output from network
  * @discussion If broadcast address is defined by passing subnet to constructor, reply is broadcast
  *             Otherwise, reply is unicast to remoteIP belonging to the sender of the poll
- * @param wUDP WiFiUDP object to be used for sending UDP packet
+ * @param wUDP pointer to UDP object to be used for sending UDP packet
  */  
-   void     send_art_poll_reply ( WiFiUDP wUDP );
+   void     send_art_poll_reply ( UDP* wUDP );
    
 /*!
  * @brief Function called when ArtAddress packet is received

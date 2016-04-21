@@ -32,9 +32,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LXDMXWIFI_H
 #define LXDMXWIFI_H
 
+#include <Udp.h>
 #include <Arduino.h>
-#include <WiFiUdp.h>
 #include <inttypes.h>
+
+//Comment out the following two lines to use this library with WiFi101
+#include <WiFiUdp.h>
+#define _UDP_SUPPORTS_BEGINMULTICASTPACKET 1
 
 #define DMX_UNIVERSE_SIZE 512
 
@@ -164,26 +168,27 @@ class LXDMXWiFi {
 
  /*!
  * @brief read UDP packet
+ * @param wUDP pointer to UDP object
  * @return 1 if packet contains dmx
  */   
-   virtual uint8_t readDMXPacket ( WiFiUDP wUDP );
+   virtual uint8_t readDMXPacket ( UDP* pUDP );
    
  /*!
  * @brief read contents of packet from _packet_buffer
  * @discussion _packet_buffer should already contain packet payload when this is called
- * @param wUDP WiFiUDP
+ * @param wUDP pointer to UDP object
  * @param packetSize size of received packet
  * @return 1 if packet contains dmx
  */      
-   virtual uint8_t readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize );
+   virtual uint8_t readDMXPacketContents ( UDP* wUDP, uint16_t packetSize );
    
  /*!
  * @brief send packet for dmx output from network
- * @param wUDP WiFiUDP object to be used for sending UDP packet
+ * @param wUDP UDP* object to be used for sending UDP packet
  * @param to_ip target address
  * @param interfaceAddr != 0 for multicast
  */  
-   virtual void    sendDMX       ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   virtual void    sendDMX       ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
 };
 
 #endif // ifndef LXDMXWIFI_H

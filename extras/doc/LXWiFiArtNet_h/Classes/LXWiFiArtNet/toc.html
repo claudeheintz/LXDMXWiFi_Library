@@ -35,20 +35,25 @@ marginheight="0">
 <ul class="tocSubEntryList"><!-- public --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/dmxData/uint8_t*/()" target="_top">dmxData</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/dmxPort/uint16_t/()" target="_top">dmxPort</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/getSlot/uint8_t/(int)" target="_top">getSlot</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/longName/char*/()" target="_top">longName</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/numberOfSlots/int/()" target="_top">numberOfSlots</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacket/uint16_t/(WiFiUDP)" target="_top">readArtNetPacket</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(WiFiUDP,uint16_t)" target="_top">readArtNetPacketContents</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacket/uint8_t/(WiFiUDP)" target="_top">readDMXPacket</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)" target="_top">readDMXPacketContents</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/packetBuffer/uint8_t*/()" target="_top">packetBuffer</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/packetSize/uint16_t/()" target="_top">packetSize</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacket/uint16_t/(UDP*)" target="_top">readArtNetPacket</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readArtNetPacketContents/uint16_t/(UDP*,uint16_t)" target="_top">readArtNetPacketContents</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacket/uint8_t/(UDP*)" target="_top">readDMXPacket</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/readDMXPacketContents/uint8_t/(UDP*,uint16_t)" target="_top">readDMXPacketContents</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/replyData/uint8_t*/()" target="_top">replyData</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(WiFiUDP)" target="_top">send_art_poll_reply</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/sendDMX/void/(WiFiUDP,IPAddress,IPAddress)" target="_top">sendDMX</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/send_art_poll_reply/void/(UDP*)" target="_top">send_art_poll_reply</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/sendDMX/void/(UDP*,IPAddress,IPAddress)" target="_top">sendDMX</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setArtAddressReceivedCallback/void/(ArtAddressRecvCallback)" target="_top">setArtAddressReceivedCallback</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setNumberOfSlots/void/(int)" target="_top">setNumberOfSlots</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setSlot/void/(int,uint8_t)" target="_top">setSlot</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetAddress/void/(uint8_t)" target="_top">setSubnetAddress</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setSubnetUniverse/void/(uint8_t,uint8_t)" target="_top">setSubnetUniverse</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setUniverse/void/(uint8_t)" target="_top">setUniverse</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/setUniverseAddress/void/(uint8_t)" target="_top">setUniverseAddress</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/shortName/char*/()" target="_top">shortName</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXWiFiArtNet/universe/uint8_t/()" target="_top">universe</a></li>
 </ul><span class='hd_tocAccessSpace'>&nbsp;<br></span>
 <span class="hd_tocAccess">Protected</span>
@@ -63,10 +68,14 @@ marginheight="0">
 </table>
 <div toc="collapsible" class="collapsible" >
 <span class="hd_tocAccess">Protected</span>
-<ul class="tocSubEntryList"><!-- private --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_dmx_buffer_a" target="_top">_dmx_buffer_a</a></li>
+<ul class="tocSubEntryList"><!-- private --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_artaddress_receive_callback" target="_top">_artaddress_receive_callback</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_dmx_buffer_a" target="_top">_dmx_buffer_a</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_long_name" target="_top">_long_name</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_owns_buffer" target="_top">_owns_buffer</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_packet_buffer" target="_top">_packet_buffer</a></li>
 <li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_reply_buffer" target="_top">_reply_buffer</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_reply_buffer_DONTLINK_0" target="_top">_reply_buffer</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXWiFiArtNet/_short_name" target="_top">_short_name</a></li>
 </ul></div></div>
 <hr class="tocSeparator">
 <h4 class="tocSubheading">Other Reference</h4>

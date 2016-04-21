@@ -289,22 +289,28 @@ of DMX data from the network.  It does not support merge and will only accept
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/LXWiFiSACN//(uint8_t*)" target="_top">LXWiFiSACN(uint8_t *)</a></tt></dt>
 <dd><p>constructor for LXWiFiSACN with external buffer fro UDP packets
 </dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer/uint8_t*/()" target="_top">packetBuffer</a></tt></dt>
+<dd><p>direct pointer to packet buffer uint8_t[]
+</dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/packetSize/uint16_t/()" target="_top">packetSize</a></tt></dt>
+<dd><p>size of last packet received with readDMXPacket
+</dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/parse_framing_layer/uint16_t/(uint16_t)" target="_top">parse_framing_layer</a></tt></dt>
 <dd><p>checks the buffer for the sACN header and root layer size
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/parse_root_layer/uint16_t/(uint16_t)" target="_top">parse_root_layer</a></tt></dt>
 <dd><p>checks the buffer for the sACN header and root layer size
 </dd>
-<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(WiFiUDP)" target="_top">readDMXPacket</a></tt></dt>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(UDP*)" target="_top">readDMXPacket</a></tt></dt>
 <dd><p>read UDP packet
 </dd>
-<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)" target="_top">readDMXPacketContents</a></tt></dt>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t)" target="_top">readDMXPacketContents</a></tt></dt>
 <dd><p>read contents of packet from _packet_buffer
 </dd>
-<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(WiFiUDP)" target="_top">readSACNPacket</a></tt></dt>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(UDP*)" target="_top">readSACNPacket</a></tt></dt>
 <dd><p>process packet, reading it into _packet_buffer
 </dd>
-<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(WiFiUDP,IPAddress,IPAddress)" target="_top">sendDMX</a></tt></dt>
+<dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(UDP*,IPAddress,IPAddress)" target="_top">sendDMX</a></tt></dt>
 <dd><p>send sACN E1.31 packet for dmx output from network
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/instm/LXWiFiSACN/setNumberOfSlots/void/(int)" target="_top">setNumberOfSlots</a></tt></dt>
@@ -409,7 +415,31 @@ of DMX data from the network.  It does not support merge and will only accept
 <code>external</code></dt><dd><p>packet buffer</dd>
 </dl>
 </div>
-<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/parse_framing_layer/uint16_t/(uint16_t);   name=LXWiFiSACN::parse_framing_layer -->
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer/uint8_t*/();   name=LXWiFiSACN::packetBuffer -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer/uint8_t*/()"></a>
+<h3><a name="packetBuffer">packetBuffer</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer/uint8_t*/();name=start --><!-- begin abstract --><p>direct pointer to packet buffer uint8_t[]
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer/uint8_t*/();name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --><span class="type">*</span> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/packetBuffer //apple_ref/cpp/clm/LXWiFiSACN/packetBuffer //apple_ref/cpp/intfcm/LXWiFiSACN/packetBuffer //apple_ref/cpp/intfm/LXWiFiSACN/packetBuffer //apple_ref/cpp/func/packetBuffer //apple_ref/cpp/ftmplt/LXWiFiSACN/packetBuffer //apple_ref/cpp/defn/packetBuffer //apple_ref/cpp/macro/packetBuffer //apple_ref/doc/anysymbol/packetBuffer" machineGenerated="true" --><span class="function">packetBuffer</span><!-- /a --> (
+    <span class="param">void</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>uint8_t* to packet buffer
+
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/packetSize/uint16_t/();   name=LXWiFiSACN::packetSize -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/packetSize/uint16_t/()"></a>
+<h3><a name="packetSize">packetSize</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/packetSize/uint16_t/();name=start --><!-- begin abstract --><p>size of last packet received with readDMXPacket
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/packetSize/uint16_t/();name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>public</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/packetSize //apple_ref/cpp/clm/LXWiFiSACN/packetSize //apple_ref/cpp/intfcm/LXWiFiSACN/packetSize //apple_ref/cpp/intfm/LXWiFiSACN/packetSize //apple_ref/cpp/func/packetSize //apple_ref/cpp/ftmplt/LXWiFiSACN/packetSize //apple_ref/cpp/defn/packetSize //apple_ref/cpp/macro/packetSize //apple_ref/doc/anysymbol/packetSize" machineGenerated="true" --><span class="function">packetSize</span><!-- /a --> (
+    <span class="param">void</span> ); </pre>
+</div>
+<h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>uint16_t last packet size
+
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/parse_framing_layer/uint16_t/(uint16_t);   name=LXWiFiSACN::parse_framing_layer -->
 <a name="//apple_ref/cpp/instm/LXWiFiSACN/parse_framing_layer/uint16_t/(uint16_t)"></a>
 <h3><a name="parse_framing_layer">parse_framing_layer</a></h3>
 <hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/parse_framing_layer/uint16_t/(uint16_t);name=start --><!-- begin abstract --><p>checks the buffer for the sACN header and root layer size
@@ -429,35 +459,35 @@ of DMX data from the network.  It does not support merge and will only accept
 <br><!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/parse_root_layer //apple_ref/cpp/clm/LXWiFiSACN/parse_root_layer //apple_ref/cpp/intfcm/LXWiFiSACN/parse_root_layer //apple_ref/cpp/intfm/LXWiFiSACN/parse_root_layer //apple_ref/cpp/func/parse_root_layer //apple_ref/cpp/ftmplt/LXWiFiSACN/parse_root_layer //apple_ref/cpp/defn/parse_root_layer //apple_ref/cpp/macro/parse_root_layer //apple_ref/doc/anysymbol/parse_root_layer" machineGenerated="true" --><span class="function">parse_root_layer</span><!-- /a --> (
     <!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <span class="param">size</span> ); </pre>
 </div>
-<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(WiFiUDP);   name=LXWiFiSACN::readDMXPacket -->
-<a name="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(WiFiUDP)"></a>
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(UDP*);   name=LXWiFiSACN::readDMXPacket -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(UDP*)"></a>
 <h3><a name="readDMXPacket">readDMXPacket</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(WiFiUDP);name=start --><!-- begin abstract --><p>read UDP packet
-<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(WiFiUDP);name=end --></p>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(UDP*);name=start --><!-- begin abstract --><p>read UDP packet
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket/uint8_t/(UDP*);name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>public</tt>
 <br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacket //apple_ref/cpp/clm/LXWiFiSACN/readDMXPacket //apple_ref/cpp/intfcm/LXWiFiSACN/readDMXPacket //apple_ref/cpp/intfm/LXWiFiSACN/readDMXPacket //apple_ref/cpp/func/readDMXPacket //apple_ref/cpp/ftmplt/LXWiFiSACN/readDMXPacket //apple_ref/cpp/defn/readDMXPacket //apple_ref/cpp/macro/readDMXPacket //apple_ref/doc/anysymbol/readDMXPacket" machineGenerated="true" --><span class="function">readDMXPacket</span><!-- /a --> (
-    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span> ); </pre>
+    <!-- a logicalPath="//apple_ref/cpp/cl/UDP //apple_ref/cpp/tdef/UDP //apple_ref/cpp/tag/UDP //apple_ref/cpp/struct/UDP //apple_ref/cpp/intf/UDP //apple_ref/doc/anysymbol/UDP" machineGenerated="true" --><span class="type">UDP</span><!-- /a --> <span class="type">*</span><span class="param">wUDP</span> ); </pre>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
 <div class='param_indent'>
 <dl>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacket/wUDP;   name=readDMXPacket::wUDP -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacket/wUDP"></a>
-<code>wUDP</code></dt><dd><p>EthernetUDP object to be used for getting UDP packet</dd>
+<code>wUDP</code></dt><dd><p>pointer to UDP object</dd>
 </dl>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
 
-<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);   name=LXWiFiSACN::readDMXPacketContents -->
-<a name="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t)"></a>
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t);   name=LXWiFiSACN::readDMXPacketContents -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t)"></a>
 <h3><a name="readDMXPacketContents">readDMXPacketContents</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><!-- begin abstract --><p>read contents of packet from _packet_buffer
-<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --></p>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t);name=start --><!-- begin abstract --><p>read contents of packet from _packet_buffer
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t);name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>public</tt>
 <br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents //apple_ref/cpp/clm/LXWiFiSACN/readDMXPacketContents //apple_ref/cpp/intfcm/LXWiFiSACN/readDMXPacketContents //apple_ref/cpp/intfm/LXWiFiSACN/readDMXPacketContents //apple_ref/cpp/func/readDMXPacketContents //apple_ref/cpp/ftmplt/LXWiFiSACN/readDMXPacketContents //apple_ref/cpp/defn/readDMXPacketContents //apple_ref/cpp/macro/readDMXPacketContents //apple_ref/doc/anysymbol/readDMXPacketContents" machineGenerated="true" --><span class="function">readDMXPacketContents</span><!-- /a --> (
-    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/UDP //apple_ref/cpp/tdef/UDP //apple_ref/cpp/tag/UDP //apple_ref/cpp/struct/UDP //apple_ref/cpp/intf/UDP //apple_ref/doc/anysymbol/UDP" machineGenerated="true" --><span class="type">UDP</span><!-- /a --> <span class="type">*</span><span class="param">wUDP</span>,
     <!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <span class="param">packetSize</span> ); </pre>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
@@ -465,7 +495,7 @@ of DMX data from the network.  It does not support merge and will only accept
 <dl>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacketContents/wUDP;   name=readDMXPacketContents::wUDP -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacketContents/wUDP"></a>
-<code>wUDP</code></dt><dd><p>WiFiUDP</dd>
+<code>wUDP</code></dt><dd><p>pointer to UDP object</dd>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacketContents/packetSize;   name=readDMXPacketContents::packetSize -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/readDMXPacketContents/packetSize"></a>
 <code>packetSize</code></dt><dd><p>size of received packet</dd>
@@ -474,37 +504,37 @@ of DMX data from the network.  It does not support merge and will only accept
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>1 if packet contains dmx
 
 <!-- end return value --></p><h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
-<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=start --><p>_packet_buffer should already contain packet payload when this is called
-<!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(WiFiUDP,uint16_t);name=end --><!-- end discussion -->
-<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(WiFiUDP);   name=LXWiFiSACN::readSACNPacket -->
-<a name="//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(WiFiUDP)"></a>
+<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t);name=start --><p>_packet_buffer should already contain packet payload when this is called
+<!-- headerDoc=discussion;uid=//apple_ref/cpp/instm/LXWiFiSACN/readDMXPacketContents/uint8_t/(UDP*,uint16_t);name=end --><!-- end discussion -->
+<hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(UDP*);   name=LXWiFiSACN::readSACNPacket -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(UDP*)"></a>
 <h3><a name="readSACNPacket">readSACNPacket</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(WiFiUDP);name=start --><!-- begin abstract --><p>process packet, reading it into _packet_buffer
-<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(WiFiUDP);name=end --></p>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(UDP*);name=start --><!-- begin abstract --><p>process packet, reading it into _packet_buffer
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket/uint16_t/(UDP*);name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>public</tt>
 <br><!-- a logicalPath="//apple_ref/cpp/cl/uint16_t //apple_ref/cpp/tdef/uint16_t //apple_ref/cpp/tag/uint16_t //apple_ref/cpp/struct/uint16_t //apple_ref/cpp/intf/uint16_t //apple_ref/doc/anysymbol/uint16_t" machineGenerated="true" --><span class="type">uint16_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/readSACNPacket //apple_ref/cpp/clm/LXWiFiSACN/readSACNPacket //apple_ref/cpp/intfcm/LXWiFiSACN/readSACNPacket //apple_ref/cpp/intfm/LXWiFiSACN/readSACNPacket //apple_ref/cpp/func/readSACNPacket //apple_ref/cpp/ftmplt/LXWiFiSACN/readSACNPacket //apple_ref/cpp/defn/readSACNPacket //apple_ref/cpp/macro/readSACNPacket //apple_ref/doc/anysymbol/readSACNPacket" machineGenerated="true" --><span class="function">readSACNPacket</span><!-- /a --> (
-    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span> ); </pre>
+    <!-- a logicalPath="//apple_ref/cpp/cl/UDP //apple_ref/cpp/tdef/UDP //apple_ref/cpp/tag/UDP //apple_ref/cpp/struct/UDP //apple_ref/cpp/intf/UDP //apple_ref/doc/anysymbol/UDP" machineGenerated="true" --><span class="type">UDP</span><!-- /a --> <span class="type">*</span><span class="param">wUDP</span> ); </pre>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Parameters</font></h5>
 <div class='param_indent'>
 <dl>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/readSACNPacket/wUDP;   name=readSACNPacket::wUDP -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/readSACNPacket/wUDP"></a>
-<code>wUDP</code></dt><dd><p>EthernetUDP</dd>
+<code>wUDP</code></dt><dd><p>pointer to UDP object</dd>
 </dl>
 </div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Return Value</font></h5><p><!-- begin return value --><p>number of dmx slots read or 0 if not dmx/invalid
 
-<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);   name=LXWiFiSACN::sendDMX -->
-<a name="//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(WiFiUDP,IPAddress,IPAddress)"></a>
+<!-- end return value --></p><hr class="betweenAPIEntries"><!-- headerDoc=instm;  uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(UDP*,IPAddress,IPAddress);   name=LXWiFiSACN::sendDMX -->
+<a name="//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(UDP*,IPAddress,IPAddress)"></a>
 <h3><a name="sendDMX">sendDMX</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);name=start --><!-- begin abstract --><p>send sACN E1.31 packet for dmx output from network
-<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(WiFiUDP,IPAddress,IPAddress);name=end --></p>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(UDP*,IPAddress,IPAddress);name=start --><!-- begin abstract --><p>send sACN E1.31 packet for dmx output from network
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/instm/LXWiFiSACN/sendDMX/void/(UDP*,IPAddress,IPAddress);name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>public</tt>
 <br><!-- a logicalPath="//apple_ref/cpp/cl/void //apple_ref/cpp/tdef/void //apple_ref/cpp/tag/void //apple_ref/cpp/struct/void //apple_ref/cpp/intf/void //apple_ref/doc/anysymbol/void" machineGenerated="true" --><span class="type">void</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/instm/LXWiFiSACN/sendDMX //apple_ref/cpp/clm/LXWiFiSACN/sendDMX //apple_ref/cpp/intfcm/LXWiFiSACN/sendDMX //apple_ref/cpp/intfm/LXWiFiSACN/sendDMX //apple_ref/cpp/func/sendDMX //apple_ref/cpp/ftmplt/LXWiFiSACN/sendDMX //apple_ref/cpp/defn/sendDMX //apple_ref/cpp/macro/sendDMX //apple_ref/doc/anysymbol/sendDMX" machineGenerated="true" --><span class="function">sendDMX</span><!-- /a --> (
-    <!-- a logicalPath="//apple_ref/cpp/cl/WiFiUDP //apple_ref/cpp/tdef/WiFiUDP //apple_ref/cpp/tag/WiFiUDP //apple_ref/cpp/struct/WiFiUDP //apple_ref/cpp/intf/WiFiUDP //apple_ref/doc/anysymbol/WiFiUDP" machineGenerated="true" --><span class="type">WiFiUDP</span><!-- /a --> <span class="param">wUDP</span>,
+    <!-- a logicalPath="//apple_ref/cpp/cl/UDP //apple_ref/cpp/tdef/UDP //apple_ref/cpp/tag/UDP //apple_ref/cpp/struct/UDP //apple_ref/cpp/intf/UDP //apple_ref/doc/anysymbol/UDP" machineGenerated="true" --><span class="type">UDP</span><!-- /a --> <span class="type">*</span><span class="param">wUDP</span>,
     <!-- a logicalPath="//apple_ref/cpp/cl/IPAddress //apple_ref/cpp/tdef/IPAddress //apple_ref/cpp/tag/IPAddress //apple_ref/cpp/struct/IPAddress //apple_ref/cpp/intf/IPAddress //apple_ref/doc/anysymbol/IPAddress" machineGenerated="true" --><span class="type">IPAddress</span><!-- /a --> <span class="param">to_ip</span>,
     <!-- a logicalPath="//apple_ref/cpp/cl/IPAddress //apple_ref/cpp/tdef/IPAddress //apple_ref/cpp/tag/IPAddress //apple_ref/cpp/struct/IPAddress //apple_ref/cpp/intf/IPAddress //apple_ref/doc/anysymbol/IPAddress" machineGenerated="true" --><span class="type">IPAddress</span><!-- /a --> <span class="param">interfaceAddr</span> ); </pre>
 </div>
@@ -513,7 +543,7 @@ of DMX data from the network.  It does not support merge and will only accept
 <dl>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/sendDMX/wUDP;   name=sendDMX::wUDP -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/sendDMX/wUDP"></a>
-<code>wUDP</code></dt><dd><p>EthernetUDP object to be used for sending UDP packet</dd>
+<code>wUDP</code></dt><dd><p>pointer to UDP object to be used to send packet</dd>
 <dt><!-- headerDoc=functionparam;  uid=//apple_ref/doc/functionparam/LXWiFiSACN/sendDMX/to_ip;   name=sendDMX::to_ip -->
 <a name="//apple_ref/doc/functionparam/LXWiFiSACN/sendDMX/to_ip"></a>
 <code>to_ip</code></dt><dd><p>target address</dd>
@@ -646,6 +676,9 @@ of DMX data from the network.  It does not support merge and will only accept
 <h2 class="h2tight">Member Data</h2>
 <dl>
 <dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a" target="_top">_dmx_buffer_a</a></tt></dt>
+<dd><p>size of last packet that was read
+</dd>
+<dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0" target="_top">_dmx_buffer_a</a></tt></dt>
 <dd><p>buffers that hold DMX data from source a, source b and HTP composite
 </dd>
 <dt><tt><a href="index.html#//apple_ref/cpp/data/LXWiFiSACN/_owns_buffer" target="_top">_owns_buffer</a></tt></dt>
@@ -658,16 +691,25 @@ of DMX data from the network.  It does not support merge and will only accept
 <hr class="betweenAPIEntries"><!-- headerDoc=data;  uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;   name=LXWiFiSACN::_dmx_buffer_a -->
 <a name="//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a"></a>
 <h3><a name="_dmx_buffer_a">_dmx_buffer_a</a></h3>
-<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;name=start --><!-- begin abstract --><p>buffers that hold DMX data from source a, source b and HTP composite
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;name=start --><!-- begin abstract --><p>size of last packet that was read
 <!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;name=end --></p>
 <div class='declaration_indent'>
 <pre><tt>private</tt>
 <br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/cl/_dmx_buffer_a //apple_ref/cpp/tdef/_dmx_buffer_a //apple_ref/cpp/tag/_dmx_buffer_a //apple_ref/cpp/struct/_dmx_buffer_a //apple_ref/cpp/intf/_dmx_buffer_a //apple_ref/doc/anysymbol/_dmx_buffer_a" machineGenerated="true" --><span class="type">_dmx_buffer_a</span><!-- /a -->[<!-- a logicalPath="//apple_ref/cpp/cl/DMX_UNIVERSE_SIZE //apple_ref/cpp/tdef/DMX_UNIVERSE_SIZE //apple_ref/cpp/tag/DMX_UNIVERSE_SIZE //apple_ref/cpp/struct/DMX_UNIVERSE_SIZE //apple_ref/cpp/intf/DMX_UNIVERSE_SIZE //apple_ref/doc/anysymbol/DMX_UNIVERSE_SIZE" machineGenerated="true" --><span class="type">DMX_UNIVERSE_SIZE</span><!-- /a -->+<span class="number">1</span>]; </pre>
 </div>
+<hr class="betweenAPIEntries"><!-- headerDoc=data;  uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0;   name=LXWiFiSACN::_dmx_buffer_a -->
+<a name="//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0"></a>
+<h3><a name="_dmx_buffer_a">_dmx_buffer_a</a></h3>
+<hr class="afterName"><p><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0;name=start --><!-- begin abstract --><p>buffers that hold DMX data from source a, source b and HTP composite
+<!-- end abstract --><!-- headerDoc=abstract;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0;name=end --></p>
+<div class='declaration_indent'>
+<pre><tt>private</tt>
+<br><!-- a logicalPath="//apple_ref/cpp/cl/uint8_t //apple_ref/cpp/tdef/uint8_t //apple_ref/cpp/tag/uint8_t //apple_ref/cpp/struct/uint8_t //apple_ref/cpp/intf/uint8_t //apple_ref/doc/anysymbol/uint8_t" machineGenerated="true" --><span class="type">uint8_t</span><!-- /a --> <!-- a logicalPath="//apple_ref/cpp/cl/_dmx_buffer_a //apple_ref/cpp/tdef/_dmx_buffer_a //apple_ref/cpp/tag/_dmx_buffer_a //apple_ref/cpp/struct/_dmx_buffer_a //apple_ref/cpp/intf/_dmx_buffer_a //apple_ref/doc/anysymbol/_dmx_buffer_a" machineGenerated="true" --><span class="type">_dmx_buffer_a</span><!-- /a -->[<!-- a logicalPath="//apple_ref/cpp/cl/DMX_UNIVERSE_SIZE //apple_ref/cpp/tdef/DMX_UNIVERSE_SIZE //apple_ref/cpp/tag/DMX_UNIVERSE_SIZE //apple_ref/cpp/struct/DMX_UNIVERSE_SIZE //apple_ref/cpp/intf/DMX_UNIVERSE_SIZE //apple_ref/doc/anysymbol/DMX_UNIVERSE_SIZE" machineGenerated="true" --><span class="type">DMX_UNIVERSE_SIZE</span><!-- /a -->+<span class="number">1</span>]; </pre>
+</div>
 <h5 class="tight"><font face="Lucida Grande,Helvetica,Arial">Discussion</font></h5>
-<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;name=start --><p>data is read into _dmx_buffer_a or _dmx_buffer_b depending on the
+<!-- begin discussion --><!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0;name=start --><p>data is read into _dmx_buffer_a or _dmx_buffer_b depending on the
 IP address of the sender, at the same time it is merged into _dmx_buffer_c.
-<!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a;name=end --><!-- end discussion -->
+<!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiSACN/_dmx_buffer_a_DONTLINK_0;name=end --><!-- end discussion -->
 <hr class="betweenAPIEntries"><!-- headerDoc=data;  uid=//apple_ref/cpp/data/LXWiFiSACN/_owns_buffer;   name=LXWiFiSACN::_owns_buffer -->
 <a name="//apple_ref/cpp/data/LXWiFiSACN/_owns_buffer"></a>
 <h3><a name="_owns_buffer">_owns_buffer</a></h3>
@@ -693,7 +735,7 @@ at the same time it is merged HTP into _dmx_buffer_c
 DMX data to be sent is written directly to _packet_buffer
 <!-- headerDoc=discussion;uid=//apple_ref/cpp/data/LXWiFiSACN/_packet_buffer;name=end --><!-- end discussion -->
 <p class="gapBeforeFooter">&nbsp;</p><hr class="afterFooter"><div class="hd_copyright_and_timestamp">
-<p class="hd_timestamp">Last Updated: Monday, January 25, 2016
+<p class="hd_timestamp">Last Updated: Thursday, April 21, 2016
 </p></div>
 </td></tr></table>
 </body></html>

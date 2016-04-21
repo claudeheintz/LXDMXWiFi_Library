@@ -72,7 +72,7 @@ void blinkLED() {
   
   It then starts listening on the appropriate UDP port.
   
-  And, it starts the dmx_driver object sending serial DMX via the UART1 TX pin.
+  And, it starts the ESP8266DMX object sending serial DMX via the UART1 TX pin.
   (see the LXESP8266DMX library documentation for driver details)
 
 *************************************************************************/
@@ -137,7 +137,7 @@ void setup() {
 
   //announce presence via Art-Net Poll Reply (only advertises one universe)
   if ( ! use_sacn ) {
-     ((LXWiFiArtNet*)interface)->send_art_poll_reply(wUDP);
+     ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
   }
 
   ESP8266DMX.startOutput();
@@ -160,7 +160,7 @@ void loop() {
   uint16_t packetSize = wUDP.parsePacket();
   if ( packetSize ) {
   	  packetSize = wUDP.read(packetBuffer, SACN_BUFFER_MAX);
-	  uint8_t read_result = interface->readDMXPacketContents(wUDP, packetSize);
+	  uint8_t read_result = interface->readDMXPacketContents(&wUDP, packetSize);
 	  uint8_t read_result2 = 0;
 
 	  if ( read_result == RESULT_DMX_RECEIVED ) {
@@ -171,7 +171,7 @@ void loop() {
 			  ESP8266DMX.setSlot(i , interface->getSlot(i));
 		  }
 	  } else if ( read_result == RESULT_NONE ) {				// if not good_dmx first universe, try 2nd
-	     read_result2 = interfaceUniverse2->readDMXPacketContents(wUDP, packetSize);
+	     read_result2 = interfaceUniverse2->readDMXPacketContents(&wUDP, packetSize);
 	     if ( read_result2 == RESULT_DMX_RECEIVED ) {
 	     		// for bandwidth testing, first universe interface is sent to DMX output again
 	         // Note:  ESP8266DMX can only output a single universe

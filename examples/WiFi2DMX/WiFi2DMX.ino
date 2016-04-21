@@ -79,9 +79,6 @@ void erasePassword(DMXWiFiConfig* cfptr) {
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
 
-// LX8266DMX instance for DMX output using UART1/GPIO2
-LX8266DMX* dmx_driver = new LX8266DMX();
-
 // An EthernetUDP instance to let us send and receive UDP packets
 WiFiUDP wUDP;
 
@@ -119,7 +116,7 @@ void artAddressReceived() {
   
   It then starts listening on the appropriate UDP port.
   
-  And, it starts the dmx_driver object sending serial DMX via the UART1 TX pin.
+  And, it starts the ESP8266DMX object sending serial DMX via the UART1 TX pin.
   (see the LXESP8266DMX library documentation for driver details)
 
 *************************************************************************/
@@ -131,7 +128,7 @@ void setup() {
   pinMode(STARTUP_MODE_PIN, INPUT);
   pinMode(DIRECTION_PIN, OUTPUT);
   
-  dmx_driver->startOutput();                            // DMX Driver startup
+  ESP8266DMX.startOutput();                            // DMX Driver startup
   digitalWrite(DIRECTION_PIN,HIGH);
   
   EEPROM.begin(DMXWiFiConfigSIZE);                      // Config initialization
@@ -198,7 +195,7 @@ void setup() {
   Serial.print("udp started,");
 
   if ( ( esp_config->protocol_mode & SACN_MODE ) == 0 ) { //if needed, announce presence via Art-Net Poll Reply
-     ((LXWiFiArtNet*)interface)->send_art_poll_reply(wUDP);
+     ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
   }
 
   Serial.println(" setup complete.");
@@ -209,7 +206,7 @@ void setup() {
 
   The main loop checks for and reads packets from WiFi UDP socket
   connection.  readDMXPacket() returns true when a DMX packet is received.
-  In which case, the data is copied to the dmx_driver object which is driving
+  In which case, the data is copied to the ESP8266DMX object which is driving
   the UART serial DMX output.
   
   If the packet is an ESP-DMX packet,
@@ -217,11 +214,11 @@ void setup() {
 *************************************************************************/
 
 void loop() {
-  uint8_t good_dmx = interface->readDMXPacket(wUDP);
+  uint8_t good_dmx = interface->readDMXPacket(&wUDP);
 
   if ( good_dmx ) {
      for (int i = 1; i <= interface->numberOfSlots(); i++) {
-        dmx_driver->setSlot(i , interface->getSlot(i));
+        ESP8266DMX.setSlot(i , interface->getSlot(i));
      }
      blinkLED();
   } else {

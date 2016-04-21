@@ -249,7 +249,7 @@ void setup() {
 	  Serial.print("udp started,");
 
 	  if ( ( esp_config->protocol_mode & SACN_MODE ) == 0 ) { //if needed, announce presence via Art-Net Poll Reply
-		  ((LXWiFiArtNet*)interface)->send_art_poll_reply(wUDP);
+		  ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
 	  }
   }
 
@@ -264,7 +264,7 @@ void setup() {
   if OUTPUT_FROM_NETWORK_MODE:
     checks for and reads packets from WiFi UDP socket
     connection.  readDMXPacket() returns true when a DMX packet is received.
-    In which case, the data is copied to the dmx_driver object which is driving
+    In which case, the data is copied to the ESP8266DMX object which is driving
     the UART serial DMX output.
   
     If the packet is an ESP-DMX packet, the config struct is modified and stored in EEPROM
@@ -277,7 +277,7 @@ void setup() {
 
 void loop() {
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {	
-	  uint8_t good_dmx = interface->readDMXPacket(wUDP);
+	  uint8_t good_dmx = interface->readDMXPacket(&wUDP);
 
 	  if ( good_dmx ) {
 		  for (int i = 1; i <= interface->numberOfSlots(); i++) {
@@ -335,12 +335,12 @@ void loop() {
      
 		 if ( esp_config->protocol_mode & MULTICAST_MODE ) {
 			 if (( esp_config->wifi_mode == AP_MODE ) ) {
-				 interface->sendDMX(wUDP, esp_config->input_address, WiFi.softAPIP());
+				 interface->sendDMX(&wUDP, esp_config->input_address, WiFi.softAPIP());
 			 } else {
-				 interface->sendDMX(wUDP, esp_config->input_address, WiFi.localIP());
+				 interface->sendDMX(&wUDP, esp_config->input_address, WiFi.localIP());
 			 }
 		 } else {
-			 interface->sendDMX(wUDP, esp_config->input_address, INADDR_NONE);
+			 interface->sendDMX(&wUDP, esp_config->input_address, INADDR_NONE);
 		 }
 		 got_dmx = 0;
 		 blinkLED();

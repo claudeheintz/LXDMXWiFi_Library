@@ -113,7 +113,7 @@ uint16_t LXWiFiSACN::packetSize( void ) {
 	return _packetSize;
 }
 
-uint8_t LXWiFiSACN::readDMXPacket ( WiFiUDP wUDP ) {
+uint8_t LXWiFiSACN::readDMXPacket ( UDP* wUDP ) {
 	_packetSize = 0;
    if ( readSACNPacket(wUDP) > 0 ) {
    	if ( startCode() == 0 ) {
@@ -123,7 +123,7 @@ uint8_t LXWiFiSACN::readDMXPacket ( WiFiUDP wUDP ) {
    return RESULT_NONE;
 }
 
-uint8_t LXWiFiSACN::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) {
+uint8_t LXWiFiSACN::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 	if ( parse_root_layer(packetSize) > 0 ) {
    	if ( startCode() == 0 ) {
    		return RESULT_DMX_RECEIVED;
@@ -132,17 +132,17 @@ uint8_t LXWiFiSACN::readDMXPacketContents ( WiFiUDP wUDP, uint16_t packetSize ) 
    return RESULT_NONE;
 }
 
-uint16_t LXWiFiSACN::readSACNPacket ( WiFiUDP wUDP ) {
+uint16_t LXWiFiSACN::readSACNPacket ( UDP* wUDP ) {
    _dmx_slots = 0;
-   uint16_t packetSize = wUDP.parsePacket();
+   uint16_t packetSize = wUDP->parsePacket();
    if ( packetSize ) {
-      _packetSize = wUDP.read(_packet_buffer, SACN_BUFFER_MAX);
+      _packetSize = wUDP->read(_packet_buffer, SACN_BUFFER_MAX);
       _dmx_slots = parse_root_layer(_packetSize);
    }
    return _dmx_slots;
 }
 
-void LXWiFiSACN::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
+void LXWiFiSACN::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
    for (int n=0; n<126; n++) {
     	_packet_buffer[n] = 0;		// zero outside layers & start code
     }
@@ -192,12 +192,19 @@ void LXWiFiSACN::sendDMX ( WiFiUDP wUDP, IPAddress to_ip, IPAddress interfaceAdd
    _packet_buffer[124] = fplusl & 0xFF;
    //assume dmx data has been set
    if ( interfaceAddr != 0 ) {
-      wUDP.beginPacketMulticast(to_ip, SACN_PORT, interfaceAddr);
+   
+// Multicast is supported by WiFiUDP in ESP8266WiFi, but not in WiFi101 WiFiUDP
+#ifdef _UDP_SUPPORTS_BEGINMULTICASTPACKET
+        ((WiFiUDP*)wUDP)->beginPacketMulticast(to_ip, SACN_PORT, interfaceAddr); 
+#else
+		  wUDP->beginPacket(to_ip, SACN_PORT);
+#endif
+
    } else {
-      wUDP.beginPacket(to_ip, SACN_PORT);
+      wUDP->beginPacket(to_ip, SACN_PORT);
    }
-   wUDP.write(_packet_buffer, _dmx_slots + 126);
-   wUDP.endPacket();
+   wUDP->write(_packet_buffer, _dmx_slots + 126);
+   wUDP->endPacket();
 }
 
 uint16_t LXWiFiSACN::parse_root_layer( uint16_t size ) {

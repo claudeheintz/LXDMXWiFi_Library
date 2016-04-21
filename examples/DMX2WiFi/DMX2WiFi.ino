@@ -88,14 +88,14 @@ void setup() {
   }
 
   if ( use_multicast ) {  // *not necessary to start listening for UDP on port
-    /*if ( make_access_point ) {
+    if ( make_access_point ) {
       wUDP.beginMulticast(WiFi.softAPIP(), IPAddress(239,255,0,1), interface->dmxPort());
     } else {
       wUDP.beginMulticast(WiFi.localIP(), IPAddress(239,255,0,1), interface->dmxPort());
-    }*/
+    }
     send_address = IPAddress(239,255,0,1);
   } else {
-    //wUDP.begin(interface->dmxPort());
+    wUDP.begin(interface->dmxPort());
     send_address = IPAddress(10,255,255,255);   // change if unicast is desired
   }
 
@@ -128,12 +128,12 @@ void loop() {
     }
     if ( use_multicast ) {
        if ( make_access_point ) {
-          interface->sendDMX(wUDP, send_address, WiFi.softAPIP());
+          interface->sendDMX(&wUDP, send_address, WiFi.softAPIP());
        } else {
-          interface->sendDMX(wUDP, send_address, WiFi.localIP());
+          interface->sendDMX(&wUDP, send_address, WiFi.localIP());
        }
     } else {
-       interface->sendDMX(wUDP, send_address, INADDR_NONE);
+       interface->sendDMX(&wUDP, send_address, INADDR_NONE);
     }
     got_dmx = 0;
     blinkLED();
