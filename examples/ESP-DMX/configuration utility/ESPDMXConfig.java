@@ -374,11 +374,11 @@ public class ESPDMXConfig extends JFrame {
 		
 		_jrbMulticast = new JRadioButton("Multicast");
 		_jrbMulticast.setLocation(new Point(25, 395));
-		_jrbMulticast.setSize(new Dimension(160, 20));
+		_jrbMulticast.setSize(new Dimension(200, 20));
 
 		_jrbBroadcast = new JRadioButton("Unicast/Broadcast");
 		_jrbBroadcast.setLocation(new Point(25, 425));
-		_jrbBroadcast.setSize(new Dimension(160, 20));
+		_jrbBroadcast.setSize(new Dimension(200, 20));
 		_jrbBroadcast.setSelected(true);
 
 		_bgMultiBroadcast = new ButtonGroup();
@@ -603,13 +603,12 @@ public class ESPDMXConfig extends JFrame {
 
 		boolean found = false;
 		String utarget = targetIP();
-		
 		found = sendQueryPacketAndListen(socket, utarget, udpport);
 
 		if ( ! found ) {                //if not found, try other targets
 			String starget = null;
 			int i=0;
-			while ((i<5) && ! found) {
+			while ((i<4) && ! found) {
 				switch (i) {
 				case 0:
 					starget = "10.110.115.10";
@@ -622,12 +621,6 @@ public class ESPDMXConfig extends JFrame {
 					break;
 				case 3:
 					starget = "192.168.1.255";
-					break;
-				case 4:
-					starget = _jtfMulticastAddress.getText();
-					if ( starget.length() == 0 ) {
-						starget = "239.255.0.1";
-					}
 					break;
 				}
 				if ( ! utarget.equals(starget) ) {
@@ -732,6 +725,7 @@ public class ESPDMXConfig extends JFrame {
 		setStringInPacketBuffer(uploadPWD, 73);
 		setStringInPacketBuffer(uploadSSID, 9);
 		setStringInPacketBuffer(uploadNodeName, 171);
+		System.out.println("_uploading " +uploadSSID+ ", " + uploadPWD+", "+uploadNodeName);
 		uploadPWD = null;
 		uploadSSID = null;
 
@@ -765,10 +759,10 @@ public class ESPDMXConfig extends JFrame {
 
 		packet_buffer[139] = 2;  //wifi channel not implemented
 		packet_buffer[168] = (byte)safeParseInt(_jtfSACNUniverse.getText());
-		
 		packet_buffer[169] = (byte)safeParseInt(_jtfArtNetSubnet.getText());
 		packet_buffer[170] = (byte)safeParseInt(_jtfArtNetUniverse.getText());
 		
+
 		DatagramPacket sendPacket;
 		String ipstr = targetIP();
 		try {

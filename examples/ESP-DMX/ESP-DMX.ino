@@ -26,6 +26,8 @@
            Use python script esp_dmx_wifi_config.py to examine & change protocol and connection settings
     v3.0 - Renamed ESP-DMX, Combines output from network and input to network with remote configuration.
            Adds Java version of remote configuration utility.
+    v3.1 - Updated for passing pointer to UDP object to LXDMXWiFi_Library functions.
+           Moved remote config definitions and functions to separate files
 */
 /**************************************************************************/
 
@@ -42,10 +44,10 @@
 #define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip
 
 /*
-  config struct with WiFi and Protocol settings, see LXDMXWiFi.h
-  Can be modified by remote packet when listening to network
+  config struct with WiFi and Protocol settings, see LXDMXWiFiConfig.h
+  edit initConfig function in LXDMXWiFiConfig.h for your own default settings
 */
-struct DMXWiFiConfig* esp_config;
+DMXWiFiConfig* esp_config;
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
@@ -62,46 +64,6 @@ uint8_t dmx_direction = 0;
 // received slots when inputting dmx to network
 int got_dmx = 0;
 
-/*
-   initConfig initializes the DMXWiFiConfig structure with default settings
-   The default is to receive Art-Net with the WiFi configured as an access point.
-   (Modify the initConfig to change default settings.  But, highly recommend leaving AP_MODE for default startup.)
-*/
-void initConfig(DMXWiFiConfig* cfptr) {
-  //zero the complete config struct
-  uint8_t* p = (uint8_t*) cfptr;
-  uint8_t k;
-  for(k=0; k<DMXWiFiConfigSIZE; k++) {
-    p[k] = 0;
-  }
-  
-  strncpy((char*)cfptr, ESPDMX_IDENT, 8); //add ident
-  strncpy(cfptr->ssid, "ESP-DMX-WiFi", 63);
-  strncpy(cfptr->pwd, "********", 63);
-  cfptr->wifi_mode = AP_MODE;                       // AP_MODE or STATION_MODE
-  cfptr->protocol_mode = ARTNET_MODE;     // ARTNET_MODE or SACN_MODE
-                                                         // optional | STATIC_MODE or | MULTICAST_MODE or | INPUT_TO_NETWORK_MODE
-  cfptr->ap_chan = 2;
-  cfptr->ap_address    = IPAddress(10,110,115,10);       // ip address of access point
-  cfptr->ap_gateway    = IPAddress(10,110,115,1);
-  cfptr->ap_subnet     = IPAddress(255,255,255,0);       // match what is passed to dchp connection from computer
-  cfptr->sta_address   = IPAddress(10,110,115,15);       // station's static address for STATIC_MODE
-  cfptr->sta_gateway   = IPAddress(192,168,1,1);
-  cfptr->sta_subnet    = IPAddress(255,0,0,0);
-  cfptr->multi_address = IPAddress(239,255,0,1);         // sACN multicast address should match universe
-  cfptr->sacn_universe   = 1;
-  cfptr->artnet_universe = 0;
-  cfptr->artnet_subnet   = 0;
-  strcpy((char*)cfptr->node_name, "com.claudeheintzdesign.esp-dmx");
-  cfptr->input_address = IPAddress(10,255,255,255);
-}
-
-/* 
-   WiFi station password can be set but is never returned by query
-*/
-void erasePassword(DMXWiFiConfig* cfptr) {
-  strncpy(cfptr->pwd, "********", 63);
-}
 
 /* 
    utility function to toggle indicator LED on/off
@@ -131,6 +93,7 @@ void artAddressReceived() {
   EEPROM.write(8,0);
   EEPROM.commit();
 }
+
 
 /*
   DMX input callback function sets number of slots received by ESP8266DMX
