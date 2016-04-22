@@ -36,6 +36,7 @@
 #include <LXWiFiArtNet.h>
 #include <LXWiFiSACN.h>
 #include <EEPROM.h>
+#include "LXDMXWiFiConfig.h"
 
 #define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
 #define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip
@@ -68,7 +69,7 @@ int got_dmx = 0;
 */
 void initConfig(DMXWiFiConfig* cfptr) {
   //zero the complete config struct
-  uint8_t* p = (uint8_t*) esp_config;
+  uint8_t* p = (uint8_t*) cfptr;
   uint8_t k;
   for(k=0; k<DMXWiFiConfigSIZE; k++) {
     p[k] = 0;
@@ -186,11 +187,11 @@ void setup() {
   
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {					      // DMX Driver startup based on direction flag
     Serial.println("starting DMX");
+    ESP8266DMX.setDirectionPin(DIRECTION_PIN);
     ESP8266DMX.startOutput();
-    digitalWrite(DIRECTION_PIN, HIGH);
   } else {
     Serial.println("starting DMX input");
-    digitalWrite(DIRECTION_PIN, LOW);
+    ESP8266DMX.setDirectionPin(DIRECTION_PIN);
     ESP8266DMX.setDataReceivedCallback(&gotDMXCallback);
     ESP8266DMX.startInput();
   }
@@ -320,7 +321,9 @@ void loop() {
 			  Serial.println("reply complete.");
 			}
 			interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trgger
-      blinkLED();
+         blinkLED();
+         blinkLED();
+         blinkLED();
 		 } // packet has ESP-DMX header
 	  }   // not good_dmx
 	  
