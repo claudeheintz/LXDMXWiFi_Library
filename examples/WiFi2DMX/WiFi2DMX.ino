@@ -34,47 +34,16 @@
 #include <LXWiFiArtNet.h>
 #include <LXWiFiSACN.h>
 #include <EEPROM.h>
+#include "LXDMXWiFiConfig.h"
 
 #define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
 #define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip
 
-struct DMXWiFiConfig* esp_config;
-
-// *** modify the following for setting up the default WiFi connection ***
-
-void initConfig(DMXWiFiConfig* cfptr) {
-//zero the complete config struct
-  uint8_t* p = (uint8_t*) esp_config;
-  uint8_t k;
-  for(k=0; k<DMXWiFiConfigSIZE; k++) {
-    p[k] = 0;
-  }
-  
-  strncpy((char*)cfptr, ESPDMX_IDENT, 8); //add ident
-  strncpy(cfptr->ssid, "ESP-DMX-WiFi", 63);
-  strncpy(cfptr->pwd, "********", 63);
-  cfptr->wifi_mode = AP_MODE;                       // AP_MODE or STATION_MODE
-  cfptr->protocol_mode = ARTNET_MODE;     // ARTNET_MODE or SACN_MODE
-                                                         // optional | STATIC_MODE or | MULTICAST_MODE
-  cfptr->ap_chan = 2;
-  cfptr->ap_address    = IPAddress(10,110,115,10);       // ip address of access point
-  cfptr->ap_gateway    = IPAddress(10,1,1,1);
-  cfptr->ap_subnet     = IPAddress(255,255,255,0);       // match what is passed to dchp connection from computer
-  cfptr->sta_address   = IPAddress(10,110,115,15);       // station's static address for STATIC_MODE
-  cfptr->sta_gateway   = IPAddress(192,168,1,1);
-  cfptr->sta_subnet    = IPAddress(255,0,0,0);
-  cfptr->multi_address = IPAddress(239,255,0,1);         // sACN multicast address should match universe
-  cfptr->sacn_universe   = 1;
-  cfptr->artnet_universe = 0;
-  cfptr->artnet_subnet   = 0;
-  strcpy((char*)cfptr->node_name, "com.claudeheintzdesign.esp-dmx");
-  cfptr->input_address = IPAddress(10,255,255,255);		// this example is output only
-}
-
-//remove password
-void erasePassword(DMXWiFiConfig* cfptr) {
-  strncpy(cfptr->pwd, "********", 63);
-}
+/*
+  config struct with WiFi and Protocol settings, see LXDMXWiFiConfig.h
+  edit initConfig function in LXDMXWiFiConfig.h for your own default settings
+*/
+DMXWiFiConfig* esp_config;
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
@@ -136,7 +105,7 @@ void setup() {
   if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {
     initConfig(esp_config);
     Serial.println("\ndefault startup");
-  } else if ( strcmp(ESPDMX_IDENT, (const char *) esp_config) != 0 ) {
+  } else if ( strcmp(CONFIG_PACKET_IDENT, (const char *) esp_config) != 0 ) {
     initConfig(esp_config);
     EEPROM.write(8,0);  //zero term. for ident sets dirty flag 
     EEPROM.commit();
@@ -222,7 +191,7 @@ void loop() {
      }
      blinkLED();
   } else {
-    if ( strcmp(ESPDMX_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
+    if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
       Serial.print("ESP-DMX received, ");
       uint8_t reply = 0;
       if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
