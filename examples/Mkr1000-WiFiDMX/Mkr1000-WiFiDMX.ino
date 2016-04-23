@@ -45,7 +45,7 @@
 #define LED_PIN 6                // MKR1000 has led on pin 6
 
 /*         
- *  Edit the initConfig function in LXDMXWiFiConfig.h to configure the WiFi connection and protocol options
+ *  Edit the initConfig function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
  */
 DMXWiFiConfig* wifi_config = new ( DMXWiFiConfig );
 

@@ -41,7 +41,7 @@
 
 /*
   config struct with WiFi and Protocol settings, see LXDMXWiFiConfig.h
-  edit initConfig function in LXDMXWiFiConfig.h for your own default settings
+  edit initConfig function in LXDMXWiFiConfig.cpp for your own default settings
 */
 DMXWiFiConfig* esp_config;
 

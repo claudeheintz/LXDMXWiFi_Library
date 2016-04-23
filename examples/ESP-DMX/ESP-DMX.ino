@@ -45,7 +45,7 @@
 
 /*
   config struct with WiFi and Protocol settings, see LXDMXWiFiConfig.h
-  edit initConfig function in LXDMXWiFiConfig.h for your own default settings
+  edit initConfig function in LXDMXWiFiConfig.cpp for your own default settings
 */
 DMXWiFiConfig* esp_config;
 
@@ -137,7 +137,7 @@ void setup() {
   if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {			  						// if startup pin is low, initialize config struct
     initConfig(esp_config);
     Serial.println("\ndefault startup");
-  } else if ( strcmp(ESPDMX_IDENT, (const char *) esp_config) != 0 ) {	// if structure not previously stored
+  } else if ( strcmp(CONFIG_PACKET_IDENT, (const char *) esp_config) != 0 ) {	// if structure not previously stored
     initConfig(esp_config);															// initialize and store in EEPROM
     EEPROM.write(8,0);  //zero term. for ident sets dirty flag 
     EEPROM.commit();
@@ -249,7 +249,7 @@ void loop() {
 		  }
 		  blinkLED();
 	  } else {
-		 if ( strcmp(ESPDMX_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
+		 if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
 			Serial.print("ESP-DMX received, ");
 			uint8_t reply = 0;
 			if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
