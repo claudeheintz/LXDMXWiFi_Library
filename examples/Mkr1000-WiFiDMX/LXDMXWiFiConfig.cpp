@@ -3,11 +3,7 @@
 
 void initConfig(DMXWiFiConfig* cfptr) {
   //zero the complete config struct
-  uint8_t* p = (uint8_t*) cfptr;
-  uint8_t k;
-  for(k=0; k<DMXWiFiConfigSIZE; k++) {
-    p[k] = 0;
-  }
+  memset(cfptr, 0, DMXWiFiConfigSIZE);
   
   strncpy((char*)cfptr, CONFIG_PACKET_IDENT, 8); //add ident
   strncpy(cfptr->ssid, "MKR1000-DMX", 63);
