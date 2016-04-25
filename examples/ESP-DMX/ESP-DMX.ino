@@ -43,11 +43,9 @@
 #define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
 #define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip
 
-/*
-  config struct with WiFi and Protocol settings, see LXDMXWiFiConfig.h
-  edit initConfig function in LXDMXWiFiConfig.cpp for your own default settings
+/*         
+ *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
 */
-DMXWiFiConfig* esp_config;
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
@@ -84,14 +82,9 @@ void blinkLED() {
    but relevant fields are copied to config struct and stored to EEPROM
 */
 void artAddressReceived() {
-  int u = ((LXWiFiArtNet*)interface)->universe();
-  esp_config->artnet_universe = u & 0x0F;
-  esp_config->artnet_subnet = (u>>4) & 0x0F;
-  strncpy((char*)esp_config->node_name, ((LXWiFiArtNet*)interface)->longName(), 31);
-  esp_config->node_name[32] = 0;
-  esp_config->opcode = 0;
-  EEPROM.write(8,0);
-  EEPROM.commit();
+  DMXWiFiConfig.setArtNetUniverse( ((LXWiFiArtNet*)interface)->universe() );
+  DMXWiFiConfig.setNodeName( ((LXWiFiArtNet*)interface)->longName() );
+  DMXWiFiConfig.commitToPersistentStore();
 }
 
 
@@ -129,24 +122,9 @@ void setup() {
   pinMode(STARTUP_MODE_PIN, INPUT);
   pinMode(DIRECTION_PIN, OUTPUT);
   
-  ESP8266DMX.startOutput();                            // DMX Driver startup
-  digitalWrite(DIRECTION_PIN, HIGH);
+  DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
   
-  EEPROM.begin(DMXWiFiConfigSIZE);                      						// Config initialization
-  esp_config = (DMXWiFiConfig*)EEPROM.getDataPtr();
-  if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {			  						// if startup pin is low, initialize config struct
-    initConfig(esp_config);
-    Serial.println("\ndefault startup");
-  } else if ( strcmp(CONFIG_PACKET_IDENT, (const char *) esp_config) != 0 ) {	// if structure not previously stored
-    initConfig(esp_config);															// initialize and store in EEPROM
-    EEPROM.write(8,0);  //zero term. for ident sets dirty flag 
-    EEPROM.commit();
-    Serial.println("\nInitialized EEPROM");
-  } else {																					// otherwise use the config struct read from EEPROM
-    Serial.println("\nEEPROM Read OK");
-  }
-  
-  dmx_direction = ( esp_config->protocol_mode & INPUT_TO_NETWORK_MODE );
+  dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
   
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {					      // DMX Driver startup based on direction flag
     Serial.println("starting DMX");
@@ -159,23 +137,23 @@ void setup() {
     ESP8266DMX.startInput();
   }
 
-  if ( esp_config->wifi_mode == AP_MODE ) {            // WiFi startup
+  if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
     Serial.print("AP_MODE ");
-    Serial.print(esp_config->ssid);
+    Serial.print(DMXWiFiConfig.SSID());
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(esp_config->ssid);
-    WiFi.softAPConfig(esp_config->ap_address, esp_config->ap_gateway, esp_config->ap_subnet);
+    WiFi.softAP(DMXWiFiConfig.SSID());
+    WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
     Serial.print("created access point ");
-    Serial.print(esp_config->ssid);
+    Serial.print(DMXWiFiConfig.SSID());
     Serial.print(", ");
   } else {
     Serial.print("wifi connecting... ");
     WiFi.mode(WIFI_STA);
-    WiFi.begin(esp_config->ssid,esp_config->pwd);
+    WiFi.begin(DMXWiFiConfig.SSID(),DMXWiFiConfig.password());
 
     // static IP otherwise uses DHCP
-    if ( esp_config->protocol_mode & STATIC_MODE ) {  
-      WiFi.config(esp_config->sta_address, esp_config->sta_gateway, esp_config->sta_subnet);
+    if ( DMXWiFiConfig.staticIPAddress() ) {  
+      WiFi.config(DMXWiFiConfig.stationIPAddress(), DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
     }
     
     while (WiFi.status() != WL_CONNECTED) {
@@ -185,34 +163,34 @@ void setup() {
   }
   Serial.println("wifi started.");
   
-  if ( esp_config->protocol_mode & SACN_MODE ) {         // Initialize network<->DMX interface
+  if ( DMXWiFiConfig.sACNMode() ) {         // Initialize network<->DMX interface
     interface = new LXWiFiSACN();
-    interface->setUniverse(esp_config->sacn_universe);
+    interface->setUniverse(DMXWiFiConfig.sACNUniverse());
   } else {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-    ((LXWiFiArtNet*)interface)->setSubnetUniverse(esp_config->artnet_subnet, esp_config->artnet_universe);
+    ((LXWiFiArtNet*)interface)->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
     ((LXWiFiArtNet*)interface)->setArtAddressReceivedCallback(&artAddressReceived);
-    if ( esp_config->node_name[0] != 0 ) {
-      esp_config->node_name[32] = 0;      //insure zero termination of string
-      strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)esp_config->node_name);
+    char* nn = DMXWiFiConfig.nodeName();
+    if ( nn[0] != 0 ) {
+      strcpy(((LXWiFiArtNet*)interface)->longName(), nn);
     }
   }
   Serial.print("interface created, ");
   
   // if output from network, start wUDP listening for packets
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {	
-	  if ( ( esp_config->protocol_mode & MULTICAST_MODE ) ) { // Start listening for UDP on port
-		 if ( esp_config->wifi_mode == AP_MODE ) {
-			wUDP.beginMulticast(WiFi.softAPIP(), esp_config->multi_address, interface->dmxPort());
+	  if ( DMXWiFiConfig.multicastMode() ) { // Start listening for UDP on port
+		 if ( DMXWiFiConfig.APMode() ) {
+			wUDP.beginMulticast(WiFi.softAPIP(), DMXWiFiConfig.multicastAddress(), interface->dmxPort());
 		 } else {
-			wUDP.beginMulticast(WiFi.localIP(), esp_config->multi_address, interface->dmxPort());
+			wUDP.beginMulticast(WiFi.localIP(), DMXWiFiConfig.multicastAddress(), interface->dmxPort());
 		 }
 	  } else {
 		 wUDP.begin(interface->dmxPort());
 	  }
 	  Serial.print("udp started,");
 
-	  if ( ( esp_config->protocol_mode & SACN_MODE ) == 0 ) { //if needed, announce presence via Art-Net Poll Reply
+	  if ( DMXWiFiConfig.artnetMode() ) { //if needed, announce presence via Art-Net Poll Reply
 		  ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
 	  }
   }
@@ -249,45 +227,32 @@ void loop() {
 		  }
 		  blinkLED();
 	  } else {
-		 if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
-			Serial.print("ESP-DMX received, ");
-			uint8_t reply = 0;
-			if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
-			  EEPROM.begin(DMXWiFiConfigSIZE);            //deletes data (ie esp_config) and reads from flash
-			  esp_config = (DMXWiFiConfig*)EEPROM.getDataPtr();
+	    if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
+      	Serial.print("config packet received, ");
+		   uint8_t reply = 0;
+		   if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
 			  reply = 1;
-			} else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-			  int k;
-			  uint8_t* p = (uint8_t*) esp_config;
-			  for(k=0; k<171; k++) {
-				 p[k] = interface->packetBuffer()[k]; //copy packet to config
-			  }
-			  esp_config->opcode = 0;               // reply packet opcode is data
-			  if (interface->packetSize() >= 203) {
-				 for(k=171; k<interface->packetSize(); k++) {
-					p[k] = interface->packetBuffer()[k]; //copy rest of packet
-				 }
-				 strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)&interface->packetBuffer()[171]);
-			  }
-			  EEPROM.write(8,0);  //opcode is zero for data (also sets dirty flag)
-			  EEPROM.commit();
+		   } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= DMXWiFiConfigMinSIZE)) { //packet opcode is set
+			  DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
+			  DMXWiFiConfig.commitToPersistentStore();
 			  reply = 1;
-			  Serial.print("eprom written, ");
-			} else {
+		   } else {
 			  Serial.println("packet error.");
-			}
-			if ( reply) {
-			  erasePassword(esp_config);                  //don't show pwd if queried
+		   }
+		   if ( reply) {
+			  DMXWiFiConfig.hidePassword();                  //don't transmit password!
 			  wUDP.beginPacket(wUDP.remoteIP(), interface->dmxPort());
-			  wUDP.write((uint8_t*)esp_config, sizeof(*esp_config));
+			  wUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
 			  wUDP.endPacket();
 			  Serial.println("reply complete.");
-			}
-			interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trgger
-         blinkLED();
-         blinkLED();
-         blinkLED();
-		 } // packet has ESP-DMX header
+			  DMXWiFiConfig.restorePassword();
+		   } 
+		   interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trgger
+		   for(int j=0;j<3;j++) {
+		   	blinkLED();
+		   	delay(100);
+		   }
+      } // packet has config packet header
 	  }   // not good_dmx
 	  
 	} else {		//direction is input to network
@@ -299,14 +264,14 @@ void loop() {
 			interface->setSlot(i, ESP8266DMX.getSlot(i));
 		 }
      
-		 if ( esp_config->protocol_mode & MULTICAST_MODE ) {
-			 if (( esp_config->wifi_mode == AP_MODE ) ) {
-				 interface->sendDMX(&wUDP, esp_config->input_address, WiFi.softAPIP());
+		 if ( DMXWiFiConfig.multicastMode() ) {
+			 if ( DMXWiFiConfig.APMode() ) {
+				 interface->sendDMX(&wUDP,  DMXWiFiConfig.inputAddress(), WiFi.softAPIP());
 			 } else {
-				 interface->sendDMX(&wUDP, esp_config->input_address, WiFi.localIP());
+				 interface->sendDMX(&wUDP,  DMXWiFiConfig.inputAddress(), WiFi.localIP());
 			 }
 		 } else {
-			 interface->sendDMX(&wUDP, esp_config->input_address, INADDR_NONE);
+			 interface->sendDMX(&wUDP,  DMXWiFiConfig.inputAddress(), INADDR_NONE);
 		 }
 		 got_dmx = 0;
 		 blinkLED();
