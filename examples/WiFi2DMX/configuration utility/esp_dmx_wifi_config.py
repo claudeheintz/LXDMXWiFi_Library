@@ -116,10 +116,10 @@ def bytearr2ipstr(d,i):
 def ipstr2bytes(s, d, i):
    octs = s.split(".")
    if len(octs) == 4:
-      d[i] = int(octs[0])
-      d[i+1] = int(octs[1])
-      d[i+2] = int(octs[2])
-      d[i+3] = int(octs[3])
+     d[i] = int(octs[0])
+     d[i+1] = int(octs[1])
+     d[i+2] = int(octs[2])
+     d[i+3] = int(octs[3])
    
 def recvWiFiConfig(d,a):
    h = d[0:7]
@@ -237,7 +237,7 @@ def sendQuery():
    
 def upload():
    setupSocket()
-   spacket = bytearray(204)
+   spacket = bytearray(208)
    for k in range(0,171):
       spacket[k] = 0
    spacket[0:7] = "ESP-DMX"
