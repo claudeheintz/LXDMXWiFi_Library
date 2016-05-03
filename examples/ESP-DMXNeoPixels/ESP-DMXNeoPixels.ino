@@ -1,28 +1,20 @@
 /**************************************************************************/
 /*!
-    @file     MKR1000DMXNeoPixels.ino
+    @file     ESP-DMXNeoPixels.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
     @copyright 2016 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
-    MKR1000 WiFi connection to an Adafruit NeoPixel Ring.
+    ESP8266 Adafruit Huzzah WiFi connection to an Adafruit NeoPixel Ring.
     
     Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
     sACN E 1.31 is a public standard published by the PLASA technical standards program
     
-    NOTE:  For LXDMXWiFi library to compile along with the WiFi101 library
-           Comment out lines 40 and 41 in LXDMXWiFi.h
-              If you do not do this, you will get the following error:
-              "error: 'SOCKET' does not name a type SOCKET _socket;"
-           
-           This example requires the Adafruit NeoPixel Library and WiFi101 Library
+    NOTE:  This example requires the Adafruit NeoPixel Library and WiFi101 Library
 
-           Remote config is supported using the configuration utility iin the examples folder.
+           Remote config is supported using the configuration utility in the examples folder.
            Otherwise edit initConfig() in LXDMXWiFiConfig.cpp.
-
-           As of this version of WiFi101_Library, In access point mode, the MKR1000 does not
-           receive broadcast or multicast UDP packets.  So, you must unicast to 192.168.1.1.
 
     @section  HISTORY
 
@@ -31,7 +23,7 @@
 */
 /**************************************************************************/
 
-#include <WiFi101.h>
+#include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include "LXDMXWiFi.h"
 #include <LXWiFiArtNet.h>
@@ -43,10 +35,10 @@
   #include <avr/power.h>
 #endif
 
-#define STARTUP_MODE_PIN 7      // pin for force default setup when low (use 10k pullup to insure high)
-#define LED_PIN 6                // MKR1000 has led on pin 6
+#define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
+#define LED_PIN BUILTIN_LED
 
-#define PIN 5
+#define PIN 14
 #define NUM_LEDS 12
 Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
@@ -148,37 +140,24 @@ void setup() {
 
   int wifi_status = WL_IDLE_STATUS;
   if ( DMXWiFiConfig.APMode() ) {                      // WiFi startup
-    while (wifi_status == WL_IDLE_STATUS) {            // Access Point mode
-      wifi_status = WiFi.beginAP(DMXWiFiConfig.SSID());
-      int blink_count = 0;
-      while ((wifi_status == WL_IDLE_STATUS) && ( blink_count < 25)) {
-        blinkLED();
-        blink_count++;
-        delay(200);
-        wifi_status = WiFi.status();
-      }
-    }
-    if ( DMXWiFiConfig.staticIPAddress() ) {  
-      WiFi.config(DMXWiFiConfig.apIPAddress(), (uint32_t)0, DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
-    }
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(DMXWiFiConfig.SSID());
+    WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
     Serial.print("Access Point IP Address: ");
   } else {                                             // Station Mode
-    while (wifi_status == WL_IDLE_STATUS) {
-      wifi_status = WiFi.begin(DMXWiFiConfig.SSID(), DMXWiFiConfig.password());
-      int blink_count = 0;
-      while ((wifi_status == WL_IDLE_STATUS) && ( blink_count < 25)) {
-        blinkLED();
-        blink_count++;
-        delay(200);
-        wifi_status = WiFi.status();
-      }
-      Serial.print("Station IP Address: ");
-    }
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(DMXWiFiConfig.SSID(), DMXWiFiConfig.password());
 
     if ( DMXWiFiConfig.staticIPAddress() ) {  
       WiFi.config(DMXWiFiConfig.stationIPAddress(), (uint32_t)0, DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
     }
      
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(100);
+      blinkLED();
+    }
+    
+    Serial.print("Station IP Address: ");
   }
   
   IPAddress ip = WiFi.localIP();
@@ -203,7 +182,11 @@ void setup() {
   // if OUTPUT from network, start wUDP listening for packets
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {  
     if ( ( DMXWiFiConfig.multicastMode() ) ) { // Start listening for UDP on port
-      wUDP.beginMulti(DMXWiFiConfig.multicastAddress(), interface->dmxPort());
+      if ( DMXWiFiConfig.APMode() ) {
+			wUDP.beginMulticast(WiFi.softAPIP(), DMXWiFiConfig.multicastAddress(), interface->dmxPort());
+		} else {
+			wUDP.beginMulticast(WiFi.localIP(), DMXWiFiConfig.multicastAddress(), interface->dmxPort());
+		}
     } else {
       wUDP.begin(interface->dmxPort());
     }
