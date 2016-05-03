@@ -1,13 +1,12 @@
 /**************************************************************************/
 /*!
-    @file     MKR1000-WiFiDMX.ino
+    @file     MKR1000DMXNeoPixels.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
     @copyright 2016 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
-    MKR1000 WiFi connection to serial DMX.  Or, input from DMX to the network.
-    Allows remote configuration of WiFi connection and protocol settings.
+    MKR1000 WiFi connection to an Adafruit NeoPixel Ring.
     
     Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
     sACN E 1.31 is a public standard published by the PLASA technical standards program
@@ -17,11 +16,10 @@
               If you do not do this, you will get the following error:
               "error: 'SOCKET' does not name a type SOCKET _socket;"
            
-           This example requires the LXSAMD21DMX library for DMX serial output
-           https://github.com/claudeheintz/LXSAMD21DMX
+           This example requires the Adafruit NeoPixel Library and WiFi101 Library
 
-           As of this version, remote config is supported using the configuration
-           utility found in the examples folder
+           As of this version, remote config is supported using th
+           configuration utility iin the examples folder
 
            As of this version of WiFi101_Library, In access point mode, the MKR1000 does not
            receive broadcast or multicast UDP packets.  So, you must unicast to 192.168.1.1.
@@ -29,11 +27,10 @@
     @section  HISTORY
 
     v1.0 - First release
-    v1.1 - Adds persistence
 
 */
 /**************************************************************************/
-#include <LXSAMD21DMX.h>
+
 #include <WiFi101.h>
 #include <WiFiUdp.h>
 #include "LXDMXWiFi.h"
@@ -41,9 +38,21 @@
 #include <LXWiFiSACN.h>
 #include "LXDMXWiFiConfig.h"
 
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
+
 #define STARTUP_MODE_PIN 7      // pin for force default setup when low (use 10k pullup to insure high)
-#define DIRECTION_PIN 3          // pin for output direction enable on MAX481 chip
 #define LED_PIN 6                // MKR1000 has led on pin 6
+
+#define PIN 5
+#define NUM_LEDS 12
+Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+
+
+const int total_pixels = 3 * NUM_LEDS;
+byte pixels[NUM_LEDS][3];
 
 /*         
  *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
@@ -58,8 +67,6 @@ WiFiUDP wUDP;
 // direction output from network/input to network
 uint8_t dmx_direction = 0;
 
-// received slots when inputting dmx to network
-int got_dmx = 0;
 
 /* 
    utility function to toggle indicator LED on/off
@@ -88,10 +95,28 @@ void artAddressReceived() {
 }
 
 /*
-  DMX input callback function sets number of slots received by SAMD21DMX
+  sends pixel buffer to ring
 */
-void gotDMXCallback(int slots) {
-  got_dmx = slots;
+
+void sendPixels() {
+  uint16_t r,g,b;
+  for (int p=0; p<NUM_LEDS; p++) {
+    r = pixels[p][0];
+    g = pixels[p][1];
+    b = pixels[p][2];
+    r = (r*r)/255;    //gamma correct
+    g = (g*g)/255;
+    b = (b*b)/255;
+    ring.setPixelColor(p, r, g, b);
+  }
+  ring.show();
+}
+
+void setPixelSlot(uint8_t slot, uint8_t value) {
+  uint8_t si = slot-1; //zero based, not 1 based like dmx
+  uint8_t pixel = si/3;
+  uint8_t color = si%3;
+  pixels[pixel][color] = value;
 }
 
 /************************************************************************
@@ -188,15 +213,13 @@ void setup() {
       ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
     }
 
-    Serial.print("starting DMX output;");
-    SAMD21DMX.setDirectionPin(DIRECTION_PIN);
-    SAMD21DMX.startOutput();
+    ring.begin();
+    ring.show();
   } else {                    //direction is INPUT to network
-    Serial.print("starting DMX input;");
-    SAMD21DMX.setDirectionPin(DIRECTION_PIN);
-    SAMD21DMX.setDataReceivedCallback(&gotDMXCallback);
-    SAMD21DMX.startInput();
+    // doesn't do anything in this mode
   }
+
+  
 
   Serial.println("setup complete.");
 }
@@ -225,9 +248,10 @@ void loop() {
     uint8_t good_dmx = interface->readDMXPacket(&wUDP);
   
     if ( good_dmx ) {
-       for (int i = 1; i <= interface->numberOfSlots(); i++) {
-          SAMD21DMX.setSlot(i , interface->getSlot(i));
+       for (int i = 1; i <= total_pixels; i++) {
+          setPixelSlot(i , interface->getSlot(i));
        }
+       sendPixels();
        blinkLED();
     } else {
       if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
@@ -261,26 +285,7 @@ void loop() {
       }     // packet has config packet header
     }       // not good_dmx
     
-  } else {    //direction is input to network
-    
-    if ( got_dmx ) {
-      interface->setNumberOfSlots(got_dmx);  //got_dmx
-     
-      for(int i=1; i<=got_dmx; i++) {
-        interface->setSlot(i, SAMD21DMX.getSlot(i));
-      }
-     
-      if ( DMXWiFiConfig.multicastMode() ) {
-        interface->sendDMX(&wUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
-      } else {
-        interface->sendDMX(&wUDP, DMXWiFiConfig.inputAddress(), INADDR_NONE);
-      }
-      
-      got_dmx = 0;
-      blinkLED();
-      
-    }       // got_dmx
-    
-  }         // INPUT_TO_NETWORK_MODE
+  } //output mode
   
 }           // loop()
+
