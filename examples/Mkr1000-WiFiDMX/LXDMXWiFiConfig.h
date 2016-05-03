@@ -4,13 +4,17 @@
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h or http://lx.claudeheintzdesign.com/opensource.html)
     @copyright 2016 by Claude Heintz All Rights Reserved
-
-    Edit initConfig for your own default settings.
+    
+    
 */
 /**************************************************************************/
 
 #include <inttypes.h>
 #include <string.h>
+
+/* 
+	structure for storing WiFi and Protocol configuration settings
+*/
 
 typedef struct dmxwifiConfig {
    char    ident[8];      // ESP-DMX\0
@@ -33,7 +37,7 @@ typedef struct dmxwifiConfig {
    uint8_t node_name[32];
    uint32_t input_address;
    uint8_t reserved[25];
-} DMXWiFiConfig;
+} DMXWiFiconfig;
 
 #define CONFIG_PACKET_IDENT "ESP-DMX"
 #define DMXWiFiConfigSIZE 232
@@ -49,16 +53,109 @@ typedef struct dmxwifiConfig {
 #define OUTPUT_FROM_NETWORK_MODE 0
 #define INPUT_TO_NETWORK_MODE 8
 
-/*
-   initConfig initializes the DMXWiFiConfig structure with default settings
-   The default is to receive Art-Net with the WiFi configured as an access point.
-   (Modify the initConfig to change default settings.  But, highly recommend leaving AP_MODE for default startup.)
+/*!   
+@class DMXwifiConfig
+@abstract
+   DMXwifiConfig abstracts WiFi and Protocol configuration settings so that they can
+   be saved and retrieved from persistent storage.
 */
-void initConfig(DMXWiFiConfig* cfptr);
 
+class DMXwifiConfig {
 
-/* 
-   Utility function. WiFi station password should never be returned by query.
-*/
-void erasePassword(DMXWiFiConfig* cfptr);
+  public:
+  
+	  DMXwifiConfig ( void );
+	 ~DMXwifiConfig( void );
+	 
+	 /* 
+	 	handles init of config data structure, reading from persistent if desired.
+	 */
+	 void begin ( uint8_t mode );
+	 
+	 /*
+	 initConfig initializes the DMXWiFiConfig structure with default settings
+	 The default is to receive Art-Net with the WiFi configured as an access point.
+	 (Modify the initConfig to change default settings.  But, highly recommend leaving AP_MODE for default startup.)
+	 */
+	 void initConfig(void);
+	 
+	 /* 
+	 	WiFi setup parameters
+	 */
+	 char* SSID(void);
+	 char* password(void);
+	 bool APMode(void);
+	 bool staticIPAddress(void);
+	 
+	 /* 
+	 	protocol modes
+	 */
+    bool artnetMode(void);
+    bool sACNMode(void);
+    bool multicastMode(void);
+    bool inputToNetworkMode(void);
+    
+    /* 
+	 	stored IPAddresses
+	 */
+    IPAddress apIPAddress(void);
+    IPAddress apGateway(void);
+	 IPAddress apSubnet(void);
+	 IPAddress stationIPAddress(void);
+    IPAddress stationGateway(void);
+	 IPAddress stationSubnet(void);
+	 IPAddress multicastAddress(void);
+	 IPAddress inputAddress(void);
+	 
+	 /* 
+	 	protocol settings
+	 */
+	 uint8_t sACNUniverse(void);
+	 uint8_t artnetSubnet(void);
+	 uint8_t artnetUniverse(void);
+	 void setArtNetUniverse(int u);
+	 char* nodeName(void);
+	 void setNodeName(char* nn);
+	 
+	 /* 
+	 	copyConfig from uint8_t array
+	 */
+	 void copyConfig(uint8_t* pkt, uint8_t size);
+	 
+	 /* 
+	 	read from EEPROM or flash
+	 */
+	 void readFromPersistentStore(void);
+	 
+	 /* 
+	 	write to EEPROM or flash
+	 */
+	 void commitToPersistentStore(void);
+	 
+	 /* 
+	 	pointer and size for UDP.write()
+	 */
+	 uint8_t* config(void);
+	 uint8_t configSize(void);
 
+	 	 /* 
+	 	Utility function. WiFi station password should never be returned by query.
+	 */
+	 void hidePassword(void);
+	 void restorePassword(void);
+	 
+
+  private:
+   
+    /* 
+	 	pointer to configuration structure
+	 */
+     DMXWiFiconfig* _wifi_config;
+     /* 
+	 	space to save password
+	 */
+     char    _save_pwd[64];
+  	 
+};
+
+extern DMXwifiConfig DMXWiFiConfig;

@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <inttypes.h>
 
-//Comment out the following two lines to use this library with WiFi101
+//Comment out the following two lines to use this library with WiFi101, including MKR1000
 #include <WiFiUdp.h>
 #define _UDP_SUPPORTS_BEGINMULTICASTPACKET 1
 

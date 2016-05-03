@@ -1582,7 +1582,7 @@ public class ESPDMXConfig extends JFrame {
 			String starget = null;
 			int i=0;
 			progress = "searching";
-			while (i<5) {
+			while (i<6) {
 				switch (i) {
 				case 0:
 					starget = "10.110.115.10";
@@ -1594,9 +1594,12 @@ public class ESPDMXConfig extends JFrame {
 					starget = "10.255.255.255";
 					break;
 				case 3:
-					starget = "192.168.1.255";
+					starget = "192.168.1.1";
 					break;
 				case 4:
+					starget = "192.168.1.255";
+					break;
+				case 5:
 					starget = _jtfMulticastAddress.getText();
 					if ( starget.length() == 0 ) {
 						starget = "239.255.0.1";

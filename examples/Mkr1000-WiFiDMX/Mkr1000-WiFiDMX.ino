@@ -14,6 +14,8 @@
     
     NOTE:  For LXDMXWiFi library to compile along with the WiFi101 library
            Comment out lines 40 and 41 in LXDMXWiFi.h
+              If you do not do this, you will get the following error:
+              "error: 'SOCKET' does not name a type SOCKET _socket;"
            
            This example requires the LXSAMD21DMX library for DMX serial output
            https://github.com/claudeheintz/LXSAMD21DMX
@@ -29,6 +31,7 @@
     @section  HISTORY
 
     v1.0 - First release
+    v1.1 - Adds persistence
 
 */
 /**************************************************************************/
@@ -40,14 +43,13 @@
 #include <LXWiFiSACN.h>
 #include "LXDMXWiFiConfig.h"
 
-#define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
+#define STARTUP_MODE_PIN 7      // pin for force default setup when low (use 10k pullup to insure high)
 #define DIRECTION_PIN 3          // pin for output direction enable on MAX481 chip
 #define LED_PIN 6                // MKR1000 has led on pin 6
 
 /*         
- *  Edit the initConfig function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
+ *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
  */
-DMXWiFiConfig* wifi_config = new ( DMXWiFiConfig );
 
 // dmx protocol interface for parsing packets (created in setup)
 LXDMXWiFi* interface;
@@ -79,16 +81,12 @@ void blinkLED() {
 /* 
    artAddress callback allows storing of config information
    artAddress may or may not have set this information
-   but relevant fields are copied to config struct and stored to EEPROM
+   but relevant fields are copied to config struct (and stored to EEPROM ...not yet)
 */
 void artAddressReceived() {
-  int u = ((LXWiFiArtNet*)interface)->universe();
-  wifi_config->artnet_universe = u & 0x0F;
-  wifi_config->artnet_subnet = (u>>4) & 0x0F;
-  strncpy((char*)wifi_config->node_name, ((LXWiFiArtNet*)interface)->longName(), 31);
-  wifi_config->node_name[32] = 0;
-  wifi_config->opcode = 0;
-
+  DMXWiFiConfig.setArtNetUniverse( ((LXWiFiArtNet*)interface)->universe() );
+  DMXWiFiConfig.setNodeName( ((LXWiFiArtNet*)interface)->longName() );
+  DMXWiFiConfig.commitToPersistentStore();
 }
 
 /*
@@ -118,15 +116,17 @@ void gotDMXCallback(int slots) {
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
-  Serial.begin(9600); //debug messages
-
-  //initialize configuration
-  initConfig(wifi_config);
+  pinMode(STARTUP_MODE_PIN, INPUT);
+ // while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
+  Serial.begin(9600);         //debug messages
+  Serial.println("_setup_");
+  
+  DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
 
   int wifi_status = WL_IDLE_STATUS;
-  if ( wifi_config->wifi_mode == AP_MODE ) {            // WiFi startup
+  if ( DMXWiFiConfig.APMode() ) {                      // WiFi startup
     while (wifi_status == WL_IDLE_STATUS) {            // Access Point mode
-      wifi_status = WiFi.beginAP(wifi_config->ssid);
+      wifi_status = WiFi.beginAP(DMXWiFiConfig.SSID());
       int blink_count = 0;
       while ((wifi_status == WL_IDLE_STATUS) && ( blink_count < 25)) {
         blinkLED();
@@ -135,15 +135,13 @@ void setup() {
         wifi_status = WiFi.status();
       }
     }
-    if ( wifi_config->protocol_mode & STATIC_MODE ) {  
-      WiFi.config(wifi_config->ap_address, (uint32_t)0, wifi_config->ap_gateway, wifi_config->ap_subnet);
+    if ( DMXWiFiConfig.staticIPAddress() ) {  
+      WiFi.config(DMXWiFiConfig.apIPAddress(), (uint32_t)0, DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
     }
-    IPAddress ip = WiFi.localIP();
     Serial.print("Access Point IP Address: ");
-    Serial.println(ip);
   } else {                                             // Station Mode
-    while (wifi_status == WL_IDLE_STATUS) {            // Access Point mode
-      wifi_status = WiFi.begin(wifi_config->ssid, wifi_config->pwd);
+    while (wifi_status == WL_IDLE_STATUS) {
+      wifi_status = WiFi.begin(DMXWiFiConfig.SSID(), DMXWiFiConfig.password());
       int blink_count = 0;
       while ((wifi_status == WL_IDLE_STATUS) && ( blink_count < 25)) {
         blinkLED();
@@ -151,43 +149,44 @@ void setup() {
         delay(200);
         wifi_status = WiFi.status();
       }
+      Serial.print("Station IP Address: ");
     }
 
-    if ( wifi_config->protocol_mode & STATIC_MODE ) {  
-      WiFi.config(wifi_config->sta_address, (uint32_t)0, wifi_config->sta_gateway, wifi_config->sta_subnet);
+    if ( DMXWiFiConfig.staticIPAddress() ) {  
+      WiFi.config(DMXWiFiConfig.stationIPAddress(), (uint32_t)0, DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
     }
-
-    IPAddress ip = WiFi.localIP();
-    Serial.print("Station IP Address: ");
-    Serial.println(ip);   
+     
   }
+  
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip);
 
-  if ( wifi_config->protocol_mode & SACN_MODE ) {         // Initialize network<->DMX interface
+  if ( DMXWiFiConfig.sACNMode() ) {         // Initialize network<->DMX interface
     interface = new LXWiFiSACN();
-    interface->setUniverse(wifi_config->sacn_universe);
+    interface->setUniverse(DMXWiFiConfig.sACNUniverse());
   } else {
     interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-    ((LXWiFiArtNet*)interface)->setSubnetUniverse(wifi_config->artnet_subnet, wifi_config->artnet_universe);
+    ((LXWiFiArtNet*)interface)->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
     ((LXWiFiArtNet*)interface)->setArtAddressReceivedCallback(&artAddressReceived);
-    if ( wifi_config->node_name[0] != 0 ) {
-      wifi_config->node_name[32] = 0;      //insure zero termination of string
-      strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)wifi_config->node_name);
+    char* nn = DMXWiFiConfig.nodeName();
+    if ( nn[0] != 0 ) {
+      strcpy(((LXWiFiArtNet*)interface)->longName(), nn);
     }
   }
   Serial.print("interface created;");
 
-  dmx_direction = ( wifi_config->protocol_mode & INPUT_TO_NETWORK_MODE );
+  dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
   
   // if OUTPUT from network, start wUDP listening for packets
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {  
-    if ( ( wifi_config->protocol_mode & MULTICAST_MODE ) ) { // Start listening for UDP on port
-      wUDP.beginMulti(wifi_config->multi_address, interface->dmxPort());
+    if ( ( DMXWiFiConfig.multicastMode() ) ) { // Start listening for UDP on port
+      wUDP.beginMulti(DMXWiFiConfig.multicastAddress(), interface->dmxPort());
     } else {
       wUDP.begin(interface->dmxPort());
     }
     Serial.print("udp listening started;");
 
-    if ( ( wifi_config->protocol_mode & SACN_MODE ) == 0 ) { //if needed, announce presence via Art-Net Poll Reply
+    if ( DMXWiFiConfig.artnetMode() ) { //if needed, announce presence via Art-Net Poll Reply
       ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
     }
 
@@ -228,7 +227,6 @@ void loop() {
     uint8_t good_dmx = interface->readDMXPacket(&wUDP);
   
     if ( good_dmx ) {
-       Serial.print("dmx ");
        for (int i = 1; i <= interface->numberOfSlots(); i++) {
           SAMD21DMX.setSlot(i , interface->getSlot(i));
        }
@@ -238,33 +236,23 @@ void loop() {
         Serial.print("config packet received, ");
         uint8_t reply = 0;
         if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
-          
+          DMXWiFiConfig.readFromPersistentStore();
           reply = 1;
         } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-          int k;
-          uint8_t* p = (uint8_t*) wifi_config;
-          for(k=0; k<171; k++) {
-           p[k] = interface->packetBuffer()[k]; //copy packet to config
-          }
-          wifi_config->opcode = 0;               // reply packet opcode is data
-          if (interface->packetSize() >= 203) {
-           for(k=171; k<interface->packetSize(); k++) {
-            p[k] = interface->packetBuffer()[k]; //copy rest of packet
-           }
-           strcpy(((LXWiFiArtNet*)interface)->longName(), (char*)&interface->packetBuffer()[171]);
-          }
-  
+          Serial.println("upload packet");
+          DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
+          DMXWiFiConfig.commitToPersistentStore();
           reply = 1;
-          Serial.print("eprom written, ");
         } else {
           Serial.println("packet error.");
         }
         if ( reply) {
-          erasePassword(wifi_config);                  //don't show pwd if queried
+          DMXWiFiConfig.hidePassword();                  //don't transmit password!
           wUDP.beginPacket(wUDP.remoteIP(), interface->dmxPort());
-          wUDP.write((uint8_t*)wifi_config, sizeof(*wifi_config));
+          wUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
           wUDP.endPacket();
           Serial.println("reply complete.");
+			  DMXWiFiConfig.restorePassword();
         }
         interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trgger
         blinkLED();
@@ -284,10 +272,10 @@ void loop() {
         interface->setSlot(i, SAMD21DMX.getSlot(i));
       }
      
-      if ( wifi_config->protocol_mode & MULTICAST_MODE ) {
-        interface->sendDMX(&wUDP, wifi_config->input_address, WiFi.localIP());
+      if ( DMXWiFiConfig.multicastMode() ) {
+        interface->sendDMX(&wUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
       } else {
-        interface->sendDMX(&wUDP, wifi_config->input_address, INADDR_NONE);
+        interface->sendDMX(&wUDP, DMXWiFiConfig.inputAddress(), INADDR_NONE);
       }
       
       got_dmx = 0;
