@@ -11,10 +11,10 @@
     Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
     sACN E 1.31 is a public standard published by the PLASA technical standards program
     
-    NOTE:  For LXDMXWiFi library to compile along with the WiFi101 library
-           Comment out lines 40 and 41 in LXDMXWiFi.h
-              If you do not do this, you will get the following error:
+    NOTE:  If not using the latest Arduino IDE, you may get compile errors when including the WiFi101 library.
+              If you get the following error (and others):
               "error: 'SOCKET' does not name a type SOCKET _socket;"
+              Comment out lines 40 and 41 in LXDMXWiFi.h
            
            This example requires the Adafruit NeoPixel Library and WiFi101 Library
 

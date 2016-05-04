@@ -1,6 +1,5 @@
 /* LXDMXWiFi.h
-   Copyright 2015-2016 by Claude Heintz Design
-   All rights reserved.
+   Copyright 2015-2016 by Claude Heintz Design All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -28,7 +27,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------------
 */
-
 #ifndef LXDMXWIFI_H
 #define LXDMXWIFI_H
 
@@ -36,9 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <inttypes.h>
 
-//Comment out the following two lines to use this library with WiFi101, including MKR1000
-#include <WiFiUdp.h>
-#define _UDP_SUPPORTS_BEGINMULTICASTPACKET 1
+//beginPacketMulticast is supported by WiFiUDP in ESP8266WiFi, but not WiFiUDP in WiFi101
+//If not using the latest IDE, comment out lines 40 and 41 to use this library with WiFi101, including MKR1000
+#if defined(ARDUINO_ARCH_ESP8266)
+	#include <WiFiUdp.h>
+	#define _UDP_SUPPORTS_BEGINMULTICASTPACKET 1
+#endif
 
 #define DMX_UNIVERSE_SIZE 512
 
