@@ -51,7 +51,7 @@
 Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 
-const int total_pixels = 3 * NUM_LEDS;
+const int total_pixels = min(512,3 * NUM_LEDS);
 byte pixels[NUM_LEDS][3];
 
 /*         
