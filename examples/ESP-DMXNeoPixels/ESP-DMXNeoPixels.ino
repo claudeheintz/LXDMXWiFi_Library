@@ -38,13 +38,18 @@
 #define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
 #define LED_PIN BUILTIN_LED
 
+// data pin for NeoPixels
 #define PIN 14
-#define NUM_LEDS 12
-Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+// NUM_OF_NEOPIXELS, max of 170/RGB or 128/RGBW
+#define NUM_OF_NEOPIXELS 12
+// LEDS_PER_NEOPIXEL, RGB = 3, RGBW = 4
+#define LEDS_PER_NEOPIXEL 3
+// see Adafruit NeoPixel Library for options to pass to Adafruit_NeoPixel constructor
+Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_OF_NEOPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-
-const int total_pixels = min(512, 3 * NUM_LEDS);
-byte pixels[NUM_LEDS][3];
+// min sometimes raises compile error. see https://github.com/esp8266/Arduino/issues/263 solution seems to be using _min
+const int total_pixels = min(512, LEDS_PER_NEOPIXEL * NUM_OF_NEOPIXELS);
+byte pixels[NUM_OF_NEOPIXELS][LEDS_PER_NEOPIXEL];
 
 /*         
  *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
@@ -92,22 +97,28 @@ void artAddressReceived() {
 
 void sendPixels() {
   uint16_t r,g,b;
-  for (int p=0; p<NUM_LEDS; p++) {
+  for (int p=0; p<NUM_OF_NEOPIXELS; p++) {
     r = pixels[p][0];
     g = pixels[p][1];
     b = pixels[p][2];
     r = (r*r)/255;    //gamma correct
     g = (g*g)/255;
     b = (b*b)/255;
-    ring.setPixelColor(p, r, g, b);
+    if ( LEDS_PER_NEOPIXEL == 3 ) {
+    	ring.setPixelColor(p, r, g, b);		//RGB
+    } else if ( LEDS_PER_NEOPIXEL == 4 ) {
+    	uint16_t w = pixels[p][3];
+    	w = (w*w)/255;
+    	ring.setPixelColor(p, r, g, b, w);	//RGBW
+    }
   }
   ring.show();
 }
 
 void setPixelSlot(uint8_t slot, uint8_t value) {
   uint8_t si = slot-1; //zero based, not 1 based like dmx
-  uint8_t pixel = si/3;
-  uint8_t color = si%3;
+  uint8_t pixel = si/LEDS_PER_NEOPIXEL;
+  uint8_t color = si%LEDS_PER_NEOPIXEL;
   pixels[pixel][color] = value;
 }
 
