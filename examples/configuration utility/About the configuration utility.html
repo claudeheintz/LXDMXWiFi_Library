@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>WiFi Config</title>
+	<meta name="generator" content="BBEdit 11.5" />
+</head>
+<body>
+<p>Some of the example sketches included with the LXDMXWiFi_Library include the ability to store connection and protocol settings.  These examples include files named &quot;LXDMXWiFiConfig.h&quot; and &quot;LXDMXWiFiConfig.cpp&quot; in the sketch folder.</p>
+
+<p>The example sketches that include configuration have a digital pin that is used to determine the startup configuration.  If the pin is low when the board is powered up, it will use the hard coded default settings from the DMXwifiConfig::initConfig(void) method found in &quot;LXDMXWiFiConfig.cpp&quot;.  If the pin is high, the settings saved in persistent storage are used.  (Its recommended you keep the startup mode pin high with a 10k pullup resistor unless activating default startup).</p>
+
+<p>The very first time the example sketch is run, it uses the hard coded default settings which are immediately are saved to persistent storage.  This means that subsequent startups will have saved settings available and the sketch will behave as just described.</p>
+
+<p>The default hard coded settings tell the board to configure its WiFi as an access point with the static address 10.110.115.10.  It also starts listening on the Art-Net port for incoming packets.  Sending a non-Art-Net, &quot;ESP-DMX&quot; packet to this address/port allows a remote computer to read and write the configuration struct from/to the board.</p>
+
+<p>The hard coded settings should always include a known static IPAddress and port and instruct the WiFi to be in access point mode.  This is necessary because the saved configuration for the board may be set to connect to a WiFi network that is no longer available.  If the board cannot connect to the saved network, there needs to be an alternate way of communicating and changing the settings.  Holding the startup mode pin low should force the board to create a WiFi access point.  This insures that a connection can be established.  Once a connection is made, new settings can be uploaded.</p>
+
+<p>ESP-DMX packets have three operations query, data and upload.  A query packet is sent, much like an Art-Net poll, to ask the receiving device to reply with a data packet containing its config settings.  If broadcast/multicast, the query packet can provoke replies from multiple devices on the network.  The third type of message should be sent only to a specific device's address.  It contains config settings that the ESP8266 copies to its EEPROM memory (or Mkr1000 into flash).</p>
+
+<p>To use the configuration utility, first be sure you are connected to the same WiFi network as the board running the example sketch.  If you are using the default startup, this will be an access point named "ESP-DMX-WiFi".  It is necessary to query the board to get its current settings before uploading new ones.  If you are running the Java version of the configuration utility, click the &quot;Search&quot; button.  If you are running the python version, click the &quot;Get Info&quot; button.  This sends an &quot;ESP-DMX&quot; query packet in an attempt to obtain a response from the board running the sketch.</p>
+
+<p>The Java version of the sketch sends query packets to a number of likely addresses searching for a response.  The python version sends a query packet specifically to the IP address in the target field.  The board running the sketch listens on either the Art-Net or sACN port.  You must indicate which to use to send the query.  (If connected to the default startup specified access point, the sketch should be listening on the Art-Net port.)<p>
+
+<p>Once the configuration utility has received a reply from the board running the sketch, it will show the configuration stored in the board's persistent memory.  At this point, you can edit these settings and upload them back to the board.</p>
+
+<p>Uploading a new configuration does not re-start the board or change the current WiFi connection.  You must re-start the sketch for the settings to take effect.  In most cases, this means removing the power and powering up again.  The ESP8266 does not always connect to a WiFi network the first time after it has been switched into station mode.  If it does not connect, remove the power and start it up again.</p>
+
+<p>The WiFi password is never returned by a query response.  You must always re-enter the WiFi password if required for the board to connect in station mode.  The fact that the board stores the WiFi password is a potential security risk.  However, the sketch is designed so that there's no way to get at the stored password except through physical reading of the device's memory.</p>
+
+</body>
+</html>

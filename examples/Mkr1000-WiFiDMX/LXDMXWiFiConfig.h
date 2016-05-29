@@ -24,18 +24,18 @@ typedef struct dmxwifiConfig {
    uint8_t wifi_mode;
    uint8_t protocol_mode;
    uint8_t ap_chan;			//unimplemented
-   uint32_t ap_address;
-   uint32_t ap_gateway;		//140
-   uint32_t ap_subnet;
-   uint32_t sta_address;
-   uint32_t sta_gateway;
-   uint32_t sta_subnet;
-   uint32_t multi_address;
-   uint8_t sacn_universe;   //should match multicast address
+   uint32_t ap_address;		// static IP address of access point
+   uint32_t ap_gateway;		//   gateway in access point mode
+   uint32_t ap_subnet;		//   subnet  in access point mode
+   uint32_t sta_address;	// static IP address in station mode (! DHCP bit set)
+   uint32_t sta_gateway;	//   gateway in station mode
+   uint32_t sta_subnet;		//   subnet  in station mode
+   uint32_t multi_address;  // multicast address for sACN
+   uint8_t sacn_universe;   // should match multicast address
    uint8_t artnet_subnet;
    uint8_t artnet_universe;
    uint8_t node_name[32];
-   uint32_t input_address;
+   uint32_t input_address;  // IP address for sending DMX to network in input mode
    uint8_t reserved[25];
 } DMXWiFiconfig;
 
