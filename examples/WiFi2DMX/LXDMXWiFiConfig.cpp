@@ -9,7 +9,7 @@ void initConfig(DMXWiFiConfig* cfptr) {
   strncpy(cfptr->ssid, "ESP-DMX-WiFi", 63);
   strncpy(cfptr->pwd, "*****", 63);
   cfptr->wifi_mode = AP_MODE;                       // AP_MODE or STATION_MODE
-  cfptr->protocol_mode = SACN_MODE;     // ARTNET_MODE or SACN_MODE ( plus optional: | STATIC_MODE, | MULTICAST_MODE, | INPUT_TO_NETWORK_MODE )
+  cfptr->protocol_mode = ARTNET_MODE;     // ARTNET_MODE or SACN_MODE ( plus optional: | STATIC_MODE, | MULTICAST_MODE, | INPUT_TO_NETWORK_MODE )
                                         // eg. cfptr->protocol_mode = SACN_MODE | MULTICAST_MODE ;
   cfptr->ap_chan = 2;
   cfptr->ap_address    = IPAddress(192,168,1,1);       // ip address of access point
