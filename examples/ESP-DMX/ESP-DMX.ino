@@ -116,7 +116,7 @@ void gotDMXCallback(int slots) {
 *************************************************************************/
 
 void setup() {
-  Serial.begin(112500);
+  Serial.begin(115200);
   Serial.setDebugOutput(1); //use uart0 for debugging
   pinMode(BUILTIN_LED, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT);

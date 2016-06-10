@@ -144,7 +144,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT);
  // while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
-  Serial.begin(9600);         //debug messages
+  Serial.begin(115200);       //debug messages
   Serial.println("_setup_");
   
   DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
