@@ -19,11 +19,11 @@
 typedef struct dmxwifiConfig {
    char    ident[8];      // ESP-DMX\0
    uint8_t opcode;		  // data = 0, query = '?', set ='!'
+   uint8_t version;		  // currently 1
+   uint8_t wifi_mode;
+   uint8_t protocol_flags;
    char    ssid[64];      // max is actually 32
    char    pwd[64];       // depends on security 8, 13, 8-63
-   uint8_t wifi_mode;
-   uint8_t protocol_mode;
-   uint8_t ap_chan;			//unimplemented
    uint32_t ap_address;		// static IP address of access point
    uint32_t ap_gateway;		//   gateway in access point mode
    uint32_t ap_subnet;		//   subnet  in access point mode
@@ -34,9 +34,11 @@ typedef struct dmxwifiConfig {
    uint8_t sacn_universe;   // should match multicast address
    uint8_t artnet_subnet;
    uint8_t artnet_universe;
+   uint8_t reserved2;		 // 4 byte align
    uint8_t node_name[32];
    uint32_t input_address;  // IP address for sending DMX to network in input mode
-   uint8_t reserved[25];
+   uint16_t device_address; // dmx address (if applicable)
+   uint8_t reserved[22];
 } DMXWiFiconfig;
 
 #define CONFIG_PACKET_IDENT "ESP-DMX"
@@ -106,6 +108,11 @@ class DMXwifiConfig {
 	 IPAddress stationSubnet(void);
 	 IPAddress multicastAddress(void);
 	 IPAddress inputAddress(void);
+	 
+	 /*
+	   dmx address
+	 */
+	 uint16_t deviceAddress(void);
 	 
 	 /* 
 	 	protocol settings

@@ -55,12 +55,14 @@ void DMXwifiConfig::initConfig(void) {
   memset(_wifi_config, 0, DMXWiFiConfigSIZE);
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
+  _wifi_config->version = 1;
   strncpy(_wifi_config->ssid, "MKR-DMX-WiFi", 63);
   strncpy(_wifi_config->pwd, "****", 63);
-  _wifi_config->wifi_mode = AP_MODE;                       // AP_MODE or STATION_MODE
-  _wifi_config->protocol_mode = ARTNET_MODE;     // ARTNET_MODE or SACN_MODE ( plus optional: | STATIC_MODE, | MULTICAST_MODE, | INPUT_TO_NETWORK_MODE )
-                                        // eg. _wifi_config->protocol_mode = SACN_MODE | MULTICAST_MODE ;
-  _wifi_config->ap_chan = 2;
+  _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
+  _wifi_config->protocol_flags = MULTICAST_MODE;    // sACN multicast mode
+  																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
+  																	 // optional: | STATIC_MODE   to use static not dhcp address for station
+                                        				 // eg. _wifi_config->protocol_flags = MULTICAST_MODE | INPUT_TO_NETWORK_MODE | SACN_MODE;
   _wifi_config->ap_address    = IPAddress(192,168,1,1);       // ip address of access point
   _wifi_config->ap_gateway    = IPAddress(192,168,1,1);
   _wifi_config->ap_subnet     = IPAddress(255,255,255,0);       // match what is passed to dchp connection from computer
@@ -71,6 +73,7 @@ void DMXwifiConfig::initConfig(void) {
   _wifi_config->sacn_universe   = 1;
   _wifi_config->artnet_universe = 0;
   _wifi_config->artnet_subnet   = 0;
+  _wifi_config->device_address  = 1;
   strcpy((char*)_wifi_config->node_name, "com.claudeheintzdesign.d21-dmx");
   _wifi_config->input_address = IPAddress(10,255,255,255);
 }
@@ -88,23 +91,23 @@ bool DMXwifiConfig::APMode(void) {
 }
 
 bool DMXwifiConfig::staticIPAddress(void) {
-	return ( _wifi_config->protocol_mode & STATIC_MODE );
+	return ( _wifi_config->protocol_flags & STATIC_MODE );
 }
 
 bool DMXwifiConfig::artnetMode(void) {
-	return ( ( _wifi_config->protocol_mode & SACN_MODE ) == 0 );
+	return ( ( _wifi_config->protocol_flags & SACN_MODE ) == 0 );
 }
 
 bool DMXwifiConfig::sACNMode(void) {
-	return ( _wifi_config->protocol_mode & SACN_MODE );
+	return ( _wifi_config->protocol_flags & SACN_MODE );
 }
 
 bool DMXwifiConfig::multicastMode(void) {
-	return ( _wifi_config->protocol_mode & MULTICAST_MODE );
+	return ( _wifi_config->protocol_flags & MULTICAST_MODE );
 }
 
 bool DMXwifiConfig::inputToNetworkMode(void) {
-	return ( _wifi_config->protocol_mode & INPUT_TO_NETWORK_MODE );
+	return ( _wifi_config->protocol_flags & INPUT_TO_NETWORK_MODE );
 }
 
 IPAddress DMXwifiConfig::apIPAddress(void) {
@@ -137,6 +140,10 @@ IPAddress DMXwifiConfig::multicastAddress(void) {
 
 IPAddress DMXwifiConfig::inputAddress(void) {
 	return _wifi_config->input_address;
+}
+
+uint16_t DMXwifiConfig::deviceAddress(void) {
+	return _wifi_config->device_address;
 }
 
 uint8_t DMXwifiConfig::sACNUniverse(void) {

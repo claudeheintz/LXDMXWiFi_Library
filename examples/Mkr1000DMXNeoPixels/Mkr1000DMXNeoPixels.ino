@@ -44,34 +44,34 @@
 #endif
 
 #define STARTUP_MODE_PIN 7      // pin for force default setup when low (use 10k pullup to insure high)
-#define LED_PIN 6               // MKR1000 has led on pin 6
+#define LED_PIN 6                // MKR1000 has led on pin 6
 
-// data pin for NeoPixels
 #define PIN 5
-// NUM_OF_NEOPIXELS, max of 170/RGB or 128/RGBW
-#define NUM_OF_NEOPIXELS 12
-// LEDS_PER_NEOPIXEL, RGB = 3, RGBW = 4
-#define LEDS_PER_NEOPIXEL 3
-// see Adafruit NeoPixel Library for options to pass to Adafruit_NeoPixel constructor
-Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_OF_NEOPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+#define NUM_LEDS 12
+Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 
-const int total_pixels = min(512,LEDS_PER_NEOPIXEL * NUM_OF_NEOPIXELS);
-byte pixels[NUM_OF_NEOPIXELS][LEDS_PER_NEOPIXEL];
+const int total_pixels = min(512, 3 * NUM_LEDS);
+byte pixels[NUM_LEDS][3];
 
 /*         
  *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
  */
 
-// dmx protocol interface for parsing packets (created in setup)
-LXDMXWiFi* interface;
+// dmx protocol interfaces for parsing packets (created in setup)
+LXWiFiArtNet* artNetInterface;
+LXWiFiSACN*   sACNInterface;
 
-// An EthernetUDP instance to let us send and receive UDP packets
-WiFiUDP wUDP;
+// EthernetUDP instances to let us send and receive UDP packets
+WiFiUDP aUDP;
+WiFiUDP sUDP;
 
 // direction output from network/input to network
 uint8_t dmx_direction = 0;
 
+// Output mode: received packet contained dmx
+int art_packet_result = 0;
+int acn_packet_result = 0;
 
 /* 
    utility function to toggle indicator LED on/off
@@ -94,39 +94,31 @@ void blinkLED() {
    but relevant fields are copied to config struct (and stored to EEPROM ...not yet)
 */
 void artAddressReceived() {
-  DMXWiFiConfig.setArtNetUniverse( ((LXWiFiArtNet*)interface)->universe() );
-  DMXWiFiConfig.setNodeName( ((LXWiFiArtNet*)interface)->longName() );
+  DMXWiFiConfig.setArtNetUniverse( artNetInterface->universe() );
+  DMXWiFiConfig.setNodeName( artNetInterface->longName() );
   DMXWiFiConfig.commitToPersistentStore();
 }
-
 /*
   sends pixel buffer to ring
 */
 
 void sendPixels() {
   uint16_t r,g,b;
-  for (int p=0; p<NUM_OF_NEOPIXELS; p++) {
+  for (int p=0; p<NUM_LEDS; p++) {
     r = pixels[p][0];
     g = pixels[p][1];
     b = pixels[p][2];
     r = (r*r)/255;    //gamma correct
     g = (g*g)/255;
     b = (b*b)/255;
-    if ( LEDS_PER_NEOPIXEL == 3 ) {
-    	ring.setPixelColor(p, r, g, b);		//RGB
-    } else if ( LEDS_PER_NEOPIXEL == 4 ) {
-    	uint16_t w = pixels[p][3];
-    	w = (w*w)/255;
-    	ring.setPixelColor(p, r, g, b, w);	//RGBW
-    }
+    ring.setPixelColor(p, r, g, b);
   }
   ring.show();
 }
 
-void setPixelSlot(uint8_t slot, uint8_t value) {
-  uint8_t si = slot-1; //zero based, not 1 based like dmx
-  uint8_t pixel = si/LEDS_PER_NEOPIXEL;
-  uint8_t color = si%LEDS_PER_NEOPIXEL;
+void setPixel(uint8_t index, uint8_t value) {
+  uint8_t pixel = index/3;
+  uint8_t color = index%3;
   pixels[pixel][color] = value;
 }
 
@@ -149,10 +141,10 @@ void setPixelSlot(uint8_t slot, uint8_t value) {
 *************************************************************************/
 
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
+pinMode(LED_PIN, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT);
- // while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
   Serial.begin(9600);         //debug messages
+  //while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
   Serial.println("_setup_");
   
   DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
@@ -194,35 +186,37 @@ void setup() {
   
   IPAddress ip = WiFi.localIP();
   Serial.println(ip);
-
-  if ( DMXWiFiConfig.sACNMode() ) {         // Initialize network<->DMX interface
-    interface = new LXWiFiSACN();
-    interface->setUniverse(DMXWiFiConfig.sACNUniverse());
-  } else {
-    interface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-    ((LXWiFiArtNet*)interface)->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
-    ((LXWiFiArtNet*)interface)->setArtAddressReceivedCallback(&artAddressReceived);
-    char* nn = DMXWiFiConfig.nodeName();
-    if ( nn[0] != 0 ) {
-      strcpy(((LXWiFiArtNet*)interface)->longName(), nn);
-    }
-  }
-  Serial.print("interface created;");
-
-  dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
   
-  // if OUTPUT from network, start wUDP listening for packets
+  //------------------- Initialize network<->DMX interfaces -------------------
+    
+  sACNInterface = new LXWiFiSACN();							
+  sACNInterface->setUniverse(DMXWiFiConfig.sACNUniverse());
+
+  artNetInterface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
+  artNetInterface->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
+  artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
+  char* nn = DMXWiFiConfig.nodeName();
+  if ( nn[0] != 0 ) {
+    strcpy(artNetInterface->longName(), nn);
+  }
+  Serial.print("interfaces created;");
+  
+  dmx_direction = DMXWiFiConfig.inputToNetworkMode();
+  // -------------------
+  // if OUTPUT from network, start UDP objects listening for packets
+  // and start DMX output
+  // -------------------
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {  
     if ( ( DMXWiFiConfig.multicastMode() ) ) { // Start listening for UDP on port
-      wUDP.beginMulti(DMXWiFiConfig.multicastAddress(), interface->dmxPort());
+      sUDP.beginMulti(DMXWiFiConfig.multicastAddress(), sACNInterface->dmxPort());
     } else {
-      wUDP.begin(interface->dmxPort());
+      sUDP.begin(sACNInterface->dmxPort());
     }
+    
+    aUDP.begin(artNetInterface->dmxPort());
+    artNetInterface->send_art_poll_reply(&aUDP);
+    
     Serial.print("udp listening started;");
-
-    if ( DMXWiFiConfig.artnetMode() ) { //if needed, announce presence via Art-Net Poll Reply
-      ((LXWiFiArtNet*)interface)->send_art_poll_reply(&wUDP);
-    }
 
     ring.begin();
     ring.show();
@@ -230,10 +224,85 @@ void setup() {
     // doesn't do anything in this mode
   }
 
-  
-
   Serial.println("setup complete.");
 }
+
+/************************************************************************
+
+  Copy to output merges slots for Art-Net and sACN on HTP basis
+  
+*************************************************************************/
+
+void copyDMXToOutput(void) {
+	uint8_t a, s;
+	uint16_t a_slots = artNetInterface->numberOfSlots();
+	uint16_t s_slots = sACNInterface->numberOfSlots();
+	uint16_t low_addr = DMXWiFiConfig.deviceAddress();
+	uint16_t high_addr = DMXWiFiConfig.deviceAddress()+total_pixels;
+	for (int i=low_addr; i<high_addr; i++) {
+		if ( i <= a_slots ) {
+			a = artNetInterface->getSlot(i);
+		} else {
+			a = 0;
+		}
+		if ( i <= s_slots ) {
+			s = sACNInterface->getSlot(i);
+		} else {
+			s = 0;
+		}
+		if ( a > s ) {
+			setPixel(i-low_addr, a);
+		} else {
+			setPixel(i-low_addr, s);
+		}
+   }
+   sendPixels();
+}
+
+/************************************************************************
+
+  Checks to see if packet is a config packet.
+  
+     In the case it is a query, it replies with the current config from persistent storage.
+     
+     In the case of upload, it copies the payload to persistent storage
+     and also replies with the config settings.
+  
+*************************************************************************/
+
+void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
+	if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {	//match header to config packet
+		Serial.print("config packet received, ");
+		uint8_t reply = 0;
+		if ( interface->packetBuffer()[8] == '?' ) {	//packet opcode is query
+			DMXWiFiConfig.readFromPersistentStore();
+			reply = 1;
+		} else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
+			Serial.println("upload packet");
+			DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
+			DMXWiFiConfig.commitToPersistentStore();
+			reply = 1;
+		} else {
+			Serial.println("unknown config opcode.");
+	  	}
+		if ( reply) {
+			DMXWiFiConfig.hidePassword();													// don't transmit password!
+			cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());				// unicast reply
+			cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
+			cUDP.endPacket();
+			Serial.println("reply complete.");
+			DMXWiFiConfig.restorePassword();
+		}
+		interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
+		interface->packetBuffer()[1] = 0;
+		blinkLED();
+		delay(100);
+		blinkLED();
+		delay(100);
+		blinkLED();
+	}		// packet has config packet header
+}
+
 
 /************************************************************************
 
@@ -242,8 +311,8 @@ void setup() {
   if OUTPUT_FROM_NETWORK_MODE:
     checks for and reads packets from WiFi UDP socket
     connection.  readDMXPacket() returns true when a DMX packet is received.
-    In which case, the data is copied to the SAMD21DMX object which is driving
-    the UART serial DMX output.
+    
+    If dmx is received on either interface, copy from both (HTP) to dmx output.
   
     If the packet is an CONFIG_PACKET_IDENT packet, the config struct is modified and stored in EEPROM
   
@@ -254,49 +323,25 @@ void setup() {
 *************************************************************************/
 
 void loop() {
-  
-  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
-    uint8_t good_dmx = interface->readDMXPacket(&wUDP);
-  
-    if ( good_dmx ) {
-       for (int i = 1; i <= total_pixels; i++) {
-          setPixelSlot(i , interface->getSlot(i));
-       }
-       sendPixels();
-       blinkLED();
-    } else {
-      if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {  //match header to config packet
-        Serial.print("config packet received, ");
-        uint8_t reply = 0;
-        if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
-          DMXWiFiConfig.readFromPersistentStore();
-          reply = 1;
-        } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-          Serial.println("upload packet");
-          DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
-          DMXWiFiConfig.commitToPersistentStore();
-          reply = 1;
-        } else {
-          Serial.println("packet error.");
-        }
-        if ( reply) {
-          DMXWiFiConfig.hidePassword();                  //don't transmit password!
-          wUDP.beginPacket(wUDP.remoteIP(), interface->dmxPort());
-          wUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
-          wUDP.endPacket();
-          Serial.println("reply complete.");
-			  DMXWiFiConfig.restorePassword();
-        }
-        interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trgger
-        blinkLED();
-        delay(100);
-        blinkLED();
-        delay(100);
-        blinkLED();
-      }     // packet has config packet header
-    }       // not good_dmx
-    
-  } //output mode
-  
-}           // loop()
+	if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
+	
+		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
+		if ( art_packet_result == RESULT_NONE ) {
+			checkConfigReceived(artNetInterface, aUDP);
+		}
+		
+		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
+		if ( acn_packet_result == RESULT_NONE ) {
+			checkConfigReceived(sACNInterface, sUDP);
+		}
+		
+		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
+			copyDMXToOutput();
+			blinkLED();
+		}
+		
+	} else {    // direction is input to network
+					// no input mode for this sketch
+	}
+}// loop()
 

@@ -115,8 +115,10 @@ uint16_t LXWiFiSACN::packetSize( void ) {
 
 uint8_t LXWiFiSACN::readDMXPacket ( UDP* wUDP ) {
 	_packetSize = 0;
-   if ( readSACNPacket(wUDP) > 0 ) {
+	uint16_t t_slots = readSACNPacket(wUDP);
+   if ( t_slots > 0 ) {
    	if ( startCode() == 0 ) {
+   		_dmx_slots = t_slots;
    		return RESULT_DMX_RECEIVED;
    	}
    }	
@@ -124,8 +126,10 @@ uint8_t LXWiFiSACN::readDMXPacket ( UDP* wUDP ) {
 }
 
 uint8_t LXWiFiSACN::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
-	if ( parse_root_layer(packetSize) > 0 ) {
+	uint16_t t_slots = parse_root_layer(packetSize);
+	if ( t_slots > 0 ) {
    	if ( startCode() == 0 ) {
+   		_dmx_slots = t_slots;
    		return RESULT_DMX_RECEIVED;
    	}
    }	
@@ -133,13 +137,13 @@ uint8_t LXWiFiSACN::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 }
 
 uint16_t LXWiFiSACN::readSACNPacket ( UDP* wUDP ) {
-   _dmx_slots = 0;
+   uint16_t t_slots = 0;
    uint16_t packetSize = wUDP->parsePacket();
    if ( packetSize ) {
       _packetSize = wUDP->read(_packet_buffer, SACN_BUFFER_MAX);
-      _dmx_slots = parse_root_layer(_packetSize);
+      t_slots = parse_root_layer(_packetSize);
    }
-   return _dmx_slots;
+   return t_slots;
 }
 
 void LXWiFiSACN::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
@@ -251,7 +255,6 @@ uint16_t LXWiFiSACN::parse_dmp_layer( uint16_t size ) {
         if ( dsize != (tsize - 10) ) {
            return 0;
         }
-        
         if ( _dmx_sender_id_a[0] == 0  ) {			
           for(int k=0; k<SACN_CID_LENGTH; k++) {		 // if _dmx_sender_id is not set
             _dmx_sender_id_a[k] = _packet_buffer[k+22];  // set it to id of this packet
@@ -297,7 +300,6 @@ uint16_t LXWiFiSACN::parse_dmp_layer( uint16_t size ) {
               return slots;
            } //CID match
         }
-        
       }
     }
   }

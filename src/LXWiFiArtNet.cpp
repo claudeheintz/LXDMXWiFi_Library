@@ -205,7 +205,7 @@ uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
 uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize ) {
    uint16_t opcode = ARTNET_NOP;
 
-	_dmx_slots = 0;
+	uint16_t t_slots = 0;
 	/* Buffer now may not contain dmx data for desired universe.
 		After reading the packet into the buffer, check to make sure
 		that it is an Art-Net packet and retrieve the opcode that
@@ -228,36 +228,34 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 					if ( _dmx_sender_a == wUDP->remoteIP() ) {
 						_dmx_slots_a  = slots;
 						if ( _dmx_slots_a > _dmx_slots_b ) {
-							_dmx_slots = _dmx_slots_a;
+							t_slots = _dmx_slots_a;
 						} else {
-							_dmx_slots = _dmx_slots_b;
+							t_slots = _dmx_slots_b;
 						}
 						int di;
-						int dc = _dmx_slots;
 						int dt = ARTNET_ADDRESS_OFFSET + 1;
-						  for (di=0; di<dc; di++) {
+						  for (di=0; di<t_slots; di++) {
 							 _dmx_buffer_a[di] = _packet_buffer[dt+di];
 							if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
 								_dmx_buffer_c[di] = _dmx_buffer_a[di];
 							} else {
 								_dmx_buffer_c[di] = _dmx_buffer_b[di];
 							}
-						}
-					} else { // matched sender a
-						if ( (uint32_t)_dmx_sender_b == 0 ) {		//if first sender, remember address
+						  }
+					} else { 												// did not match sender a
+						if ( (uint32_t)_dmx_sender_b == 0 ) {		// if 2nd sender, remember address
 							_dmx_sender_b = wUDP->remoteIP();
 						}
 						if ( _dmx_sender_b == wUDP->remoteIP() ) {
 						  _dmx_slots_b  = slots;
 							if ( _dmx_slots_a > _dmx_slots_b ) {
-								_dmx_slots = _dmx_slots_a;
+								t_slots = _dmx_slots_a;
 							} else {
-								_dmx_slots = _dmx_slots_b;
+								t_slots = _dmx_slots_b;
 							}
 						  int di;
-						  int dc = _dmx_slots;
 						  int dt = ARTNET_ADDRESS_OFFSET + 1;
-						  for (di=0; di<dc; di++) {
+						  for (di=0; di<t_slots; di++) {
 							 _dmx_buffer_b[di] = _packet_buffer[dt+di];
 							 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
 								_dmx_buffer_c[di] = _dmx_buffer_a[di];
@@ -265,12 +263,15 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 								_dmx_buffer_c[di] = _dmx_buffer_b[di];
 							 }
 						  }
+						  
 						}  // matched sender b
 					}     // did not match sender a
 				}		   // matched size
 			}			   // matched universe
-			if ( _dmx_slots == 0 ) {	//only set >0 if all of above matched
+			if ( t_slots == 0 ) {	//only set >0 if all of above matched
 				opcode = ARTNET_NOP;
+			} else {
+				_dmx_slots = t_slots;
 			}
 			break;
 		case ARTNET_ART_ADDRESS:

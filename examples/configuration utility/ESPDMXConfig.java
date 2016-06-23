@@ -45,6 +45,7 @@ public class ESPDMXConfig extends JFrame {
 	JTextField _jtfArtNetUniverse;
 	JTextField _jtfArtNetNodeName;
 	
+	JTextField _jtfDeviceAddress;
 	JTextField _jtfInputNetTarget;
 
 	ButtonGroup _bgStaticDHCP;
@@ -78,11 +79,13 @@ public class ESPDMXConfig extends JFrame {
 	JButton _jbSearch;
 	JButton _jbGetInfo;
 	JButton _jbUpload;
+	JButton _jbReset;
 	JButton _jbDone;
 	
 	public static byte OPCODE_DATA = 0;
 	public static byte OPCODE_QUERY = '?';
 	public static byte OPCODE_UPLOAD = '!';
+	public static byte OPCODE_RESET = '^';
 	
 	public ESPDMXConfig() {
 		redirectSystemOut();
@@ -109,7 +112,7 @@ public class ESPDMXConfig extends JFrame {
 
 	public void initInterface() {
 		setTitle("ESP-DMX Configuration Utility");
-		resizeAndCenter(670,600,this);
+		resizeAndCenter(680,600,this);
 
 		addWindowListener(new java.awt.event.WindowAdapter() {
 			public void windowClosing(java.awt.event.WindowEvent e) {
@@ -169,7 +172,7 @@ public class ESPDMXConfig extends JFrame {
 		_configPanel.add(_jrbAccessPoint);
 		_configPanel.add(_jrbStation);
 
-		// ap fields & labels
+		// ---------- ap fields & labels
 
 		_jtfAccessPointIP = new javax.swing.JTextField();
 		_jtfAccessPointIP.setSize(new java.awt.Dimension(130, 25));
@@ -213,7 +216,7 @@ public class ESPDMXConfig extends JFrame {
 		jLabel5.setLocation(new java.awt.Point(28, 192));
 		_configPanel.add(jLabel5);
 
-		// station fields & labels
+		// ---------- station fields & labels
 		
 		_jrbStatic = new JRadioButton("Static");
 		_jrbStatic.setLocation(new Point(395, 105));
@@ -271,35 +274,13 @@ public class ESPDMXConfig extends JFrame {
 		jLabel8.setHorizontalAlignment(SwingConstants.RIGHT);
 		jLabel8.setLocation(new java.awt.Point(292, 192));
 		_configPanel.add(jLabel8);
+
+		// ---------- sacn text fields
 		
-		// protocol options
-
-		_jrbSACN = new JRadioButton("sACN");
-		_jrbSACN.setLocation(new Point(130, 245));
-		_jrbSACN.setSize(new Dimension(200, 20));
-		_jrbSACN.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				_jrbMulticast.setSelected(true);
-			}
-		});
-
-		_jrbArtNet = new JRadioButton("Art-Net");
-		_jrbArtNet.setLocation(new Point(375, 245));
-		_jrbArtNet.setSize(new Dimension(200, 20));
-		_jrbArtNet.setSelected(true);
-		_jrbArtNet.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				_jrbBroadcast.setSelected(true);
-			}
-		});
-
-		_bgProtocol = new ButtonGroup();
-		_bgProtocol.add(_jrbSACN);
-		_bgProtocol.add(_jrbArtNet);
-		_configPanel.add(_jrbSACN);
-		_configPanel.add(_jrbArtNet);
-
-		// sacn text fields
+		JSeparator protocolSeparator = new JSeparator(SwingConstants.HORIZONTAL);
+		protocolSeparator.setLocation(new Point(10, 225));
+		protocolSeparator.setSize(new Dimension(640, 20));
+		_configPanel.add(protocolSeparator);
 
 		_jtfMulticastAddress = new javax.swing.JTextField();
 		_jtfMulticastAddress.setSize(new java.awt.Dimension(130, 25));
@@ -318,7 +299,7 @@ public class ESPDMXConfig extends JFrame {
 		_jtfSACNUniverse = new javax.swing.JTextField();
 		_jtfSACNUniverse.setSize(new java.awt.Dimension(40, 25));
 		_jtfSACNUniverse.setText( "" );
-		_jtfSACNUniverse.setLocation(new java.awt.Point(110, 310));
+		_jtfSACNUniverse.setLocation(new java.awt.Point(110, 250));
 		_configPanel.add(_jtfSACNUniverse);
 
 		javax.swing.JLabel jLabel10 = new javax.swing.JLabel();
@@ -326,15 +307,30 @@ public class ESPDMXConfig extends JFrame {
 		jLabel10.setVisible(true);
 		jLabel10.setText("sACN Universe:");
 		jLabel10.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel10.setLocation(new java.awt.Point(8, 312));
+		jLabel10.setLocation(new java.awt.Point(8, 252));
 		_configPanel.add(jLabel10);
+		
+		_jrbMulticast = new JRadioButton("Multicast");
+		_jrbMulticast.setLocation(new Point(130, 312));
+		_jrbMulticast.setSize(new Dimension(100, 20));
 
-		// Art-Net text fields
+		_jrbBroadcast = new JRadioButton("Unicast");
+		_jrbBroadcast.setLocation(new Point(25, 312));
+		_jrbBroadcast.setSize(new Dimension(160, 20));
+		_jrbBroadcast.setSelected(true);
+
+		_bgMultiBroadcast = new ButtonGroup();
+		_bgMultiBroadcast.add(_jrbMulticast);
+		_bgMultiBroadcast.add(_jrbBroadcast);
+		_configPanel.add(_jrbMulticast);
+		_configPanel.add(_jrbBroadcast);
+
+		// ---------- Art-Net text fields
 
 		_jtfArtNetSubnet = new javax.swing.JTextField();
 		_jtfArtNetSubnet.setSize(new java.awt.Dimension(40, 25));
 		_jtfArtNetSubnet.setText( "" );
-		_jtfArtNetSubnet.setLocation(new java.awt.Point(375, 280));
+		_jtfArtNetSubnet.setLocation(new java.awt.Point(375, 250));
 		_configPanel.add(_jtfArtNetSubnet);
 
 		javax.swing.JLabel jLabel11 = new javax.swing.JLabel();
@@ -342,13 +338,13 @@ public class ESPDMXConfig extends JFrame {
 		jLabel11.setVisible(true);
 		jLabel11.setText("Art-Net Subnet:");
 		jLabel11.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel11.setLocation(new java.awt.Point(262, 282));
+		jLabel11.setLocation(new java.awt.Point(262, 252));
 		_configPanel.add(jLabel11);
 
 		_jtfArtNetUniverse = new javax.swing.JTextField();
 		_jtfArtNetUniverse.setSize(new java.awt.Dimension(40, 25));
 		_jtfArtNetUniverse.setText( "" );
-		_jtfArtNetUniverse.setLocation(new java.awt.Point(375, 310));
+		_jtfArtNetUniverse.setLocation(new java.awt.Point(375, 280));
 		_configPanel.add(_jtfArtNetUniverse);
 
 		javax.swing.JLabel jLabel12 = new javax.swing.JLabel();
@@ -356,13 +352,13 @@ public class ESPDMXConfig extends JFrame {
 		jLabel12.setVisible(true);
 		jLabel12.setText("Art-Net Universe:");
 		jLabel12.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel12.setLocation(new java.awt.Point(252, 312));
+		jLabel12.setLocation(new java.awt.Point(252, 282));
 		_configPanel.add(jLabel12);
 
 		_jtfArtNetNodeName = new javax.swing.JTextField();
 		_jtfArtNetNodeName.setSize(new java.awt.Dimension(275, 25));
 		_jtfArtNetNodeName.setText( "" );
-		_jtfArtNetNodeName.setLocation(new java.awt.Point(375, 340));
+		_jtfArtNetNodeName.setLocation(new java.awt.Point(375, 310));
 		_configPanel.add(_jtfArtNetNodeName);
 
 		javax.swing.JLabel jLabel13 = new javax.swing.JLabel();
@@ -370,12 +366,12 @@ public class ESPDMXConfig extends JFrame {
 		jLabel13.setVisible(true);
 		jLabel13.setText("Node Name:");
 		jLabel13.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel13.setLocation(new java.awt.Point(252, 342));
+		jLabel13.setLocation(new java.awt.Point(252, 312));
 		_configPanel.add(jLabel13);
 		
 		_jbClearOutput = new JButton("Clear Output");
 		_jbClearOutput.setSize(new Dimension(120, 25));
-		_jbClearOutput.setLocation(new Point(530, 310));
+		_jbClearOutput.setLocation(new Point(530, 280));
 		_jbClearOutput.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				sendArtAddressCommand(targetIP(), 0x90);
@@ -385,7 +381,7 @@ public class ESPDMXConfig extends JFrame {
 
 		_jbCancelMerge = new JButton("Cancel Merge");
 		_jbCancelMerge.setSize(new Dimension(120, 25));
-		_jbCancelMerge.setLocation(new Point(530, 280));
+		_jbCancelMerge.setLocation(new Point(530, 250));
 		_jbCancelMerge.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				sendArtAddressCommand(targetIP(), 0x01);
@@ -393,28 +389,20 @@ public class ESPDMXConfig extends JFrame {
 		});
 		_configPanel.add(_jbCancelMerge);
 		
-		_jrbMulticast = new JRadioButton("Multicast");
-		_jrbMulticast.setLocation(new Point(25, 395));
-		_jrbMulticast.setSize(new Dimension(160, 20));
-
-		_jrbBroadcast = new JRadioButton("Unicast/Broadcast");
-		_jrbBroadcast.setLocation(new Point(25, 425));
-		_jrbBroadcast.setSize(new Dimension(160, 20));
-		_jrbBroadcast.setSelected(true);
-
-		_bgMultiBroadcast = new ButtonGroup();
-		_bgMultiBroadcast.add(_jrbMulticast);
-		_bgMultiBroadcast.add(_jrbBroadcast);
-		_configPanel.add(_jrbMulticast);
-		_configPanel.add(_jrbBroadcast);
+		// ---------- output or input  mode selection
+		
+		JSeparator modeSeparator = new JSeparator(SwingConstants.HORIZONTAL);
+		modeSeparator.setLocation(new Point(10, 345));
+		modeSeparator.setSize(new Dimension(640, 20));
+		_configPanel.add(modeSeparator);
 		
 		_jrbDMXOutput = new JRadioButton("DMX Output");
-		_jrbDMXOutput.setLocation(new Point(210, 395));
+		_jrbDMXOutput.setLocation(new Point(25, 375));
 		_jrbDMXOutput.setSize(new Dimension(150, 20));
 		_jrbDMXOutput.setSelected(true);
 
 		_jrbDMXInput = new JRadioButton("DMX Input");
-		_jrbDMXInput.setLocation(new Point(210, 425));
+		_jrbDMXInput.setLocation(new Point(25, 425));
 		_jrbDMXInput.setSize(new Dimension(160, 20));
 
 		_bgDMXMode = new ButtonGroup();
@@ -424,19 +412,53 @@ public class ESPDMXConfig extends JFrame {
 		_configPanel.add(_jrbDMXInput);
 		
 		
+		_jtfDeviceAddress = new javax.swing.JTextField();
+		_jtfDeviceAddress.setSize(new java.awt.Dimension(60, 25));
+		_jtfDeviceAddress.setText( "" );
+		_jtfDeviceAddress.setLocation(new java.awt.Point(300, 373));
+		_configPanel.add(_jtfDeviceAddress);
+
+		javax.swing.JLabel jLabel16 = new javax.swing.JLabel();
+		jLabel16.setSize(new java.awt.Dimension(125, 20));
+		jLabel16.setVisible(true);
+		jLabel16.setText("Device Address:");
+		jLabel16.setHorizontalAlignment(SwingConstants.RIGHT);
+		jLabel16.setLocation(new java.awt.Point(172, 375));
+		_configPanel.add(jLabel16);
+		
 		_jtfInputNetTarget = new javax.swing.JTextField();
 		_jtfInputNetTarget.setSize(new java.awt.Dimension(130, 25));
 		_jtfInputNetTarget.setText( "" );
-		_jtfInputNetTarget.setLocation(new java.awt.Point(375, 423));
+		_jtfInputNetTarget.setLocation(new java.awt.Point(230, 423));
 		_configPanel.add(_jtfInputNetTarget);
 
-		javax.swing.JLabel jLabel16 = new javax.swing.JLabel();
-		jLabel16.setSize(new java.awt.Dimension(120, 20));
-		jLabel16.setVisible(true);
-		jLabel16.setText("to net:");
-		jLabel16.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel16.setLocation(new java.awt.Point(252, 425));
-		_configPanel.add(jLabel16);
+		javax.swing.JLabel jLabel19 = new javax.swing.JLabel();
+		jLabel19.setSize(new java.awt.Dimension(120, 20));
+		jLabel19.setVisible(true);
+		jLabel19.setText("to net:");
+		jLabel19.setHorizontalAlignment(SwingConstants.RIGHT);
+		jLabel19.setLocation(new java.awt.Point(107, 425));
+		_configPanel.add(jLabel19);
+		
+		// ---------- input protocol options
+
+		_jrbSACN = new JRadioButton("sACN");
+		_jrbSACN.setLocation(new Point(485, 425));
+		_jrbSACN.setSize(new Dimension(100, 20));
+
+		_jrbArtNet = new JRadioButton("Art-Net");
+		_jrbArtNet.setLocation(new Point(380, 425));
+		_jrbArtNet.setSize(new Dimension(100, 20));
+		_jrbArtNet.setSelected(true);
+
+		_bgProtocol = new ButtonGroup();
+		_bgProtocol.add(_jrbSACN);
+		_bgProtocol.add(_jrbArtNet);
+		_configPanel.add(_jrbSACN);
+		_configPanel.add(_jrbArtNet);
+				
+				
+		// ---------- Done / Upload buttons
 		
 		_jbUpload = new JButton("Done");
 		_jbUpload.setSize(new Dimension(120, 30));
@@ -450,7 +472,7 @@ public class ESPDMXConfig extends JFrame {
 		
 		_jbUpload = new JButton("Upload");
 		_jbUpload.setSize(new Dimension(120, 30));
-		_jbUpload.setLocation(new Point(30, 475));
+		_jbUpload.setLocation(new Point(170, 475));
 		_jbUpload.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int result = upload();
@@ -463,6 +485,18 @@ public class ESPDMXConfig extends JFrame {
 			}
 		});
 		_configPanel.add(_jbUpload);
+		
+		_jbReset = new JButton("Send Reset");
+		_jbReset.setSize(new Dimension(120, 30));
+		_jbReset.setLocation(new Point(30, 475));
+		_jbReset.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				sendResetPacket(targetIP(), getTargetUDPPort());
+				configList.reset();
+				setSearchTab();
+			}
+		});
+		_configPanel.add(_jbReset);
 
 		//***************************************************************************************************
 		// ****************************************** search panel ******************************************
@@ -667,6 +701,7 @@ public class ESPDMXConfig extends JFrame {
 		_jtfStationSubnet.setText(cpacket.stationSubnetAddress());
 		_jtfMulticastAddress.setText(cpacket.multicastAddress());
 		_jtfInputNetTarget.setText(cpacket.inputAddress());
+		_jtfDeviceAddress.setText(Integer.toString(cpacket.deviceAddress()));
 
 		_jtfSACNUniverse.setText(cpacket.sacnUniverse());
 		_jtfArtNetSubnet.setText(cpacket.artNetSubnet());
@@ -716,6 +751,35 @@ public class ESPDMXConfig extends JFrame {
 			try {
 				Thread.sleep(1000);   //delay 1 sec. to wait for send/answer
 			} catch (Exception e) { }
+		}
+	}
+	
+	/**
+	 * constructs a reset packet and tells discoverer to send it on its run loop
+	 * @param ipstr
+	 * @param udpport
+	 */
+	public void sendResetPacket(String ipstr, int udpport) {
+		int result = JOptionPane.showConfirmDialog(
+						this,
+						"Reset will interrupt wireless connection and DMX.", "Are you sure?",
+						JOptionPane.YES_NO_OPTION);
+		if (result == JOptionPane.YES_OPTION) {
+DatagramPacket send_packet = null;
+			byte[] packet_buffer = new byte[10];
+			
+			try {
+				InetAddress to_ip = InetAddress.getByName(ipstr);
+				send_packet = new DatagramPacket(packet_buffer, 9, to_ip, udpport);
+			} catch ( Exception e) {
+				System.out.println("query address exception " + e);
+				return;
+			}
+	
+			setStringInPacketBuffer(packet_buffer, "ESP-DMX", 0);
+			packet_buffer[8] = OPCODE_RESET;
+	
+			discoverer.setSendPacket(send_packet);	//is sent on next trip through run loop
 		}
 	}
 	
@@ -776,6 +840,11 @@ public class ESPDMXConfig extends JFrame {
 		cp.setStationSubnetAddress(_jtfStationSubnet.getText());
 		cp.setMulticastAddress(_jtfMulticastAddress.getText());
 		cp.setInputAddress(_jtfInputNetTarget.getText());
+		int devaddr = 0;
+		try {
+			devaddr = Integer.parseInt(_jtfDeviceAddress.getText());
+		} catch (Exception e) {}
+		cp.setDeviceAddress(devaddr);
 		
 		cp.setSACNUniverse(_jtfSACNUniverse.getText());
 		cp.setArtNetSubnet(_jtfArtNetSubnet.getText());
@@ -1126,6 +1195,28 @@ public class ESPDMXConfig extends JFrame {
 	 */
 	public static class ESPDMXConfigPacket {
 		
+		public static final int ESP_CONFIG_PKT_INDEX_IDENT = 0;
+		public static final int ESP_CONFIG_PKT_INDEX_Opcode = 8;
+		public static final int ESP_CONFIG_PKT_INDEX_Version = 9;
+		public static final int ESP_CONFIG_PKT_INDEX_WiFiMode = 10;
+		public static final int ESP_CONFIG_PKT_INDEX_FLAGS = 11;
+		public static final int ESP_CONFIG_PKT_INDEX_SSID = 12;
+		public static final int ESP_CONFIG_PKT_INDEX_PWD = 76;
+		public static final int ESP_CONFIG_PKT_INDEX_APIP = 140;
+		public static final int ESP_CONFIG_PKT_INDEX_APGW = 144;
+		public static final int ESP_CONFIG_PKT_INDEX_APSN = 148;
+		public static final int ESP_CONFIG_PKT_INDEX_STIP = 152;
+		public static final int ESP_CONFIG_PKT_INDEX_STGW = 156;
+		public static final int ESP_CONFIG_PKT_INDEX_STSN = 160;
+		public static final int ESP_CONFIG_PKT_INDEX_MCIP = 164;
+		public static final int ESP_CONFIG_PKT_INDEX_SACNU = 168;
+		public static final int ESP_CONFIG_PKT_INDEX_ANSN = 169;
+		public static final int ESP_CONFIG_PKT_INDEX_ANU = 170;
+		public static final int ESP_CONFIG_PKT_INDEX_NODEN = 172;
+		public static final int ESP_CONFIG_PKT_INDEX_INIP = 204;
+		public static final int ESP_CONFIG_PKT_INDEX_ADDR_LSB = 208;	//note byte order in c struct
+		public static final int ESP_CONFIG_PKT_INDEX_ADDR_MSB = 209;
+		
 		byte[] config_data = new byte[ESP_CONFIG_PKT_SIZE];
 		InetAddress sourceip;
 		
@@ -1135,7 +1226,6 @@ public class ESPDMXConfig extends JFrame {
 			}
 			setStringInPacketBuffer(config_data, "ESP-DMX", 0);
 			config_data[8] = opcode;
-			config_data[139] = 2;  //wifi channel not implemented
 		}
 		
 		public ESPDMXConfigPacket(byte[] data, InetAddress ip) {
@@ -1154,188 +1244,197 @@ public class ESPDMXConfig extends JFrame {
 		}
 		
 		public String ssid() {
-			return new String( config_data, 9, lengthToZeroInByteArray(config_data, 9) );
+			return new String( config_data, ESP_CONFIG_PKT_INDEX_SSID, lengthToZeroInByteArray(config_data, ESP_CONFIG_PKT_INDEX_SSID) );
 		}
 		
 		public void setSSID(String s) {
-			setStringInPacketBuffer(config_data, s, 9);		//note no length checking
+			setStringInPacketBuffer(config_data, s, ESP_CONFIG_PKT_INDEX_SSID);		//note no length checking
 		}
 		
 		public String password() {
-			return new String( config_data, 73, lengthToZeroInByteArray(config_data,73) );
+			return new String( config_data, ESP_CONFIG_PKT_INDEX_PWD, lengthToZeroInByteArray(config_data,ESP_CONFIG_PKT_INDEX_PWD) );
 		}
 		
 		public void setPassword(String p) {
-			setStringInPacketBuffer(config_data, p, 73);	//note no length checking
+			setStringInPacketBuffer(config_data, p, ESP_CONFIG_PKT_INDEX_PWD);	//note no length checking
 		}
 		
 		public String nodeName() {
-			return new String( config_data, 171, lengthToZeroInByteArray(config_data,171) );
+			return new String( config_data, ESP_CONFIG_PKT_INDEX_NODEN, lengthToZeroInByteArray(config_data,ESP_CONFIG_PKT_INDEX_NODEN) );
 		}
 		
 		public void setNodeName(String nn) {
-			setStringInPacketBuffer(config_data, nn, 171);	//note no length checking
+			setStringInPacketBuffer(config_data, nn, ESP_CONFIG_PKT_INDEX_NODEN);	//note no length checking
 		}
 		
 		public boolean stationMode() {
-			return ( config_data[137] == 0 );
+			return ( config_data[ESP_CONFIG_PKT_INDEX_WiFiMode] == 0 );
 		}
 		
 		public void setStationMode(boolean m) {
 			if ( m ) {
-				config_data[137] = 0;
+				config_data[ESP_CONFIG_PKT_INDEX_WiFiMode] = 0;
 			} else {
-				config_data[137] = 1;
+				config_data[ESP_CONFIG_PKT_INDEX_WiFiMode] = 1;
 			}
 		}
 		
 		public boolean artNetMode() {
-			return ( (config_data[138] & 1) == 0 );
+			return ( (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 1) == 0 );
 		}
 		
 		public void setArtNetMode(boolean m) {
-			byte cd = (byte) (config_data[138] & 0xfe);
+			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xfe);
 			if ( m ) {
-				config_data[138] = cd;
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			} else {
 				System.out.println("_setting byte for sacn");
-				config_data[138] = (byte) (cd | 0x01);
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x01);
 			}
 		}
 		
 		public boolean dhcpMode() {
-			return ( (config_data[138] & 2) == 0 );
+			return ( (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 2) == 0 );
 		}
 		
 		public void setDHCPMode(boolean m) {
-			byte cd = (byte) (config_data[138] & 0xfd);
+			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xfd);
 			if ( m ) {
-				config_data[138] = cd;
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			} else {
-				config_data[138] = (byte) (cd | 0x02);
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x02);
 			}
 		}
 		
 		public boolean multicastMode() {
-			return ( (config_data[138] & 4) != 0 );
+			return ( (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 4) != 0 );
 		}
 		
 		public void setMulticastMode(boolean m) {
-			byte cd = (byte) (config_data[138] & 0xfb);
+			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xfb);
 			if ( m ) {
-				config_data[138] = (byte) (cd | 0x04);
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x04);
 			} else {
-				config_data[138] = cd;
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			}
 		}
 		
 		public boolean outputMode() {
-			return ( (config_data[138] & 8) == 0 );
+			return ( (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 8) == 0 );
 		}
 		
 		public void setOutputMode(boolean m) {
-			byte cd = (byte) (config_data[138] & 0xf7);
+			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xf7);
 			if ( m ) {
-				config_data[138] = cd;
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			} else {
-				config_data[138] = (byte) (cd | 0x08);
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x08);
 			}
 		}
 		
 		public String apStaticAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,140);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_APIP);
 			return ipa.getHostAddress();
 		}
 		
 		public void setAPStaticAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 140);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_APIP);
 		}
 		
 		public String apGatewayAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,144);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_APGW);
 			return ipa.getHostAddress();
 		}
 		
 		public void setAPGatewayAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 144);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_APGW);
 		}
 		
 		public String apSubnetAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,148);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_APSN);
 			return ipa.getHostAddress();
 		}
 		
 		public void setAPSubnetAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 148);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_APSN);
 		}
 		
 		public String stationStaticAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,152);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_STIP);
 			return ipa.getHostAddress();
 		}
 		
 		public void setStationStaticAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 152);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_STIP);
 		}
 		
 		public String stationGatewayAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,156);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_STGW);
 			return ipa.getHostAddress();
 		}
 		
 		public void setStationGatewayAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 156);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_STGW);
 		}
 		
 		public String stationSubnetAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,160);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_STSN);
 			return ipa.getHostAddress();
 		}
 		
 		public void setStationSubnetAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 160);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_STSN);
 		}
 		
 		public String multicastAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,164);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_MCIP);
 			return ipa.getHostAddress();
 		}
 		
 		public void setMulticastAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 164);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_MCIP);
 		}
 		
 		public String inputAddress() {
-			InetAddress ipa = ipaddressFromByteArray(config_data,204);
+			InetAddress ipa = ipaddressFromByteArray(config_data,ESP_CONFIG_PKT_INDEX_INIP);
 			return ipa.getHostAddress();
 		}
 		
 		public void setInputAddress(String ips) {
-			setIPAddressInPacketBuffer(config_data, ips, 204);
+			setIPAddressInPacketBuffer(config_data, ips, ESP_CONFIG_PKT_INDEX_INIP);
+		}
+		
+		public int deviceAddress() {
+			return ((config_data[ESP_CONFIG_PKT_INDEX_ADDR_MSB]&0xff) << 8) + (config_data[ESP_CONFIG_PKT_INDEX_ADDR_LSB]&0xff);
+		}
+		
+		public void setDeviceAddress(int d) {
+			config_data[ESP_CONFIG_PKT_INDEX_ADDR_MSB] = (byte)((d >> 8) & 0xff);
+			config_data[ESP_CONFIG_PKT_INDEX_ADDR_LSB] = (byte)(d & 0xff);
 		}
 		
 		public String sacnUniverse() {
-			return Integer.toString(config_data[168]);
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_SACNU]);
 		}
 		
 		public void setSACNUniverse(String s) {
-			config_data[168] = (byte)safeParseInt(s);
+			config_data[ESP_CONFIG_PKT_INDEX_SACNU] = (byte)safeParseInt(s);
 		}
 		
 		public String artNetSubnet() {
-			return Integer.toString(config_data[169]);
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANSN]);
 		}
 		
 		public void setArtNetSubnet(String s) {
-			config_data[169] = (byte)safeParseInt(s);
+			config_data[ESP_CONFIG_PKT_INDEX_ANSN] = (byte)safeParseInt(s);
 		}
 		
 		public String artNetUniverse() {
-			return Integer.toString(config_data[170]);
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANU]);
 		}
 		
 		public void setArtNetUniverse(String s) {
-			config_data[170] = (byte)safeParseInt(s);
+			config_data[ESP_CONFIG_PKT_INDEX_ANU] = (byte)safeParseInt(s);
 		}
 		
 	}	// class ESPDMXConfigPacket
