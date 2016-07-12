@@ -416,8 +416,8 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   _reply_buffer[21] = 0;
   _reply_buffer[22] = 0;       // ubea
   _reply_buffer[23] = 0;       // status
-  _reply_buffer[24] = 0x50;    //     Mfg Code
-  _reply_buffer[25] = 0x12;    //     seems DMX workshop reads these bytes backwards
+  _reply_buffer[24] = 0x6C;    //     Mfg Code
+  _reply_buffer[25] = 0x78;    //     seems DMX workshop reads these bytes backwards
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[173] = 1;    // number of ports
