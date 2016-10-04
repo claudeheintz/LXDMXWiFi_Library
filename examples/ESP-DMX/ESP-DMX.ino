@@ -182,6 +182,9 @@ void setup() {
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);
   }
+  if ( DMXWiFiConfig.staticIPAddress() == 0 ) {
+  	 artNetInterface->replyData()[212] |= 2;			//dhcp
+  }
   Serial.print("interfaces created, ");
   
   // if output from network, start wUDP listening for packets

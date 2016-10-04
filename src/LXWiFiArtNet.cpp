@@ -14,6 +14,7 @@
     v1.0 - First release
     v1.1 - adds ability to use external packet buffer
     v1.2 - fixes cancel merge
+    v1.2 - adds setLocalAddress
 */
 /**************************************************************************/
 
@@ -24,17 +25,15 @@ uint8_t LXWiFiArtNet::_reply_buffer[ARTNET_REPLY_SIZE];
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address )
 {	
-	 initialize(0);
-	 
-    _my_address = address;
+    initialize(0);
+    setLocalAddress(address);
     _broadcast_address = INADDR_NONE;
 }
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
 {
-	 initialize(0);
-	 
-    _my_address = address;
+    initialize(0);
+    setLocalAddress(address);
     uint32_t a = (uint32_t) address;
     uint32_t s = (uint32_t) subnet_mask;
     _broadcast_address = IPAddress(a | ~s);
@@ -42,9 +41,8 @@ LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask, uint8_t* buffer )
 {
-	 initialize(buffer);
-	 
-    _my_address = address;
+    initialize(buffer);
+    setLocalAddress(address);
     uint32_t a = (uint32_t) address;
     uint32_t s = (uint32_t) subnet_mask;
     _broadcast_address = IPAddress(a | ~s);
@@ -90,8 +88,6 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     strcpy(_short_name, "ESP-DMX");
     strcpy(_long_name, "com.claudeheintzdesign.esp-dmx");
     _artaddress_receive_callback = 0;
-    
-    initializePollReply();
 }
 
 uint8_t  LXWiFiArtNet::universe ( void ) {
@@ -392,6 +388,11 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	}
 	
 	return ARTNET_ART_ADDRESS;
+}
+
+void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {
+	_my_address = address;
+	initializePollReply();
 }
 
 void  LXWiFiArtNet::initializePollReply  ( void ) {

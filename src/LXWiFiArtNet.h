@@ -308,6 +308,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
    void  initialize  ( uint8_t* b );
    
 /*!
+* @brief set address for ArtPollReply
+*/   
+	void  setLocalAddress ( IPAddress address );
+   
+/*!
 * @brief initialize poll reply buffer
 */
    void  initializePollReply  ( void );
