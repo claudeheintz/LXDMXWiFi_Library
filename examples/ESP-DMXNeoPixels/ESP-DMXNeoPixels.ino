@@ -120,7 +120,7 @@ void sendPixels() {
   ring.show();
 }
 
-void setPixel(uint8_t index, uint8_t value) {	
+void setPixel(uint16_t index, uint8_t value) {	
   uint8_t pixel = index/LEDS_PER_NEOPIXEL;
   uint8_t color = index%LEDS_PER_NEOPIXEL;
   pixels[pixel][color] = value;
