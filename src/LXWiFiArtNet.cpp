@@ -5,7 +5,7 @@
     @license  BSD (see LXDMXWiFi.h)
     @copyright 2015-2016 by Claude Heintz All Rights Reserved
     
-    Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
+    Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
 
     Supports sending and receiving Art-Net via ESP8266 WiFi connection.
 

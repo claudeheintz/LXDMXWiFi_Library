@@ -966,7 +966,7 @@ DatagramPacket send_packet = null;
 	 * Sends an Art-Net ArtAddress packet containing a command such as Cancel Merge
 	 * @param target IP Address to send the command to
 	 * @param command	byte representing the command (see Art-Net protocol reference pg 33)
-	 * "Art-NetTM Designed by and Copyright Artistic Licence Holdings Ltd".
+	 * Art-NetTM Designed by and Copyright Artistic Licence Holdings Ltd.
 	 */
 	public void sendArtAddressCommand (String target, int command) {
 		System.out.println("sendArtAddressCommand");

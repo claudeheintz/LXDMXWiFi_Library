@@ -2,7 +2,7 @@
    Copyright 2015 by Claude Heintz Design
    see LXDMXWiFi.h for LICENSE
 
-	Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
+	Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
 */
 
 #ifndef LXWIFIARTNET_H

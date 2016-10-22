@@ -9,7 +9,7 @@
     MKR1000 WiFi connection to serial DMX.  Or, input from DMX to the network.
     Allows remote configuration of WiFi connection and protocol settings.
     
-    Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
+    Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
     sACN E 1.31 is a public standard published by the PLASA technical standards program
     
     NOTES: If not using the latest Arduino IDE, you may get compile errors when including the WiFi101 library.

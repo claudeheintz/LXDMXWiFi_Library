@@ -8,7 +8,7 @@
     Example using LXEDMXWiFi_Library for input from DMX to Art-Net or E1.31 sACN
     sent via ESP 8266 WiFi connection
     
-    Art-Net(TM) Designed by and Copyright Artistic Licence (UK) Ltd
+    Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
     sACN E 1.31 is a public standard published by the PLASA technical standards program
     
     Note:  For sending packets larger than 512 bytes, ESP8266 WiFi Library v2.1
