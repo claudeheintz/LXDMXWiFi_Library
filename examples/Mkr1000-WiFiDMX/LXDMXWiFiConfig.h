@@ -32,9 +32,9 @@ typedef struct dmxwifiConfig {
    uint32_t sta_subnet;		//   subnet  in station mode
    uint32_t multi_address;  // multicast address for sACN
    uint8_t sacn_universe;   // should match multicast address
-   uint8_t artnet_subnet;
-   uint8_t artnet_universe;
-   uint8_t reserved2;		 // 4 byte align
+   uint8_t artnet_portaddr_hi;
+   uint8_t artnet_portaddr_lo;
+   uint8_t sacn_universe_hi;		 // backwards compatability
    uint8_t node_name[32];
    uint32_t input_address;  // IP address for sending DMX to network in input mode
    uint16_t device_address; // dmx address (if applicable)
@@ -71,8 +71,9 @@ class DMXwifiConfig {
 	 
 	 /* 
 	 	handles init of config data structure, reading from persistent if desired.
+	 	returns 1 if boot uses default settings, 0 if settings are read from EEPROM
 	 */
-	 void begin ( uint8_t mode );
+	 uint8_t begin ( uint8_t mode );
 	 
 	 /*
 	 initConfig initializes the DMXWiFiConfig structure with default settings
@@ -88,6 +89,7 @@ class DMXwifiConfig {
 	 char* password(void);
 	 bool APMode(void);
 	 bool staticIPAddress(void);
+	 void setStaticIPAddress(uint8_t staticip);
 	 
 	 /* 
 	 	protocol modes
@@ -104,8 +106,10 @@ class DMXwifiConfig {
     IPAddress apGateway(void);
 	 IPAddress apSubnet(void);
 	 IPAddress stationIPAddress(void);
+	 void      setStationIPAddress ( IPAddress addr );
     IPAddress stationGateway(void);
 	 IPAddress stationSubnet(void);
+	 void      setStationSubnetMask ( IPAddress submask );
 	 IPAddress multicastAddress(void);
 	 IPAddress inputAddress(void);
 	 
@@ -117,10 +121,9 @@ class DMXwifiConfig {
 	 /* 
 	 	protocol settings
 	 */
-	 uint8_t sACNUniverse(void);
-	 uint8_t artnetSubnet(void);
-	 uint8_t artnetUniverse(void);
-	 void setArtNetUniverse(int u);
+	 uint16_t sACNUniverse(void);
+	 uint16_t artnetPortAddress(void);
+	 void setArtNetPortAddress(uint16_t u);
 	 char* nodeName(void);
 	 void setNodeName(char* nn);
 	 
@@ -132,7 +135,7 @@ class DMXwifiConfig {
 	 /* 
 	 	read from EEPROM or flash
 	 */
-	 void readFromPersistentStore(void);
+	 uint8_t readFromPersistentStore(void);
 	 
 	 /* 
 	 	write to EEPROM or flash
@@ -145,12 +148,11 @@ class DMXwifiConfig {
 	 uint8_t* config(void);
 	 uint8_t configSize(void);
 
-	 	 /* 
+	 /* 
 	 	Utility function. WiFi station password should never be returned by query.
 	 */
 	 void hidePassword(void);
 	 void restorePassword(void);
-	 
 
   private:
    

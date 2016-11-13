@@ -91,9 +91,41 @@ void blinkLED() {
    but relevant fields are copied to config struct (and stored to EEPROM ...not yet)
 */
 void artAddressReceived() {
-  DMXWiFiConfig.setArtNetUniverse( artNetInterface->universe() );
+  DMXWiFiConfig.setArtNetPortAddress( artNetInterface->universe() );
   DMXWiFiConfig.setNodeName( artNetInterface->longName() );
   DMXWiFiConfig.commitToPersistentStore();
+}
+
+/* 
+   artIpProg callback allows storing of config information
+   cmd field bit 7 indicates that settings should be programmed
+*/
+void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
+   if ( cmd & 0x80 ) {
+      if ( cmd & 0x40 ) {	//enable dhcp, other fields not written
+      	if ( DMXWiFiConfig.staticIPAddress() ) {
+      		DMXWiFiConfig.setStaticIPAddress(0);
+      	} else {
+      	   return;	// already set to dhcp
+      	}
+      } else {
+         if ( ! DMXWiFiConfig.staticIPAddress() ) {
+      	   DMXWiFiConfig.setStaticIPAddress(1);	// static not dhcp
+      	}
+      	if ( cmd & 0x08 ) {	//factory reset
+      	   DMXWiFiConfig.initConfig();
+      	} else {
+      	   if ( cmd & 0x04 ) {	//programIP
+      	      DMXWiFiConfig.setStationIPAddress(addr);
+      	   }
+      	   if ( cmd & 0x02 ) {	//programSubnet
+      	      DMXWiFiConfig.setStationSubnetMask(subnet);
+      	   }
+      	}
+      }	// else ( ! dhcp )
+      
+      DMXWiFiConfig.commitToPersistentStore();
+   }
 }
 
 /*
@@ -184,8 +216,9 @@ void setup() {
   sACNInterface->setUniverse(DMXWiFiConfig.sACNUniverse());
 
   artNetInterface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-  artNetInterface->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
+  artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
+  artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);

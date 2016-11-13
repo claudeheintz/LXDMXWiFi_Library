@@ -41,6 +41,7 @@ public class ESPDMXConfig extends JFrame {
 	JTextField _jtfMulticastAddress;
 	JTextField _jtfSACNUniverse;
 
+	JTextField _jtfArtNetPANet;
 	JTextField _jtfArtNetSubnet;
 	JTextField _jtfArtNetUniverse;
 	JTextField _jtfArtNetNodeName;
@@ -326,33 +327,41 @@ public class ESPDMXConfig extends JFrame {
 		_configPanel.add(_jrbBroadcast);
 
 		// ---------- Art-Net text fields
+		
+		_jtfArtNetPANet = new javax.swing.JTextField();
+		_jtfArtNetPANet.setSize(new java.awt.Dimension(40, 25));
+		_jtfArtNetPANet.setText( "" );
+		_jtfArtNetPANet.setLocation(new java.awt.Point(375, 250));
+		_configPanel.add(_jtfArtNetPANet);
 
 		_jtfArtNetSubnet = new javax.swing.JTextField();
 		_jtfArtNetSubnet.setSize(new java.awt.Dimension(40, 25));
 		_jtfArtNetSubnet.setText( "" );
-		_jtfArtNetSubnet.setLocation(new java.awt.Point(375, 250));
+		_jtfArtNetSubnet.setLocation(new java.awt.Point(415, 250));
 		_configPanel.add(_jtfArtNetSubnet);
 
 		javax.swing.JLabel jLabel11 = new javax.swing.JLabel();
-		jLabel11.setSize(new java.awt.Dimension(110, 20));
+		jLabel11.setSize(new java.awt.Dimension(200, 20));
 		jLabel11.setVisible(true);
-		jLabel11.setText("Art-Net Subnet:");
+		jLabel11.setText("Art-Net Port Address:");
 		jLabel11.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel11.setLocation(new java.awt.Point(262, 252));
+		jLabel11.setLocation(new java.awt.Point(172, 252));
 		_configPanel.add(jLabel11);
 
 		_jtfArtNetUniverse = new javax.swing.JTextField();
 		_jtfArtNetUniverse.setSize(new java.awt.Dimension(40, 25));
 		_jtfArtNetUniverse.setText( "" );
-		_jtfArtNetUniverse.setLocation(new java.awt.Point(375, 280));
+		_jtfArtNetUniverse.setLocation(new java.awt.Point(455, 250));
 		_configPanel.add(_jtfArtNetUniverse);
 
 		javax.swing.JLabel jLabel12 = new javax.swing.JLabel();
-		jLabel12.setSize(new java.awt.Dimension(120, 20));
+		jLabel12.setSize(new java.awt.Dimension(200, 20));
 		jLabel12.setVisible(true);
-		jLabel12.setText("Art-Net Universe:");
+		jLabel12.setText("[Net]-[Subnet]-[Universe]");
 		jLabel12.setHorizontalAlignment(SwingConstants.RIGHT);
-		jLabel12.setLocation(new java.awt.Point(252, 282));
+		String cfname = jLabel12.getFont().getName();
+		jLabel12.setFont(new Font(cfname, 0, 10));
+		jLabel12.setLocation(new java.awt.Point(295, 278));
 		_configPanel.add(jLabel12);
 
 		_jtfArtNetNodeName = new javax.swing.JTextField();
@@ -704,6 +713,7 @@ public class ESPDMXConfig extends JFrame {
 		_jtfDeviceAddress.setText(Integer.toString(cpacket.deviceAddress()));
 
 		_jtfSACNUniverse.setText(cpacket.sacnUniverse());
+		_jtfArtNetPANet.setText(cpacket.artNetPortAddressNet());
 		_jtfArtNetSubnet.setText(cpacket.artNetSubnet());
 		_jtfArtNetUniverse.setText(cpacket.artNetUniverse());
 	}
@@ -847,6 +857,7 @@ DatagramPacket send_packet = null;
 		cp.setDeviceAddress(devaddr);
 		
 		cp.setSACNUniverse(_jtfSACNUniverse.getText());
+		cp.setArtNetPortAddressNet(_jtfArtNetPANet.getText());
 		cp.setArtNetSubnet(_jtfArtNetSubnet.getText());
 		cp.setArtNetUniverse(_jtfArtNetUniverse.getText());
 		
@@ -1210,8 +1221,8 @@ DatagramPacket send_packet = null;
 		public static final int ESP_CONFIG_PKT_INDEX_STSN = 160;
 		public static final int ESP_CONFIG_PKT_INDEX_MCIP = 164;
 		public static final int ESP_CONFIG_PKT_INDEX_SACNU = 168;
-		public static final int ESP_CONFIG_PKT_INDEX_ANSN = 169;
-		public static final int ESP_CONFIG_PKT_INDEX_ANU = 170;
+		public static final int ESP_CONFIG_PKT_INDEX_ANPAH = 169;
+		public static final int ESP_CONFIG_PKT_INDEX_ANPAL = 170;
 		public static final int ESP_CONFIG_PKT_INDEX_NODEN = 172;
 		public static final int ESP_CONFIG_PKT_INDEX_INIP = 204;
 		public static final int ESP_CONFIG_PKT_INDEX_ADDR_LSB = 208;	//note byte order in c struct
@@ -1288,7 +1299,6 @@ DatagramPacket send_packet = null;
 			if ( m ) {
 				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			} else {
-				System.out.println("_setting byte for sacn");
 				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x01);
 			}
 		}
@@ -1414,27 +1424,41 @@ DatagramPacket send_packet = null;
 		}
 		
 		public String sacnUniverse() {
-			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_SACNU]);
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_SACNU] | (config_data[ESP_CONFIG_PKT_INDEX_SACNU+3]<<8));
 		}
 		
 		public void setSACNUniverse(String s) {
-			config_data[ESP_CONFIG_PKT_INDEX_SACNU] = (byte)safeParseInt(s);
+			int su = safeParseInt(s);
+			config_data[ESP_CONFIG_PKT_INDEX_SACNU] = (byte)( su & 0xff);
+			config_data[ESP_CONFIG_PKT_INDEX_SACNU+3] = (byte)( (su >> 8) & 0xff);
+		}
+		
+		public String artNetPortAddressNet() {
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANPAH]);
+		}
+		
+		public void setArtNetPortAddressNet(String n) {
+			config_data[ESP_CONFIG_PKT_INDEX_ANPAH] = (byte)safeParseInt(n);
 		}
 		
 		public String artNetSubnet() {
-			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANSN]);
+			return Integer.toString((config_data[ESP_CONFIG_PKT_INDEX_ANPAL] >> 4) & 0x0f);
 		}
 		
 		public void setArtNetSubnet(String s) {
-			config_data[ESP_CONFIG_PKT_INDEX_ANSN] = (byte)safeParseInt(s);
+			int sn = (byte)safeParseInt(s);
+			int pal = config_data[ESP_CONFIG_PKT_INDEX_ANPAL];
+			config_data[ESP_CONFIG_PKT_INDEX_ANPAL] = (byte)((pal & 0x0f) | ((sn &0x0f) << 4));
 		}
 		
 		public String artNetUniverse() {
-			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANU]);
+			return Integer.toString(config_data[ESP_CONFIG_PKT_INDEX_ANPAL] & 0x0f);
 		}
 		
 		public void setArtNetUniverse(String s) {
-			config_data[ESP_CONFIG_PKT_INDEX_ANU] = (byte)safeParseInt(s);
+			int u = (byte)safeParseInt(s);
+			int pal = config_data[ESP_CONFIG_PKT_INDEX_ANPAL];
+			config_data[ESP_CONFIG_PKT_INDEX_ANPAL] =(byte)((pal & 0xf0) | (u & 0x0f));
 		}
 		
 	}	// class ESPDMXConfigPacket
@@ -1589,23 +1613,28 @@ DatagramPacket send_packet = null;
 		 */
 		public void run() {
 			searching = true;
+			int exceptionCount = 0;
 			
 			while ( searching ) {
 				if ( sendPacket != null ) {
 					try {
 						udpsocket.send(sendPacket);
 						sendPacket = null;
+						exceptionCount = 0;
 					} catch (Exception e) {
+						exceptionCount++;
 						if ( reportSendFailure ) {
 							JOptionPane.showMessageDialog( null, "Packet failed to send. " + e );
 						}
-						System.out.println("send packet exception");
+						System.out.println("send packet exception " + e);
+						if ( exceptionCount > 3 ) {
+							sendPacket = null;
+						}
+						reportSendFailure = false;
 					}
-					reportSendFailure = false;
 				} else {
 					receivePacket(udpsocket);//may timeout
 				}
-
 			}
 			
 			udpsocket.close();

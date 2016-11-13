@@ -37,13 +37,13 @@ DMXwifiConfig::~DMXwifiConfig ( void ) {
 	}
 }
 
-void DMXwifiConfig::begin ( uint8_t mode ) {
+uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
 	_wifi_config = new ( DMXWiFiconfig );
 	if ( mode ) {
-		readFromPersistentStore();
-	} else {
-		initConfig();
+		return readFromPersistentStore();
 	}
+	initConfig();
+	return 1;
 }
 
 /**
@@ -70,9 +70,10 @@ void DMXwifiConfig::initConfig(void) {
   _wifi_config->sta_gateway   = IPAddress(192,168,1,1);
   _wifi_config->sta_subnet    = IPAddress(255,0,0,0);
   _wifi_config->multi_address = IPAddress(239,255,0,1);         // sACN multicast address should match universe
-  _wifi_config->sacn_universe   = 1;
-  _wifi_config->artnet_universe = 0;
-  _wifi_config->artnet_subnet   = 0;
+  _wifi_config->sacn_universe      = 1;
+  _wifi_config->sacn_universe_hi   = 0;
+  _wifi_config->artnet_portaddr_lo = 0;
+  _wifi_config->artnet_portaddr_hi = 0;
   _wifi_config->device_address  = 1;
   strcpy((char*)_wifi_config->node_name, "com.claudeheintzdesign.d21-dmx");
   _wifi_config->input_address = IPAddress(10,255,255,255);
@@ -92,6 +93,14 @@ bool DMXwifiConfig::APMode(void) {
 
 bool DMXwifiConfig::staticIPAddress(void) {
 	return ( _wifi_config->protocol_flags & STATIC_MODE );
+}
+
+void DMXwifiConfig::setStaticIPAddress(uint8_t staticip) {
+   if ( staticip ) {
+      _wifi_config->protocol_flags |= STATIC_MODE;
+   } else {
+      _wifi_config->protocol_flags &= ~STATIC_MODE;
+   }
 }
 
 bool DMXwifiConfig::artnetMode(void) {
@@ -126,12 +135,20 @@ IPAddress DMXwifiConfig::stationIPAddress(void) {
 	return _wifi_config->sta_address;
 }
 
+void DMXwifiConfig::setStationIPAddress ( IPAddress addr ) {
+   _wifi_config->sta_address = addr;
+}
+
 IPAddress DMXwifiConfig::stationGateway(void) {
 	return _wifi_config->sta_gateway;
 }
 
 IPAddress DMXwifiConfig::stationSubnet(void) {
 	return _wifi_config->sta_subnet;
+}
+
+void DMXwifiConfig::setStationSubnetMask ( IPAddress submask ) {
+   _wifi_config->sta_subnet = submask;
 }
 
 IPAddress DMXwifiConfig::multicastAddress(void) {
@@ -146,21 +163,17 @@ uint16_t DMXwifiConfig::deviceAddress(void) {
 	return _wifi_config->device_address;
 }
 
-uint8_t DMXwifiConfig::sACNUniverse(void) {
-	return _wifi_config->sacn_universe;
+uint16_t DMXwifiConfig::sACNUniverse(void) {
+	return _wifi_config->sacn_universe | (_wifi_config->sacn_universe_hi << 8);
 }
 
-uint8_t DMXwifiConfig::artnetSubnet(void) {
-	return _wifi_config->artnet_subnet;
+uint16_t DMXwifiConfig::artnetPortAddress(void) {
+	return _wifi_config->artnet_portaddr_lo | ( _wifi_config->artnet_portaddr_hi << 8 );
 }
 
-uint8_t DMXwifiConfig::artnetUniverse(void) {
-	return _wifi_config->artnet_universe;
-}
-
-void DMXwifiConfig::setArtNetUniverse(int u) {
-	_wifi_config->artnet_subnet = (u & 0x0F);
-	_wifi_config->artnet_universe = ((u>>4) & 0x0F);
+void DMXwifiConfig::setArtNetPortAddress(uint16_t u) {
+	_wifi_config->artnet_portaddr_lo = u & 0xff;
+	_wifi_config->artnet_portaddr_hi = ( u >> 8 ) & 0xff;
 }
 
 char* DMXwifiConfig::nodeName(void) {
@@ -193,8 +206,9 @@ void DMXwifiConfig::copyConfig(uint8_t* pkt, uint8_t size) {
  * and writes the default settings to flash
  */
 
-void DMXwifiConfig::readFromPersistentStore(void) {
+uint8_t DMXwifiConfig::readFromPersistentStore(void) {
   	copyConfig((uint8_t*)_config_in_flash, DMXWiFiConfigSIZE);
+  	uint8_t did_default = 1;
 
   	// check to see if ident matches
   	if ( strcmp(CONFIG_PACKET_IDENT, _wifi_config->ident) != 0 ) {
@@ -202,7 +216,9 @@ void DMXwifiConfig::readFromPersistentStore(void) {
   		commitToPersistentStore();
   	} else {
   		_wifi_config->opcode = 0;
+  		did_default = 0;
   	}
+  	return did_default;
 }
 
 uint32_t packBytes(uint8_t* p) {

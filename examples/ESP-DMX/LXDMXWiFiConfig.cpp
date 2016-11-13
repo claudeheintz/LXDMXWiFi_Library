@@ -30,7 +30,7 @@ DMXwifiConfig::~DMXwifiConfig ( void ) {
 	}
 }
 
-void DMXwifiConfig::begin ( uint8_t mode ) {
+uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
 	if ( mode ) {
 		_temp_config = 0;
 		EEPROM.begin(DMXWiFiConfigSIZE);                      		// get pointer to data
@@ -44,13 +44,17 @@ void DMXwifiConfig::begin ( uint8_t mode ) {
 		  Serial.println("\nInitialized EEPROM");
 		} else {																					// otherwise use the config struct read from EEPROM
 			  Serial.println("\nEEPROM Read OK");
+			  return 0;
 		}
+		
 	} else {					// default creates temporary config pointer
 		_temp_config = 1;	// readFromPersistentStore() will free this pointer and replace it with data from EEPROM
 		_wifi_config = (DMXWiFiconfig*) malloc(sizeof(DMXWiFiconfig));
 		initConfig();
 		Serial.println("\nDefault configuration.");
 	}
+	
+	return 1;
 }
 
 void DMXwifiConfig::initConfig(void) {
@@ -73,9 +77,10 @@ void DMXwifiConfig::initConfig(void) {
   _wifi_config->sta_gateway   = IPAddress(192,168,1,1);
   _wifi_config->sta_subnet    = IPAddress(255,0,0,0);
   _wifi_config->multi_address = IPAddress(239,255,0,1);         // sACN multicast address should match universe
-  _wifi_config->sacn_universe   = 1;
-  _wifi_config->artnet_universe = 0;
-  _wifi_config->artnet_subnet   = 0;
+  _wifi_config->sacn_universe      = 1;
+  _wifi_config->sacn_universe_hi   = 0;
+  _wifi_config->artnet_portaddr_lo = 0;
+  _wifi_config->artnet_portaddr_hi = 0;
   _wifi_config->device_address  = 1;
   strcpy((char*)_wifi_config->node_name, "com.claudeheintzdesign.esp-dmx");
   _wifi_config->input_address = IPAddress(10,255,255,255);
@@ -95,6 +100,14 @@ bool DMXwifiConfig::APMode(void) {
 
 bool DMXwifiConfig::staticIPAddress(void) {
 	return ( _wifi_config->protocol_flags & STATIC_MODE );
+}
+
+void DMXwifiConfig::setStaticIPAddress(uint8_t staticip) {
+   if ( staticip ) {
+      _wifi_config->protocol_flags |= STATIC_MODE;
+   } else {
+      _wifi_config->protocol_flags &= ~STATIC_MODE;
+   }
 }
 
 bool DMXwifiConfig::artnetMode(void) {
@@ -129,12 +142,20 @@ IPAddress DMXwifiConfig::stationIPAddress(void) {
 	return _wifi_config->sta_address;
 }
 
+void DMXwifiConfig::setStationIPAddress ( IPAddress addr ) {
+   _wifi_config->sta_address = addr;
+}
+
 IPAddress DMXwifiConfig::stationGateway(void) {
 	return _wifi_config->sta_gateway;
 }
 
 IPAddress DMXwifiConfig::stationSubnet(void) {
 	return _wifi_config->sta_subnet;
+}
+
+void DMXwifiConfig::setStationSubnetMask ( IPAddress submask ) {
+   _wifi_config->sta_subnet = submask;
 }
 
 IPAddress DMXwifiConfig::multicastAddress(void) {
@@ -149,21 +170,17 @@ uint16_t DMXwifiConfig::deviceAddress(void) {
 	return _wifi_config->device_address;
 }
 
-uint8_t DMXwifiConfig::sACNUniverse(void) {
-	return _wifi_config->sacn_universe;
+uint16_t DMXwifiConfig::sACNUniverse(void) {
+	return _wifi_config->sacn_universe | (_wifi_config->sacn_universe_hi << 8);
 }
 
-uint8_t DMXwifiConfig::artnetSubnet(void) {
-	return _wifi_config->artnet_subnet;
+uint16_t DMXwifiConfig::artnetPortAddress(void) {
+	return _wifi_config->artnet_portaddr_lo | ( _wifi_config->artnet_portaddr_hi << 8 );
 }
 
-uint8_t DMXwifiConfig::artnetUniverse(void) {
-	return _wifi_config->artnet_universe;
-}
-
-void DMXwifiConfig::setArtNetUniverse(int u) {
-	_wifi_config->artnet_subnet = (u & 0x0F);
-	_wifi_config->artnet_universe = ((u>>4) & 0x0F);
+void DMXwifiConfig::setArtNetPortAddress(uint16_t u) {
+	_wifi_config->artnet_portaddr_lo = u & 0xff;
+	_wifi_config->artnet_portaddr_hi = ( u >> 8 ) & 0xff;
 }
 
 char* DMXwifiConfig::nodeName(void) {
@@ -200,7 +217,8 @@ void DMXwifiConfig::readFromPersistentStore(void) {
 
 void DMXwifiConfig::commitToPersistentStore(void) {
 	_wifi_config->opcode = 0;
-	EEPROM.write(8,0);  //zero term. for ident sets dirty flag 
+	EEPROM.write(8,1);  // set byte to 1 so that next write causes dirty flag to set
+	EEPROM.write(8,0);  //zero term. for ident sets dirty flag enabling commit()
 	if ( EEPROM.commit() ) {
 		Serial.println("EEPROM commit OK");
 	} else {

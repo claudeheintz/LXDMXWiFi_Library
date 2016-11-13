@@ -184,7 +184,7 @@ def recvWiFiConfig(d,a):
       global sv_mcip
       sv_mcip.set(bytes2ipstr(d,164))
       global sv_acnu
-      sv_acnu.set(str(ord(d[168])))
+      sv_acnu.set( str( ord(d[168]) + (ord(d[171]) << 8) ))
       global sv_ansn
       sv_ansn.set(str(ord(d[169])))
       global sv_anu

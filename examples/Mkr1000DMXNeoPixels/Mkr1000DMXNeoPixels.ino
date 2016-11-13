@@ -94,10 +94,43 @@ void blinkLED() {
    but relevant fields are copied to config struct (and stored to EEPROM ...not yet)
 */
 void artAddressReceived() {
-  DMXWiFiConfig.setArtNetUniverse( artNetInterface->universe() );
+  DMXWiFiConfig.setArtNetPortAddress( artNetInterface->universe() );
   DMXWiFiConfig.setNodeName( artNetInterface->longName() );
   DMXWiFiConfig.commitToPersistentStore();
 }
+
+/* 
+   artIpProg callback allows storing of config information
+   cmd field bit 7 indicates that settings should be programmed
+*/
+void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
+   if ( cmd & 0x80 ) {
+      if ( cmd & 0x40 ) {	//enable dhcp, other fields not written
+      	if ( DMXWiFiConfig.staticIPAddress() ) {
+      		DMXWiFiConfig.setStaticIPAddress(0);
+      	} else {
+      	   return;	// already set to dhcp
+      	}
+      } else {
+         if ( ! DMXWiFiConfig.staticIPAddress() ) {
+      	   DMXWiFiConfig.setStaticIPAddress(1);	// static not dhcp
+      	}
+      	if ( cmd & 0x08 ) {	//factory reset
+      	   DMXWiFiConfig.initConfig();
+      	} else {
+      	   if ( cmd & 0x04 ) {	//programIP
+      	      DMXWiFiConfig.setStationIPAddress(addr);
+      	   }
+      	   if ( cmd & 0x02 ) {	//programSubnet
+      	      DMXWiFiConfig.setStationSubnetMask(subnet);
+      	   }
+      	}
+      }	// else ( ! dhcp )
+      
+      DMXWiFiConfig.commitToPersistentStore();
+   }
+}
+
 /*
   sends pixel buffer to ring
 */
@@ -147,7 +180,8 @@ pinMode(LED_PIN, OUTPUT);
   //while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
   Serial.println("_setup_");
   
-  DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
+  uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
+  uint8_t dhcpStatus = 0;
 
   int wifi_status = WL_IDLE_STATUS;
   if ( DMXWiFiConfig.APMode() ) {                      // WiFi startup
@@ -180,6 +214,7 @@ pinMode(LED_PIN, OUTPUT);
 
     if ( DMXWiFiConfig.staticIPAddress() ) {  
       WiFi.config(DMXWiFiConfig.stationIPAddress(), (uint32_t)0, DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
+      uint8_t dhcpStatus = 0;
     }
      
   }
@@ -193,8 +228,17 @@ pinMode(LED_PIN, OUTPUT);
   sACNInterface->setUniverse(DMXWiFiConfig.sACNUniverse());
 
   artNetInterface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
-  artNetInterface->setSubnetUniverse(DMXWiFiConfig.artnetSubnet(), DMXWiFiConfig.artnetUniverse());
+  artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
+  artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
+  artNetInterface->setStatus2Flag(ARTNET_STATUS2_SACN_CAPABLE, 1);
+  artNetInterface->setStatus2Flag(ARTNET_STATUS2_DHCP_CAPABLE, 1);
+  if ( dhcpStatus ) {
+  	 artNetInterface->setStatus2Flag(ARTNET_STATUS2_DHCP_USED, 1);
+  }
+  if ( bootStatus ) {
+    artNetInterface->setStatus1Flag(ARTNET_STATUS1_FACTORY_BOOT, 1);
+  }
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);
