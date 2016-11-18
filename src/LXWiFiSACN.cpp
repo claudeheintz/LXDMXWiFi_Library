@@ -69,11 +69,14 @@ void  LXWiFiSACN::initialize  ( uint8_t* b ) {
     _sequence = 1;
 }
 
-uint8_t  LXWiFiSACN::universe ( void ) {
+uint16_t  LXWiFiSACN::universe ( void ) {
 	return _universe;
 }
 
-void LXWiFiSACN::setUniverse ( uint8_t u ) {
+void LXWiFiSACN::setUniverse ( uint16_t u ) {
+	if (( u < 1 ) || ( u > 63999 )) {	// check for legal values
+		u = 1;
+	}
 	_universe = u;
 }
 
@@ -229,7 +232,7 @@ uint16_t LXWiFiSACN::parse_framing_layer( uint16_t size ) {
    uint16_t tsize = size - 22;
    if ( checkFlagsAndLength(&_packet_buffer[38], tsize) ) {     // framing pdu length
      if ( _packet_buffer[43] == 0x02 ) {                        // vector dmp is 1.31
-        if ( _packet_buffer[114] == _universe ) { // implementation has 255 universe limit
+        if ( (_packet_buffer[114] | ( _packet_buffer[113] << 8 )) == _universe ) {
           return parse_dmp_layer( tsize );    
         }
      }

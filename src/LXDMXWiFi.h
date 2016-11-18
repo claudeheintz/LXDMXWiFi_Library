@@ -72,11 +72,11 @@ class LXDMXWiFi {
 /*!
 * @brief universe for sending and receiving dmx
 * @discussion First universe is zero for Art-Net and one for sACN E1.31.
-* Art-Net divides the universe byte with the  high nibble equal to the subnet,
-* and the low nibble representing the universe.
+* Art-Net defines a 15 bit Port-Address net(7)-subnet(4)-universe(4).
+* sACN is a full 16 bit but limited to the range 1-63999
 * @return universe 0/1-255
 */
-   virtual uint8_t universe      ( void );
+   virtual uint16_t universe      ( void );
 /*!
 * @brief set universe for sending and receiving
 * @discussion First universe is zero for Art-Net and one for sACN E1.31.
@@ -86,7 +86,7 @@ class LXDMXWiFi {
 * With sACN, setUniverse(0x12) is universe 18.
 * @param u universe 0/1-255
 */
-   virtual void    setUniverse   ( uint8_t u );
+   virtual void    setUniverse   ( uint16_t u );
  
  /*!
  * @brief number of slots (aka addresses or channels)

@@ -56,13 +56,13 @@ class LXWiFiSACN : public LXDMXWiFi {
 * @discussion First universe is one for sACN E1.31.  Range is 1-255 in this implementation, 1-32767 in full E1.31.
 * @return universe 1-255
 */ 
-   uint8_t universe      ( void );
+   uint16_t universe      ( void );
 /*!
 * @brief set universe for sending and receiving
 * @discussion First universe one for sACN E1.31.  Range is 1-255 in this implementation, 1-32767 in full E1.31.
 * @param u universe 1-255
 */
-   void    setUniverse   ( uint8_t u );
+   void    setUniverse   ( uint16_t u );
 
  /*
  * @brief number of slots (aka addresses or channels)

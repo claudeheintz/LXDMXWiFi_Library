@@ -1,5 +1,5 @@
 /* LXWiFiArtNet.h
-   Copyright 2015 by Claude Heintz Design
+   Copyright 2016 by Claude Heintz Design
    see LXDMXWiFi.h for LICENSE
 
 	Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
@@ -13,18 +13,33 @@
 
 #define ARTNET_PORT 0x1936
 #define ARTNET_BUFFER_MAX 530
-#define ARTNET_REPLY_SIZE 239
+#define ARTNET_REPLY_SIZE 240
+#define ARTNET_IPPROG_SIZE 34
 #define ARTNET_ADDRESS_OFFSET 17
 #define ARTNET_SHORT_NAME_LENGTH 18
 #define ARTNET_LONG_NAME_LENGTH 64
+
 
 #define ARTNET_ART_POLL 0x2000
 #define ARTNET_ART_POLL_REPLY 0x2100
 #define ARTNET_ART_DMX 0x5000
 #define ARTNET_ART_ADDRESS 0x6000
+#define ARTNET_ART_IPPROG 0xF800
+#define ARTNET_ART_IPPROG_REPLY 0xF900
 #define ARTNET_NOP 0
 
+#define ARTADDRESS_NO_CHANGE 0x7f
+#define ARTADDRESS_PROG_BIT 0x80
+
+#define ARTNET_STATUS1_PORT_PROG 0x20
+#define ARTNET_STATUS1_FACTORY_BOOT 0x04
+#define ARTNET_STATUS2_SACN_CAPABLE 0x10
+#define ARTNET_STATUS2_ARTNET3_CAPABLE 0x08
+#define ARTNET_STATUS2_DHCP_CAPABLE 0x04
+#define ARTNET_STATUS2_DHCP_USED 0x02
+
 typedef void (*ArtAddressRecvCallback)(void);
+typedef void (*ArtIpProgRecvCallback)(uint8_t cmd, IPAddress ipaddr, IPAddress subnet);
 
 /*!
 *  @class LXWiFiArtNet
@@ -81,13 +96,13 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @discussion First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 * @return universe 0-255
 */   
-   uint8_t universe           ( void );
+   uint16_t universe           ( void );
 /*!
 * @brief set universe for sending and receiving
 * @discussion First universe is zero for Art-Net.  High nibble is subnet, low nibble is universe.
 * @param u universe 0-255
 */
-   void    setUniverse        ( uint8_t u );
+   void    setUniverse        ( uint16_t u );
 /*!
 * @brief set subnet/universe for sending and receiving
 * @discussion First universe is zero for Art-Net.  Sets separate nibbles: high/subnet, low/universe.
@@ -110,7 +125,16 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * This method is primarily used by parse_art_address().
 * @param s subnet 0-16 + flag 0x80
 */
-   void    setSubnetAddress   ( uint8_t s );
+   void    setSubnetAddress   ( uint8_t u );
+   
+/*!
+* @brief set net for sending and receiving
+* @discussion upper 7 bits of Port-Address=> net-subnet-universe
+* 0x7f is no change, otherwise if high bit is set, low nibble becomes subnet (universe remains the same)
+* This method is primarily used by parse_art_address().
+* @param s subnet 0-16 + flag 0x80
+*/
+   void    setNetAddress   ( uint8_t u );
 
  /*!
  * @brief number of slots (aka addresses or channels)
@@ -214,12 +238,37 @@ class LXWiFiArtNet : public LXDMXWiFi {
  */  
    void     send_art_poll_reply ( UDP* wUDP );
    
+  /*!
+ * @brief send ArtIpProgReply packet for dmx output from network
+ * @discussion Reply is unicast to remoteIP belonging to the sender of ArtIpProg
+ * @param wUDP pointer to UDP object to be used for sending UDP packet
+ */    
+   void     send_art_ipprog_reply ( UDP* wUDP );
+   
 /*!
  * @brief Function called when ArtAddress packet is received
  * @discussion Sets a pointer to a function that is called
  *             when an ArtAddress packet is received
 */
    void setArtAddressReceivedCallback(ArtAddressRecvCallback callback);
+   
+/*!
+ * @brief Function called when ArtIpProg packet is received
+ * @discussion Sets a pointer to a function that is called
+ *             when an ArtIpProg packet is received and it 
+ *             is a programming command.
+*/
+   void setArtIpProgReceivedCallback(ArtIpProgRecvCallback callback);
+   
+/*!
+* @brief set flags for ArtPollReply
+*/   
+	void  setStatus1Flag ( uint8_t flag, uint8_t set );
+	
+/*!
+* @brief set flags for ArtPollReply
+*/	
+	void  setStatus2Flag ( uint8_t flag, uint8_t set );
    
   private:
 /*!
@@ -273,23 +322,39 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	int       _dmx_slots_b;
 
 /// high nibble subnet, low nibble universe
-  	uint8_t   _universe;
+  	uint8_t   _portaddress_lo;
+/// upper 7 bits of Port-Address
+  	uint8_t   _portaddress_hi;
 /// sequence number for sending ArtDMX packets
   	uint8_t   _sequence;
+/// sequence number for sending ArtDMX packets
+  	uint16_t   _poll_reply_counter;
 
-/// address included in poll replies 	
+/// address included in poll reply 	
   	IPAddress _my_address;
+/// address included in IpProg reply	
+  	IPAddress _my_subnetmask;
 /// if subnet is supplied in constructor, holds address to broadcast poll replies
   	IPAddress _broadcast_address;
 /// first sender of an ArtDMX packet
   	IPAddress _dmx_sender_a;
 /// second sender of an ArtDMX packet (3rd and subsequent senders ignored until cancelMerge)
   	IPAddress _dmx_sender_b;
+
+/// flag factory boot, network programmable
+	uint8_t _status1;  	
+/// flag sacn, artnet3, dhcp capable, dhcp assigned
+	uint8_t _status2;
   	
 	/*!
     * @brief Pointer to art address received callback function
    */
   	ArtAddressRecvCallback _artaddress_receive_callback;
+  	
+  	/*!
+    * @brief Pointer to artIpProg received callback function
+   */
+  	ArtIpProgRecvCallback _artip_receive_callback;
 
 /*!
 * @brief checks packet for "Art-Net" header
@@ -303,14 +368,24 @@ class LXWiFiArtNet : public LXDMXWiFi {
    uint16_t  parse_art_address   ( void );
    
 /*!
+* @brief utility for parsing ArtIPProg packets
+*/  
+   void parse_art_ipprog( UDP* wUDP );
+   
+/*!
 * @brief initialize data structures
 */
    void  initialize  ( uint8_t* b );
    
 /*!
-* @brief set address for ArtPollReply
+* @brief set address for ArtPollReply/ArtIpProg
 */   
 	void  setLocalAddress ( IPAddress address );
+	
+/*!
+* @brief set address for ArtPollReply/ArtIpProg
+*/   
+	void  setLocalAddressMask ( IPAddress address, IPAddress subnet_mask );
    
 /*!
 * @brief initialize poll reply buffer

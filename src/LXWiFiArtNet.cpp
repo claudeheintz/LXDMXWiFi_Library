@@ -15,6 +15,7 @@
     v1.1 - adds ability to use external packet buffer
     v1.2 - fixes cancel merge
     v1.2 - adds setLocalAddress
+    v1.3 - adds ArtIpProg / ArtIpProgReply
 */
 /**************************************************************************/
 
@@ -27,13 +28,14 @@ LXWiFiArtNet::LXWiFiArtNet ( IPAddress address )
 {	
     initialize(0);
     setLocalAddress(address);
+    _my_subnetmask = INADDR_NONE;
     _broadcast_address = INADDR_NONE;
 }
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
 {
     initialize(0);
-    setLocalAddress(address);
+    setLocalAddressMask(address, subnet_mask);
     uint32_t a = (uint32_t) address;
     uint32_t s = (uint32_t) subnet_mask;
     _broadcast_address = IPAddress(a | ~s);
@@ -79,41 +81,56 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     _dmx_slots = 0;
     _dmx_slots_a = 0;
     _dmx_slots_b = 0;
-    _universe = 0;
+    _portaddress_lo = 0;
+    _portaddress_hi = 0;
+    
+    _status1 = ARTNET_STATUS1_PORT_PROG;
+    _status2 = ARTNET_STATUS2_ARTNET3_CAPABLE;
     
     _dmx_sender_a = INADDR_NONE;
     _dmx_sender_b = INADDR_NONE;
     _sequence = 1;
+    _poll_reply_counter = 0;
     
     strcpy(_short_name, "ESP-DMX");
     strcpy(_long_name, "com.claudeheintzdesign.esp-dmx");
     _artaddress_receive_callback = 0;
+    _artip_receive_callback = 0;
 }
 
-uint8_t  LXWiFiArtNet::universe ( void ) {
-	return _universe;
+uint16_t  LXWiFiArtNet::universe ( void ) {
+	return _portaddress_lo + ( _portaddress_hi << 8 );
 }
 
-void LXWiFiArtNet::setUniverse ( uint8_t u ) {
-	_universe = u;
+void LXWiFiArtNet::setUniverse ( uint16_t u ) {
+	_portaddress_lo = (u & 0xff);
+	_portaddress_hi = ((u >> 8) & 0xff);
 }
 
 void LXWiFiArtNet::setSubnetUniverse ( uint8_t s, uint8_t u ) {
-   _universe = ((s & 0x0f) << 4) | ( u & 0x0f);
+   _portaddress_lo = ((s & 0x0f) << 4) | ( u & 0x0f);
 }
 
 void LXWiFiArtNet::setUniverseAddress ( uint8_t u ) {
-	if ( u != 0x7f ) {
-	   if ( u & 0x80 ) {
-	     _universe = (_universe & 0xf0) | (u & 0x07);
+	if ( u != ARTADDRESS_NO_CHANGE ) {
+	   if ( u & ARTADDRESS_PROG_BIT ) {
+	     _portaddress_lo = (_portaddress_lo & 0xf0) | (u & 0x0f);
 	   }
 	}
 }
 
 void LXWiFiArtNet::setSubnetAddress ( uint8_t u ) {
-	if ( u != 0x7f ) {
-	   if ( u & 0x80 ) {
-	     _universe = (_universe & 0x0f) | ((u & 0x07) << 4);
+	if ( u != ARTADDRESS_NO_CHANGE ) {
+	   if ( u & ARTADDRESS_PROG_BIT ) {
+	     _portaddress_lo = (_portaddress_lo & 0x0f) | ((u & 0x0f) << 4);
+	   }
+	}
+}
+
+void LXWiFiArtNet::setNetAddress   ( uint8_t u ) {
+	if ( u != ARTADDRESS_NO_CHANGE ) {
+	   if ( u & ARTADDRESS_PROG_BIT ) {
+	     _portaddress_hi = u & 0x7f;
 	   }
 	}
 }
@@ -209,11 +226,10 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 	opcode = parse_header();
 	switch ( opcode ) {
 		case ARTNET_ART_DMX:
-			// ignore sequence[12], physical[13] and subnet/universe hi byte[15]
-			if (( _packet_buffer[14] == _universe ) && ( _packet_buffer[11] >= 14 )) { //protocol version [10] hi byte [11] lo byte 
+			// ignore sequence[12] and physical[13]
+			if ( ( _packet_buffer[14] == _portaddress_lo ) && ( _packet_buffer[15] == _portaddress_hi ) && ( _packet_buffer[11] >= 14 )) { //protocol version [10] hi byte [11] lo byte 
 				packetSize -= 18;
-				uint16_t slots = _packet_buffer[17];
-				slots += _packet_buffer[16] << 8;
+				uint16_t slots = _packet_buffer[17] + (_packet_buffer[16] << 8);
 				if ( packetSize >= slots ) {
 					if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
 						_dmx_sender_a = wUDP->remoteIP();
@@ -281,6 +297,11 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 				send_art_poll_reply( wUDP );
 			}
 			break;
+		case ARTNET_ART_IPPROG:
+		   if (( packetSize >= 33 ) && ( _packet_buffer[11] >= 14 )) {
+				parse_art_ipprog( wUDP );
+			}
+			break;
 	}
    return opcode;
 }
@@ -298,8 +319,8 @@ void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr
    }
    _packet_buffer[12] = _sequence;
    _packet_buffer[13] = 0;
-   _packet_buffer[14] = _universe;
-   _packet_buffer[15] = 0;
+   _packet_buffer[14] = _portaddress_lo;
+   _packet_buffer[15] = _portaddress_hi;
    _packet_buffer[16] = _dmx_slots >> 8;
    _packet_buffer[17] = _dmx_slots & 0xFF;
    //assume dmx data has been set
@@ -315,9 +336,33 @@ void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr
   includes my_ip as address of this node
 */
 void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
+  _reply_buffer[182] = 128;  // sending DMX flag
+  
+  _poll_reply_counter++;
+  if ( _poll_reply_counter > 9999 ) {
+  	 _poll_reply_counter = 0;
+  }
+  for (int k=108; k<172; k++) {
+  	_reply_buffer[k] = 0;			// zero status string
+  }
+  sprintf((char*)&_reply_buffer[108], "#0001 [%04d] ", _poll_reply_counter);
+  
+  if ( _dmx_sender_a != INADDR_NONE ) {
+    sprintf((char*)&_reply_buffer[121], "ArtDMX");
+    if ( _dmx_sender_b != INADDR_NONE ) {
+      sprintf((char*)&_reply_buffer[127], ", 2 Sources");
+      _reply_buffer[182] |= 0x08;  //  merging
+    }
+  } else {
+    sprintf((char*)&_reply_buffer[121], "Idle: no ArtDMX");
+  }
+  
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
-  _reply_buffer[190] = _universe;
+  _reply_buffer[18] = _portaddress_hi;
+  _reply_buffer[19] = _portaddress_lo >> 4;
+  
+  _reply_buffer[190] = _portaddress_lo & 0x0f;
   
   IPAddress a = _broadcast_address;
   if ( a == INADDR_NONE ) {
@@ -328,8 +373,21 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
   wUDP->endPacket();
 }
 
+void LXWiFiArtNet::send_art_ipprog_reply ( UDP* wUDP ) {
+   _packet_buffer[8] = 0x00;        // op code lo-hi
+   _packet_buffer[9] = 0xF9;
+	IPAddress a = wUDP->remoteIP();
+	wUDP->beginPacket(a, ARTNET_PORT);
+   wUDP->write(_packet_buffer, ARTNET_IPPROG_SIZE);
+   wUDP->endPacket();
+}
+
 void LXWiFiArtNet::setArtAddressReceivedCallback(ArtAddressRecvCallback callback) {
 	_artaddress_receive_callback = callback;
+}
+
+void LXWiFiArtNet::setArtIpProgReceivedCallback(ArtIpProgRecvCallback callback) {
+	_artip_receive_callback = callback;
 }
 
 uint16_t LXWiFiArtNet::parse_header( void ) {
@@ -358,10 +416,11 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 		strcpy(_long_name, (char*) &_packet_buffer[32]);
 	}
 	
+	setNetAddress(_packet_buffer[12]);
 	setUniverseAddress(_packet_buffer[100]);
-	//[104]                              subnet
+	//[104] subnet
 	setSubnetAddress(_packet_buffer[104]);
-	//[105]                                   reserved
+	//[105] reserved
 	uint8_t command = _packet_buffer[106]; // command
 	switch ( command ) {
 	   case 0x00:
@@ -390,9 +449,60 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 	return ARTNET_ART_ADDRESS;
 }
 
+void LXWiFiArtNet::parse_art_ipprog( UDP* wUDP ) {
+   uint8_t cmd = _packet_buffer[14];
+   if ( cmd & 0x80 ) {
+		if ( _artip_receive_callback != NULL ) {
+		   IPAddress ipaddr = (_packet_buffer[19] << 24) | (_packet_buffer[18] << 16) | (_packet_buffer[17] << 8) | _packet_buffer[16];
+		   IPAddress subnet = (_packet_buffer[23] << 24) | (_packet_buffer[22] << 16) | (_packet_buffer[21] << 8) | _packet_buffer[20];
+			_artip_receive_callback( cmd, ipaddr, subnet );
+		}
+		send_art_ipprog_reply( wUDP );
+	} else {	//info only, reply with ArtIPProgReply
+		if ( _status2 & ARTNET_STATUS2_DHCP_USED ) {
+			_packet_buffer[26] = 0x40;
+		} else {
+			_packet_buffer[26] = 0x00;
+		}
+		_packet_buffer[16] = ((uint32_t)_my_address) & 0xff;      //ip address
+		_packet_buffer[17] = ((uint32_t)_my_address) >> 8;
+		_packet_buffer[18] = ((uint32_t)_my_address) >> 16;
+		_packet_buffer[19] = ((uint32_t)_my_address) >>24;
+		_packet_buffer[20] = ((uint32_t)_my_subnetmask) & 0xff;   //subnet mask
+		_packet_buffer[21] = ((uint32_t)_my_subnetmask) >> 8;
+		_packet_buffer[22] = ((uint32_t)_my_subnetmask) >> 16;
+		_packet_buffer[23] = ((uint32_t)_my_subnetmask) >>24;
+		send_art_ipprog_reply( wUDP );
+	}
+}
+
 void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {
 	_my_address = address;
 	initializePollReply();
+}
+
+void  LXWiFiArtNet::setLocalAddressMask ( IPAddress address, IPAddress subnet_mask ) {
+	_my_address = address;
+	_my_subnetmask = subnet_mask;
+	initializePollReply();
+}
+
+void LXWiFiArtNet::setStatus1Flag ( uint8_t flag, uint8_t set ) {
+	if ( set ) {
+		_status1 |= flag;
+	} else {
+		_status1 &= ~flag;
+	}
+	_reply_buffer[23] = _status1;
+}
+
+void  LXWiFiArtNet::setStatus2Flag ( uint8_t flag, uint8_t set ) {
+	if ( set ) {
+		_status2 |= flag;
+	} else {
+		_status2 &= ~flag;
+	}
+	_reply_buffer[212] = _status2;
 }
 
 void  LXWiFiArtNet::initializePollReply  ( void ) {
@@ -411,18 +521,18 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   _reply_buffer[15] = 0x19;
   _reply_buffer[16] = 0;       // firmware hi-lo
   _reply_buffer[17] = 0;
-  _reply_buffer[18] = 0;       // subnet hi-lo
-  _reply_buffer[19] = 0;
-  _reply_buffer[20] = 0;       // oem hi-lo
-  _reply_buffer[21] = 0;
+  _reply_buffer[18] = _portaddress_hi;		// net upper 7 bits of net-subnet-universe[p]
+  _reply_buffer[19] = _portaddress_lo >> 4;  // subnet nibble of net-subnet-universe[p]
+  _reply_buffer[20] = 0x12;    // oem hi-lo
+  _reply_buffer[21] = 0x51;
   _reply_buffer[22] = 0;       // ubea
-  _reply_buffer[23] = 0;       // status
-  _reply_buffer[24] = 0x6C;    //     Mfg Code
-  _reply_buffer[25] = 0x78;    //     seems DMX workshop reads these bytes backwards
+  _reply_buffer[23] = _status1;// status
+  _reply_buffer[24] = 0x78;    //     Mfg Code
+  _reply_buffer[25] = 0x6c;    //     seems DMX workshop reads these bytes backwards
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[173] = 1;    // number of ports
   _reply_buffer[174] = 128;  // can output from network
-  _reply_buffer[182] = 128;  //  good output... change if error
-  _reply_buffer[190] = _universe;
+  _reply_buffer[190] = _portaddress_lo & 0x0f;
+  _reply_buffer[212] = _status2;
 }
