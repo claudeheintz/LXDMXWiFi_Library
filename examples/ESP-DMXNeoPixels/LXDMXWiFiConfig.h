@@ -135,9 +135,8 @@ class DMXwifiConfig {
 	 
 	 /* 
 	 	read from EEPROM or flash
-	 	returns 1 if was initialized
 	 */
-	 uint8_t readFromPersistentStore(void);
+	 void readFromPersistentStore(void);
 	 
 	 /* 
 	 	write to EEPROM or flash
