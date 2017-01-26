@@ -30,6 +30,10 @@ DMXwifiConfig::~DMXwifiConfig ( void ) {
 	}
 }
 
+// uncomment the following line to force an overwrite of the configuration back to
+// the hard coded settings when the boot mode is default (mode==0)
+//#define RESET_PERSISTENT_CONFIG_ON_DEFAULT 1
+
 uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
 	if ( mode ) {
 		_temp_config = 0;
@@ -38,19 +42,27 @@ uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
   	
 		// data already read, check initialization
 		if (( strcmp(CONFIG_PACKET_IDENT, (const char *) _wifi_config) != 0 ) ||
-			( _wifi_config->version > 27 )) {	                              // if structure not previously stored or invalid version
-		  initConfig();																		// initialize and store in EEPROM
+			( _wifi_config->version > DMXWIFI_CONFIG_INVALID_VERSION )) {	          // if structure not previously stored or invalid version
+		  initConfig();																  // initialize and store in EEPROM
 		  commitToPersistentStore();
 		  Serial.println("\nInitialized EEPROM");
-		} else {																					// otherwise use the config struct read from EEPROM
+		} else {																	  // otherwise use the config struct read from EEPROM
 			  Serial.println("\nEEPROM Read OK");
 			  return 0;
 		}
 		
 	} else {					// default creates temporary config pointer
+#ifdef RESET_PERSISTENT_CONFIG_ON_DEFAULT
+        _temp_config = 0;
+        EEPROM.begin(DMXWiFiConfigSIZE);
+		_wifi_config = (DMXWiFiconfig*)EEPROM.getDataPtr();
+		initConfig();
+		commitToPersistentStore();
+#else
 		_temp_config = 1;	// readFromPersistentStore() will free this pointer and replace it with data from EEPROM
 		_wifi_config = (DMXWiFiconfig*) malloc(sizeof(DMXWiFiconfig));
 		initConfig();
+#endif
 		Serial.println("\nDefault configuration.");
 	}
 	
@@ -62,7 +74,7 @@ void DMXwifiConfig::initConfig(void) {
   memset(_wifi_config, 0, DMXWiFiConfigSIZE);
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
-  _wifi_config->version = 1;
+  _wifi_config->version = DMXWIFI_CONFIG_VERSION;
   _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
   _wifi_config->protocol_flags = MULTICAST_MODE;     // sACN multicast mode
   																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE

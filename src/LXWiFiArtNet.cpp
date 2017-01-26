@@ -206,12 +206,12 @@ uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 
 uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
 	uint16_t packetSize = wUDP->parsePacket();
-   uint16_t opcode = ARTNET_NOP;
-   if ( packetSize ) {
-      _packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);
-      opcode = readArtNetPacketContents(wUDP, _packetSize);
-   }
-   return opcode;
+	uint16_t opcode = ARTNET_NOP;
+	if ( packetSize ) {
+		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);
+		opcode = readArtNetPacketContents(wUDP, _packetSize);
+	}
+	return opcode;
 }
       
 
@@ -247,7 +247,11 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 						int di;
 						int dt = ARTNET_ADDRESS_OFFSET + 1;
 						  for (di=0; di<t_slots; di++) {
-							 _dmx_buffer_a[di] = _packet_buffer[dt+di];
+						    if ( di < slots ) {								// total slots may be greater than slots in this packet
+							 	_dmx_buffer_a[di] = _packet_buffer[dt+di];
+							}  else {										// don't read beyond end of received slots
+								_dmx_buffer_a[di] = 0;						// set remainder to zero	
+							}
 							if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
 								_dmx_buffer_c[di] = _dmx_buffer_a[di];
 							} else {
@@ -268,7 +272,11 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 						  int di;
 						  int dt = ARTNET_ADDRESS_OFFSET + 1;
 						  for (di=0; di<t_slots; di++) {
-							 _dmx_buffer_b[di] = _packet_buffer[dt+di];
+							if ( di < slots ) {								//total slots may be greater than slots in this packet				
+							 	_dmx_buffer_b[di] = _packet_buffer[dt+di];
+							}  else {											//don't read beyond end of received slots	
+								_dmx_buffer_b[di] = 0;							//set remainder to zero	
+							}
 							 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
 								_dmx_buffer_c[di] = _dmx_buffer_a[di];
 							 } else {

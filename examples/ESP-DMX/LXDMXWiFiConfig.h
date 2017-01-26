@@ -44,6 +44,8 @@ typedef struct dmxwifiConfig {
 #define CONFIG_PACKET_IDENT "ESP-DMX"
 #define DMXWiFiConfigSIZE 232
 #define DMXWiFiConfigMinSIZE 171
+#define DMXWIFI_CONFIG_VERSION 1
+#define DMXWIFI_CONFIG_INVALID_VERSION 27
 
 #define STATION_MODE 0
 #define AP_MODE 1
