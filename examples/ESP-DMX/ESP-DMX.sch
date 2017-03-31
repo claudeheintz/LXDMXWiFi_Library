@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.5.0">
+<eagle version="7.7.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -3924,7 +3924,7 @@ Source: AVX .. aphvc.pdf</description>
 <instance part="IC1" gate="G$1" x="106.68" y="45.72"/>
 <instance part="DMX" gate="A" x="142.24" y="45.72"/>
 <instance part="PWR/SW" gate="G$1" x="10.16" y="38.1"/>
-<instance part="R1" gate="G$1" x="25.4" y="50.8"/>
+<instance part="R1" gate="G$1" x="50.8" y="40.64"/>
 <instance part="R2" gate="G$1" x="132.08" y="53.34" rot="R90"/>
 <instance part="(C1)" gate="G$1" x="22.86" y="30.48" smashed="yes" rot="R90">
 <attribute name="NAME" x="22.225" y="26.416" size="1.778" layer="95" rot="R90"/>
@@ -3966,13 +3966,8 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="HUZZAH" gate="G$1" pin="8"/>
 <wire x1="38.1" y1="40.64" x2="30.48" y2="40.64" width="0.1524" layer="91"/>
 <pinref part="PWR/SW" gate="G$1" pin="2"/>
-<wire x1="15.24" y1="38.1" x2="17.78" y2="38.1" width="0.1524" layer="91"/>
-<wire x1="17.78" y1="38.1" x2="30.48" y2="38.1" width="0.1524" layer="91"/>
+<wire x1="15.24" y1="38.1" x2="30.48" y2="38.1" width="0.1524" layer="91"/>
 <wire x1="30.48" y1="38.1" x2="30.48" y2="40.64" width="0.1524" layer="91"/>
-<junction x="17.78" y="38.1"/>
-<wire x1="17.78" y1="38.1" x2="17.78" y2="50.8" width="0.1524" layer="91"/>
-<pinref part="R1" gate="G$1" pin="1"/>
-<wire x1="17.78" y1="50.8" x2="20.32" y2="50.8" width="0.1524" layer="91"/>
 <wire x1="30.48" y1="38.1" x2="30.48" y2="30.48" width="0.1524" layer="91"/>
 <junction x="30.48" y="38.1"/>
 <label x="30.48" y="27.94" size="1.778" layer="95"/>
@@ -4027,13 +4022,12 @@ Source: AVX .. aphvc.pdf</description>
 <segment>
 <pinref part="PWR/SW" gate="G$1" pin="4"/>
 <wire x1="15.24" y1="43.18" x2="22.86" y2="43.18" width="0.1524" layer="91"/>
-<wire x1="22.86" y1="43.18" x2="22.86" y2="45.72" width="0.1524" layer="91"/>
-<wire x1="22.86" y1="45.72" x2="30.48" y2="45.72" width="0.1524" layer="91"/>
-<pinref part="R1" gate="G$1" pin="2"/>
+<wire x1="22.86" y1="43.18" x2="22.86" y2="50.8" width="0.1524" layer="91"/>
 <pinref part="HUZZAH" gate="G$1" pin="4"/>
-<wire x1="30.48" y1="50.8" x2="38.1" y2="50.8" width="0.1524" layer="91"/>
-<wire x1="30.48" y1="45.72" x2="30.48" y2="50.8" width="0.1524" layer="91"/>
-<junction x="30.48" y="50.8"/>
+<wire x1="22.86" y1="50.8" x2="38.1" y2="50.8" width="0.1524" layer="91"/>
+<pinref part="R1" gate="G$1" pin="1"/>
+<wire x1="45.72" y1="40.64" x2="45.72" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="50.8" x2="45.72" y2="50.8" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$1" class="0">
@@ -4044,6 +4038,13 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="R2" gate="G$1" pin="1"/>
 <wire x1="132.08" y1="48.26" x2="139.7" y2="48.26" width="0.1524" layer="91"/>
 <junction x="132.08" y="48.26"/>
+</segment>
+</net>
+<net name="N$7" class="0">
+<segment>
+<pinref part="R1" gate="G$1" pin="2"/>
+<pinref part="HUZZAH-TX" gate="G$1" pin="8"/>
+<wire x1="60.96" y1="40.64" x2="55.88" y2="40.64" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>

@@ -178,7 +178,7 @@ void setPixel(uint16_t index, uint8_t value) {
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
-  pinMode(STARTUP_MODE_PIN, INPUT);
+  pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
  // while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
   Serial.begin(115200);       //debug messages
   Serial.println("_setup_");

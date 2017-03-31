@@ -158,7 +158,7 @@ void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(1); //use uart0 for debugging
   pinMode(BUILTIN_LED, OUTPUT);
-  pinMode(STARTUP_MODE_PIN, INPUT);
+  pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
   pinMode(DIRECTION_PIN, OUTPUT);
   
   uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
