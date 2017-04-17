@@ -47,8 +47,12 @@
 #include <EEPROM.h>
 #include "LXDMXWiFiConfig.h"
 
-#define DIRECTION_PIN 12    // pin for output direction enable on MAX481 chip
+//#define DIRECTION_PIN 12    // pin for output direction enable on MAX481 chip
                             // this GPIO is wired to both pins 2 and 3 of the Max481
+
+//#define LED_PIN_INPUT 14  // indicator LED(s)
+#define LED_PIN_OUTPUT 14
+
 
 #define BUTTON_A 0          // buttons on OLED Feather wing
 #define BUTTON_B 16         // pin for force default setup when low
@@ -94,35 +98,33 @@ uint8_t scene_state = 0;
 Adafruit_SSD1306 display = Adafruit_SSD1306();
 
 /* 
-   utility function for animating display. Indicates DMX input.
+   Indicates DMX input.
 */
 void blinkInput() {
-  display.fillRect(95,0,30,10, 0);
-  display.setCursor(95,0);
+ #if defined LED_PIN_INPUT
   if ( led_state ) {
-    display.print("<-DMX");
+    digitalWrite(LED_PIN_INPUT, HIGH);
     led_state = 0;
   } else {
-    display.print(" <DMX");
+    digitalWrite(LED_PIN_INPUT, LOW);
     led_state = 1;
   }
-  display.display();
+ #endif
 }
 
 /* 
-   utility function for animating display. Indicates DMX network packet received.
+   Indicates DMX network packet received.
 */
 void blinkOutput() {
-  display.fillRect(95,0,30,10, 0);
-  display.setCursor(95,0);
+  #if defined LED_PIN_OUTPUT
   if ( led_state ) {
-    display.print("->DMX");
+    digitalWrite(LED_PIN_OUTPUT, HIGH);
     led_state = 0;
   } else {
-    display.print("> DMX");
+    digitalWrite(LED_PIN_OUTPUT, LOW);
     led_state = 1;
   }
-  display.display();
+  #endif
 }
 
 /* 
@@ -286,7 +288,15 @@ void gotDMXCallback(int slots) {
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(1); //use uart0 for debugging
+ #if defined DIRECTION_PIN
   pinMode(DIRECTION_PIN, OUTPUT);
+ #endif
+ #if defined LED_PIN_OUTPUT
+  pinMode(LED_PIN_OUTPUT, OUTPUT);
+ #endif
+  #if defined LED_PIN_INPUT
+  pinMode(LED_PIN_INPUT, OUTPUT);
+ #endif
 
   pinMode(BUTTON_A, INPUT_PULLUP);
   pinMode(BUTTON_B, INPUT_PULLUP);
@@ -304,10 +314,14 @@ void setup() {
   display.setTextColor(WHITE);
   
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {					      // DMX Driver startup based on direction flag
-    //ESP8266DMX.setDirectionPin(DIRECTION_PIN);
+    #if defined DIRECTION_PIN
+      ESP8266DMX.setDirectionPin(DIRECTION_PIN);
+    #endif
     ESP8266DMX.startOutput();
   } else {
-    //ESP8266DMX.setDirectionPin(DIRECTION_PIN);
+    #if defined DIRECTION_PIN
+      ESP8266DMX.setDirectionPin(DIRECTION_PIN);
+    #endif
     ESP8266DMX.setDataReceivedCallback(&gotDMXCallback);
     ESP8266DMX.startInput();
   }
