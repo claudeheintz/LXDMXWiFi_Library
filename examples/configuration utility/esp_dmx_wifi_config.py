@@ -42,6 +42,11 @@
 #  configured for Art-Net, a broadcast address can be used as a target to
 #  communicate with the ESP8266.  For sACN, the multicast address assigned
 #  to WiFi2DMX can be used. 
+#
+#
+#	Original Python version does not support later LXDMXWiFi_library config settings
+#
+
 
 from Tkinter import *
 import tkMessageBox

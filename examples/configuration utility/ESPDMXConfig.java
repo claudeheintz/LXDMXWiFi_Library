@@ -1,3 +1,14 @@
+/* ESPDMXConfig.java
+ * (part of LXDMXWiFiLibrary)
+ *
+ * Copyright 2017 Claude Heintz Design, All rights reserved
+ *
+ * see https://www.claudeheintzdesign.com/lx/opensource.html for license
+ *
+ * Version 2.0 for RDM compatible interfaces
+ *
+ */
+
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 
@@ -59,6 +70,11 @@ public class ESPDMXConfig extends JFrame {
 	ButtonGroup _bgMultiBroadcast;
 	JRadioButton _jrbMulticast;
 	JRadioButton _jrbBroadcast;
+	
+	ButtonGroup _bgRDMDMX;
+	JRadioButton _jrbRDM;
+	JRadioButton _jrbDMX;
+	
 	ButtonGroup _bgDMXMode;
 	JRadioButton _jrbDMXOutput;
 	JRadioButton _jrbDMXInput;
@@ -449,6 +465,23 @@ public class ESPDMXConfig extends JFrame {
 		jLabel19.setLocation(new java.awt.Point(107, 425));
 		_configPanel.add(jLabel19);
 		
+		
+		_jrbRDM = new JRadioButton("RDM");
+		_jrbRDM.setLocation(new Point(485, 375));
+		_jrbRDM.setSize(new Dimension(100, 20));
+
+		_jrbDMX = new JRadioButton("DMX Only");
+		_jrbDMX.setLocation(new Point(380, 375));
+		_jrbDMX.setSize(new Dimension(100, 20));
+		_jrbDMX.setSelected(true);
+		
+		_bgRDMDMX = new ButtonGroup();
+		_bgRDMDMX.add(_jrbRDM);
+		_bgRDMDMX.add(_jrbDMX);
+		_configPanel.add(_jrbRDM);
+		_configPanel.add(_jrbDMX);
+		
+		
 		// ---------- input protocol options
 
 		_jrbSACN = new JRadioButton("sACN");
@@ -701,6 +734,12 @@ public class ESPDMXConfig extends JFrame {
 		} else {
 			_jrbDMXInput.setSelected(true);
 		}
+		
+		if ( cpacket.rdmMode() ) {
+			_jrbRDM.setSelected(true);
+		} else {
+			_jrbDMX.setSelected(true);
+		}
 
 		_jtfAccessPointIP.setText(cpacket.apStaticAddress());
 		_jtfAccessPointGateway.setText(cpacket.apGatewayAddress());
@@ -840,6 +879,7 @@ DatagramPacket send_packet = null;
 		cp.setArtNetMode(_jrbArtNet.isSelected());
 		cp.setDHCPMode(_jrbDHCP.isSelected());
 		cp.setMulticastMode(_jrbMulticast.isSelected());
+		cp.setRDMMode(_jrbRDM.isSelected());
 		cp.setOutputMode(_jrbDMXOutput.isSelected());
 		
 		cp.setAPStaticAddress(_jtfAccessPointIP.getText());
@@ -1324,6 +1364,19 @@ DatagramPacket send_packet = null;
 			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xfb);
 			if ( m ) {
 				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x04);
+			} else {
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
+			}
+		}
+		
+		public boolean rdmMode() {
+			return ( (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 16) != 0 );
+		}
+		
+		public void setRDMMode(boolean m) {
+			byte cd = (byte) (config_data[ESP_CONFIG_PKT_INDEX_FLAGS] & 0xef);
+			if ( m ) {
+				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = (byte) (cd | 0x10);
 			} else {
 				config_data[ESP_CONFIG_PKT_INDEX_FLAGS] = cd;
 			}
