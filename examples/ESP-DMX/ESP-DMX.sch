@@ -3913,6 +3913,7 @@ Source: AVX .. aphvc.pdf</description>
 <part name="R1" library="RBBB" deviceset="RESISTOR" device="1/6WATT" value="10k"/>
 <part name="R2" library="RBBB" deviceset="RESISTOR" device="1/6WATT" value="120ohm"/>
 <part name="(C1)" library="resistor" deviceset="C-US" device="050-025X075" value="0.1uf"/>
+<part name="R3" library="RBBB" deviceset="RESISTOR" device="1/6WATT" value="10Kohm"/>
 </parts>
 <sheets>
 <sheet>
@@ -3930,6 +3931,7 @@ Source: AVX .. aphvc.pdf</description>
 <attribute name="NAME" x="22.225" y="26.416" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="27.051" y="23.876" size="1.778" layer="96" rot="R90"/>
 </instance>
+<instance part="R3" gate="G$1" x="71.12" y="35.56"/>
 </instances>
 <busses>
 </busses>
@@ -3959,6 +3961,7 @@ Source: AVX .. aphvc.pdf</description>
 <wire x1="60.96" y1="35.56" x2="66.04" y2="35.56" width="0.1524" layer="91"/>
 <label x="66.04" y="35.56" size="1.778" layer="95"/>
 <label x="66.04" y="35.56" size="1.778" layer="95"/>
+<pinref part="R3" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="VCC" class="0">
@@ -4014,8 +4017,14 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="IC1" gate="G$1" pin="RO"/>
 <wire x1="93.98" y1="53.34" x2="88.9" y2="53.34" width="0.1524" layer="91"/>
 <pinref part="HUZZAH-TX" gate="G$1" pin="2"/>
-<wire x1="60.96" y1="55.88" x2="88.9" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="60.96" y1="55.88" x2="76.2" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="76.2" y1="55.88" x2="88.9" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="88.9" y1="55.88" x2="88.9" y2="53.34" width="0.1524" layer="91"/>
+<label x="76.2" y="35.56" size="1.778" layer="95"/>
+<label x="76.2" y="35.56" size="1.778" layer="95"/>
+<pinref part="R3" gate="G$1" pin="2"/>
+<wire x1="76.2" y1="35.56" x2="76.2" y2="55.88" width="0.1524" layer="91"/>
+<junction x="76.2" y="55.88"/>
 </segment>
 </net>
 <net name="N$8" class="0">

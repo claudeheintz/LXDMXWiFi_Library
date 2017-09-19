@@ -134,6 +134,10 @@ bool DMXwifiConfig::multicastMode(void) {
 	return ( _wifi_config->protocol_flags & MULTICAST_MODE );
 }
 
+bool DMXwifiConfig::rdmMode(void) {
+  return ( _wifi_config->protocol_flags & RDM_MODE );
+}
+
 bool DMXwifiConfig::inputToNetworkMode(void) {
 	return ( _wifi_config->protocol_flags & INPUT_TO_NETWORK_MODE );
 }

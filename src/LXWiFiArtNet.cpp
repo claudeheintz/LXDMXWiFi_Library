@@ -96,6 +96,8 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     strcpy(_long_name, "com.claudeheintzdesign.esp-dmx");
     _artaddress_receive_callback = 0;
     _artip_receive_callback = 0;
+    _art_tod_req_callback = 0;
+    _art_rdm_callback = 0;
 }
 
 uint16_t  LXWiFiArtNet::universe ( void ) {
@@ -205,11 +207,13 @@ uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 */
 
 uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
-	uint16_t packetSize = wUDP->parsePacket();
+	int packetSize = wUDP->parsePacket();							//change to int to accomodate -1
 	uint16_t opcode = ARTNET_NOP;
 	if ( packetSize ) {
-		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);
-		opcode = readArtNetPacketContents(wUDP, _packetSize);
+		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);	//can return -1 in ESP32
+		if ( _packetSize > 0 ) {										//trap invalid returns
+			opcode = readArtNetPacketContents(wUDP, _packetSize);
+		}
 	}
 	return opcode;
 }
@@ -310,6 +314,29 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 				parse_art_ipprog( wUDP );
 			}
 			break;
+		case ARTNET_ART_TOD_REQUEST:
+		   opcode = ARTNET_NOP;
+		   if (( packetSize >= 25 ) && ( _packet_buffer[11] >= 14 )) {
+				opcode = parse_art_tod_request( wUDP );
+			}
+			break;
+		case ARTNET_ART_TOD_CONTROL:
+		   opcode = ARTNET_NOP;
+		   if (( packetSize >= 24 ) && ( _packet_buffer[11] >= 14 )) {
+				opcode = parse_art_tod_request( wUDP );
+			}
+			break;
+		case ARTNET_ART_RDM:
+		   opcode = ARTNET_NOP;
+		   if (( packetSize >= 24 ) && ( _packet_buffer[11] >= 14 )) {
+				opcode = parse_art_rdm( wUDP );
+			}
+			break;
+		default:
+			if ( opcode != ARTNET_ART_POLL_REPLY ) {
+				//Serial.print("unknown Art-Net received ");
+				//Serial.println(opcode, HEX);
+			}
 	}
    return opcode;
 }
@@ -390,12 +417,84 @@ void LXWiFiArtNet::send_art_ipprog_reply ( UDP* wUDP ) {
    wUDP->endPacket();
 }
 
-void LXWiFiArtNet::setArtAddressReceivedCallback(ArtAddressRecvCallback callback) {
+void LXWiFiArtNet::send_art_tod ( UDP* wUDP, uint8_t* todata, uint8_t ucount ) {
+	if ( _broadcast_address != INADDR_NONE ) {
+		uint8_t _buffer[ARTNET_TOD_PKT_SIZE];
+		int i;
+		for ( i=0; i < ARTNET_TOD_PKT_SIZE; i++ ) {
+			_buffer[i] = 0;
+		}
+		strcpy((char*)_buffer, "Art-Net");
+		_buffer[8] =  0;		// op code lo-hi
+		_buffer[9] =  0x81;
+		_buffer[10] = 0;		// Art-Net version
+		_buffer[11] = 14;
+		_buffer[12] = 1;		// RDM version
+		_buffer[13] = 1;		// physical port
+		//[14-19] spare
+		_buffer[20] = 0;		// bind index root device
+		_buffer[21] = _portaddress_hi;	//net same as [15] of art-dmx
+		if ( ucount == 0 ) {
+			_buffer[22] = 1;	// command response 1= TOD not available
+		}
+		_buffer[23] = _portaddress_lo;	//port-address same as [14] of art-dmx
+		_buffer[24] = 0;			//total UIDs MSB --only single pkt in this implementation
+		_buffer[25] = ucount;		//25 total UIDs LSB
+		_buffer[26] = 0;			//26 block count (sequence# for multiple packets)
+		_buffer[27] = ucount;		//27 UID count
+		uint16_t ulen = 6 * ucount;
+		for( i=0; i<ulen; i++) {
+			_buffer[28+i] = todata[i];
+		} 
+		
+		wUDP->beginPacket(_broadcast_address, ARTNET_PORT);
+  		wUDP->write(_buffer, ulen+28);
+  		wUDP->endPacket();
+	}	// broadcast != NULL
+}
+
+void LXWiFiArtNet::send_art_rdm ( UDP* wUDP, uint8_t* rdmdata, IPAddress toa ) {
+	uint8_t _buffer[ARTNET_RDM_PKT_SIZE];
+	int i;
+	for ( i=0; i < ARTNET_RDM_PKT_SIZE; i++ ) {
+		_buffer[i] = 0;
+	}
+	strcpy((char*)_buffer, "Art-Net");
+	_buffer[8] =  0;		// op code lo-hi
+	_buffer[9] =  0x83;
+	_buffer[10] = 0;		// Art-Net version
+	_buffer[11] = 14;
+	_buffer[12] = 1;		// RDM version
+	//[13-20] spare
+	_buffer[20] = 1;		// bind index root device
+	_buffer[21] = _portaddress_hi;	//net same as [15] of art-dmx
+	_buffer[22] = 0;	// command response 0= process the packet
+	_buffer[23] = _portaddress_lo;	//port-address same as [14] of art-dmx
+	
+	uint16_t rlen = rdmdata[2] + 1;
+	for( i=0; i<rlen; i++) {
+		_buffer[24+i] = rdmdata[i+1];
+	} 
+	
+	wUDP->beginPacket(toa, ARTNET_PORT);
+	wUDP->write(_buffer, rlen+24);
+	wUDP->endPacket();
+}
+
+void LXWiFiArtNet::setArtAddressReceivedCallback(ArtNetReceiveCallback callback) {
 	_artaddress_receive_callback = callback;
+}
+
+void LXWiFiArtNet::setArtTodRequestCallback(ArtNetRDMRecvCallback callback) {
+	_art_tod_req_callback = callback;
 }
 
 void LXWiFiArtNet::setArtIpProgReceivedCallback(ArtIpProgRecvCallback callback) {
 	_artip_receive_callback = callback;
+}
+
+void LXWiFiArtNet::setArtRDMCallback(ArtNetRDMRecvCallback callback) {
+		_art_rdm_callback = callback;
 }
 
 uint16_t LXWiFiArtNet::parse_header( void ) {
@@ -484,6 +583,44 @@ void LXWiFiArtNet::parse_art_ipprog( UDP* wUDP ) {
 	}
 }
 
+uint16_t LXWiFiArtNet::parse_art_tod_request( UDP* wUDP ) {
+	if ( _art_tod_req_callback != NULL ) {
+		if ( _packet_buffer[21] == _portaddress_hi ) {
+			if ( _packet_buffer[24] == _portaddress_lo ) {	//array[32] of port-address
+				uint8_t type = 0;
+				_art_tod_req_callback(&type);	//pointer to uint8_t could be array of other params
+				return ARTNET_ART_TOD_REQUEST;
+			}
+		}
+	}
+	return ARTNET_NOP;
+}
+
+uint16_t LXWiFiArtNet::parse_art_tod_control( UDP* wUDP ) {
+	if ( _art_tod_req_callback != NULL ) {
+		if ( _packet_buffer[21] == _portaddress_hi ) {
+			if ( _packet_buffer[23] == _portaddress_lo ) {
+				uint8_t type = 1;
+				_art_tod_req_callback(&type);	//pointer to uint8_t could be array of other params
+				return ARTNET_ART_TOD_CONTROL;
+			}
+		}
+	}
+	return ARTNET_NOP;
+}
+
+uint16_t LXWiFiArtNet::parse_art_rdm( UDP* wUDP ) {
+	if ( _art_rdm_callback != NULL ) {
+		if ( _packet_buffer[21] == _portaddress_hi ) {
+			if ( _packet_buffer[23] == _portaddress_lo ) {
+				_art_rdm_callback(&_packet_buffer[24]);
+				return ARTNET_ART_RDM;
+			}
+		}
+	}
+	return ARTNET_NOP;
+}
+
 void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {
 	_my_address = address;
 	initializePollReply();
@@ -542,5 +679,6 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   _reply_buffer[173] = 1;    // number of ports
   _reply_buffer[174] = 128;  // can output from network
   _reply_buffer[190] = _portaddress_lo & 0x0f;
+  _reply_buffer[211] = 1;	 // bind index of root device is always 1
   _reply_buffer[212] = _status2;
 }

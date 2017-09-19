@@ -47,16 +47,16 @@ typedef struct dmxwifiConfig {
 #define DMXWIFI_CONFIG_VERSION 1
 #define DMXWIFI_CONFIG_INVALID_VERSION 27
 
-#define STATION_MODE 0
-#define AP_MODE 1
+#define STATION_MODE  0
+#define AP_MODE       1
 
-#define ARTNET_MODE 0
-#define SACN_MODE 1
-#define STATIC_MODE 2
-#define MULTICAST_MODE 4
-
-#define OUTPUT_FROM_NETWORK_MODE 0
+#define ARTNET_MODE           0
+#define SACN_MODE             1
+#define STATIC_MODE           2
+#define MULTICAST_MODE        4
 #define INPUT_TO_NETWORK_MODE 8
+#define RDM_MODE              16 
+
 
 /*!   
 @class DMXwifiConfig
@@ -100,6 +100,7 @@ class DMXwifiConfig {
     bool artnetMode(void);
     bool sACNMode(void);
     bool multicastMode(void);
+    bool rdmMode(void);
     bool inputToNetworkMode(void);
     
     /* 

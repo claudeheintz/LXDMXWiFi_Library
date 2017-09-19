@@ -134,6 +134,10 @@ bool DMXwifiConfig::inputToNetworkMode(void) {
 	return ( _wifi_config->protocol_flags & INPUT_TO_NETWORK_MODE );
 }
 
+bool DMXwifiConfig::rdmMode(void) {
+  return ( _wifi_config->protocol_flags & RDM_MODE );
+}
+
 IPAddress DMXwifiConfig::apIPAddress(void) {
 	return _wifi_config->ap_address;
 }

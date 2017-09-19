@@ -52,13 +52,13 @@ typedef struct dmxwifiConfig {
 #define STATION_MODE 0
 #define AP_MODE 1
 
-#define ARTNET_MODE 0
-#define SACN_MODE 1
-#define STATIC_MODE 2
-#define MULTICAST_MODE 4
-
-#define OUTPUT_FROM_NETWORK_MODE 0
+#define ARTNET_MODE           0
+#define SACN_MODE             1
+#define STATIC_MODE           2
+#define MULTICAST_MODE        4
 #define INPUT_TO_NETWORK_MODE 8
+#define RDM_MODE              16
+
 
 // uncomment the following line to force an overwrite of the configuration back to
 // the hard coded settings when the boot mode is default (mode==0)
@@ -106,6 +106,7 @@ class DMXwifiConfig {
     bool artnetMode(void);
     bool sACNMode(void);
     bool multicastMode(void);
+    bool rdmMode(void);
     bool inputToNetworkMode(void);
     
     /* 

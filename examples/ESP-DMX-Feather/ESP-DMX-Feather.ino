@@ -30,7 +30,7 @@
     @section  HISTORY
 
     v1.0 - First release
-    
+    v2.0 - Updated for OLED Feather Wing and RDM
 */
 /**************************************************************************/
 
@@ -39,6 +39,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <LXESP8266UARTDMX.h>
+#include <rdm/UID.h>
+#include <rdm/TOD.h>
+#include <rdm/rdm_utility.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include "LXDMXWiFi.h"
@@ -47,8 +50,13 @@
 #include <EEPROM.h>
 #include "LXDMXWiFiConfig.h"
 
-//#define DIRECTION_PIN 12    // pin for output direction enable on MAX481 chip
+#define DIRECTION_PIN 15    // pin for output direction enable on MAX481 chip
                             // this GPIO is wired to both pins 2 and 3 of the Max481
+                            // the RX pin is tied to the USB chip on the Adafruit ESP8266 Feather
+                            // This holds the pin high and prevents serial input.
+                            // Direction pin (and free RX input) is necessary for RDM
+
+#define RDM_CAPABLE_HARDWARE 1
 
 //#define LED_PIN_INPUT 14  // indicator LED(s)
 #define LED_PIN_OUTPUT 14
@@ -57,6 +65,10 @@
 #define BUTTON_A 0          // buttons on OLED Feather wing
 #define BUTTON_B 16         // pin for force default setup when low
 #define BUTTON_C 13         // this button re-wired from pin 2 (add 10k external pullup to 3.3v)
+
+// RDM defines
+#define DISC_STATE_SEARCH 0
+#define DISC_STATE_TBL_CK 1
 
 /*         
  *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
@@ -79,6 +91,19 @@ int acn_packet_result = 0;
 
 // Input mode:  received slots when inputting dmx to network
 int got_dmx = 0;
+
+// RDM globals
+uint8_t rdm_enabled = 0;
+uint8_t discovery_state = DISC_STATE_TBL_CK;
+uint8_t discovery_tbl_ck_index = 0;
+uint8_t tableChangedFlag = 0;
+TOD tableOfDevices;
+TOD discoveryTree;
+
+UID lower(0,0,0,0,0,0);
+UID upper(0,0,0,0,0,0);
+UID mid(0,0,0,0,0,0);
+UID found(0,0,0,0,0,0);
 
 // used to toggle indicator LED on and off
 uint8_t led_state = 0;
@@ -172,6 +197,9 @@ void displayIPLine() {
     display.print("IP: ");
     display.print(WiFi.localIP());
   }
+  if ( rdm_enabled ) {
+    display.print("_");
+  }
   display.display();
 }
 
@@ -224,6 +252,32 @@ void artAddressReceived() {
   DMXWiFiConfig.commitToPersistentStore();
 }
 
+void artTodRequestReceived(uint8_t* type) {
+  if ( type[0] ) {
+    tableOfDevices.reset();
+  }
+  artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
+}
+
+void artRDMReceived(uint8_t* pdata) {
+  Serial.println("got rdm!");
+  uint8_t plen = pdata[1] + 2;
+  uint8_t j;
+
+  //copy into ESP8266DMX outgoing packet
+  uint8_t* pkt = ESP8266DMX.rdmData();
+  for (j=0; j<plen; j++) {
+    pkt[j+1] = pdata[j];
+  }
+  pkt[0] = 0xCC;
+
+    
+  if ( ESP8266DMX.sendRDMControllerPacket() ) {
+    Serial.println("sent and got response!");
+    artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
+  }
+}
+
 /* 
    artIpProg callback allows storing of config information
    cmd field bit 7 indicates that settings should be programmed
@@ -266,6 +320,128 @@ void gotDMXCallback(int slots) {
   got_dmx = slots;
 }
 
+/****************************** RDM *****************************************/
+
+uint8_t testMute(UID u) {
+   // try three times to get response when sending a mute message
+   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   return 0;
+}
+
+void checkDeviceFound(UID found) {
+  if ( testMute(found) ) {
+    tableOfDevices.add(found);
+    tableChangedFlag = 1;
+  }
+}
+
+uint8_t checkTable(uint8_t ck_index) {
+  if ( ck_index == 0 ) {
+    ESP8266DMX.sendRDMDiscoveryMute(BROADCAST_ALL_DEVICES_ID, RDM_DISC_UNMUTE);
+  }
+
+  if ( tableOfDevices.getUIDAt(ck_index, &found) )  {
+    if ( testMute(found) ) {
+      // device confirmed
+      return ck_index += 6;
+    }
+    
+    // device not found
+    tableOfDevices.removeUIDAt(ck_index);
+    tableChangedFlag = 1;
+    return ck_index;
+  }
+  // index invalid
+  return 0;
+}
+
+//called when range responded, so divide into sub ranges push them on stack to be further checked
+void pushActiveBranch(UID lower, UID upper) {
+  if ( mid.becomeMidpoint(lower, upper) ) {
+    discoveryTree.push(lower);
+    discoveryTree.push(mid);
+    discoveryTree.push(mid);
+    discoveryTree.push(upper);
+  } else {
+    // No midpoint possible:  lower and upper are equal or a 1 apart
+    checkDeviceFound(lower);
+    checkDeviceFound(upper);
+  }
+}
+
+void pushInitialBranch() {
+  lower.setBytes(0);
+  upper.setBytes(BROADCAST_ALL_DEVICES_ID);
+  discoveryTree.push(lower);
+  discoveryTree.push(upper);
+
+  //ETC devices seem to only respond with wildcard or exact manufacturer ID
+  lower.setBytes(0x657400000000);
+  upper.setBytes(0x6574FFFFFFFF);
+  discoveryTree.push(lower);
+  discoveryTree.push(upper);
+}
+
+uint8_t checkNextRange() {
+  if ( discoveryTree.pop(&upper) ) {
+    if ( discoveryTree.pop(&lower) ) {
+      if ( lower == upper ) {
+        checkDeviceFound(lower);
+      } else {        //not leaf so, check range lower->upper
+        uint8_t result = ESP8266DMX.sendRDMDiscoveryPacket(lower, upper, &found);
+        if ( result ) {
+          //this range responded, so divide into sub ranges push them on stack to be further checked
+          pushActiveBranch(lower, upper);
+           
+        } else if ( ESP8266DMX.sendRDMDiscoveryPacket(lower, upper, &found) ) {
+            pushActiveBranch(lower, upper); //if discovery fails, try a second time
+        }
+      }         // end check range
+      return 1; // UID ranges may be remaining to test
+    }           // end valid pop
+  }             // end valid pop  
+  return 0;     // none left to pop
+}
+
+void updateRDMDiscovery() {
+  if ( discovery_state ) {
+    // check the table of devices
+    discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+    
+    if ( discovery_tbl_ck_index == 0 ) {
+      // done with table check
+      discovery_state = DISC_STATE_SEARCH;
+      pushInitialBranch();
+   
+      if ( tableChangedFlag ) {   //if the table has changed...
+        tableChangedFlag = 0;
+
+        artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
+        // if this were an Art-Net application, you would send an 
+        // ArtTOD packet here, because the device table has changed.
+        // for this test, we just print the list of devices
+        Serial.println("_______________ Table Of Devices _______________");
+        tableOfDevices.printTOD();
+      }
+    } //end table check ended
+  } else {    // search for devices in range popped from discoveryTree
+
+    if ( checkNextRange() == 0 ) {
+      // done with search
+      discovery_tbl_ck_index = 0;
+      discovery_state = DISC_STATE_TBL_CK;
+    }
+  }           //end search
+}
+
 
 /************************************************************************
 
@@ -306,6 +482,9 @@ void setup() {
   uint8_t dhcpStatus = 0;
   
   dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
+   #if defined RDM_CAPABLE_HARDWARE
+  rdm_enabled = DMXWiFiConfig.rdmMode();
+   #endif
 
   // display setup
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
@@ -313,17 +492,23 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   
-  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {					      // DMX Driver startup based on direction flag
-    #if defined DIRECTION_PIN
-      ESP8266DMX.setDirectionPin(DIRECTION_PIN);
-    #endif
-    ESP8266DMX.startOutput();
-  } else {
+  if ( rdm_enabled ) {
+    if ( dmx_direction ) {
+      ESP8266DMX.startRDM(DIRECTION_PIN, 0);  // start RDM in input task mode
+    } else {
+      ESP8266DMX.startRDM(DIRECTION_PIN);     // defaults to RDM output task mode
+    }
+  } else if ( dmx_direction ) {					      // DMX Driver startup based on direction flag
     #if defined DIRECTION_PIN
       ESP8266DMX.setDirectionPin(DIRECTION_PIN);
     #endif
     ESP8266DMX.setDataReceivedCallback(&gotDMXCallback);
     ESP8266DMX.startInput();
+  } else {
+    #if defined DIRECTION_PIN
+      ESP8266DMX.setDirectionPin(DIRECTION_PIN);
+    #endif
+    ESP8266DMX.startOutput();
   }
 
   displayWelcomeLine();
@@ -372,6 +557,10 @@ void setup() {
   artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
   artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
+  if ( rdm_enabled ) {
+    artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
+    artNetInterface->setArtRDMCallback(&artRDMReceived);
+  }
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);
@@ -386,22 +575,21 @@ void setup() {
   }
   Serial.print("interfaces created, ");
   
-  // if output from network, start wUDP listening for packets
-  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {	
-		if ( DMXWiFiConfig.multicastMode() ) {
-			if ( DMXWiFiConfig.APMode() ) {
-				sUDP.beginMulticast(WiFi.softAPIP(), DMXWiFiConfig.multicastAddress(), sACNInterface->dmxPort());
-			} else {
-				sUDP.beginMulticast(WiFi.localIP(), DMXWiFiConfig.multicastAddress(), sACNInterface->dmxPort());
-			}
+ 
+	if ( DMXWiFiConfig.multicastMode() ) {
+		if ( DMXWiFiConfig.APMode() ) {
+			sUDP.beginMulticast(WiFi.softAPIP(), DMXWiFiConfig.multicastAddress(), sACNInterface->dmxPort());
 		} else {
-			sUDP.begin(sACNInterface->dmxPort());
+			sUDP.beginMulticast(WiFi.localIP(), DMXWiFiConfig.multicastAddress(), sACNInterface->dmxPort());
 		}
-    
-    aUDP.begin(artNetInterface->dmxPort());
-    artNetInterface->send_art_poll_reply(&aUDP);
-	 Serial.print("udp started listening,");
-  }
+	} else {
+		sUDP.begin(sACNInterface->dmxPort());
+	}
+  
+  aUDP.begin(artNetInterface->dmxPort());
+  artNetInterface->send_art_poll_reply(&aUDP);
+ Serial.print("udp started listening,");
+  
   Serial.println(" setup complete.");
   
   displayMenuLine();
@@ -568,7 +756,16 @@ void rememberScene() {
 
 void loop() {
   if ( menu_mode == MENU_MODE_OFF ) {
-  	if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
+    
+  	if ( dmx_direction ) {    //direction is input to network
+    
+      if ( DMXWiFiConfig.sACNMode() ) {
+        checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
+      } else {
+        checkInput(artNetInterface, &aUDP, 0);
+      }
+      
+    } else {    //direction is output to network
   	
   		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
   		if ( art_packet_result == RESULT_NONE ) {
@@ -583,15 +780,12 @@ void loop() {
   		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
   			copyDMXToOutput();
   			blinkOutput();
-  		}
-  		
-  	} else {    //direction is input to network
-  	
-  		if ( DMXWiFiConfig.sACNMode() ) {
-  			checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
   		} else {
-  			checkInput(artNetInterface, &aUDP, 0);
-  		}
+      // output was not updated so use a cycle to perform the next step of RDM discovery
+      if ( rdm_enabled ) {
+        updateRDMDiscovery();
+      }
+    }
   		
   	}
   	if ( digitalRead(BUTTON_C) == LOW ) {
