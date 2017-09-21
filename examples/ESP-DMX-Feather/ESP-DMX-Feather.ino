@@ -26,11 +26,13 @@
            
            This example requires the LXESP8266DMX library for DMX serial output
            https://github.com/claudeheintz/LXESP8266DMX
+           (v2.0 of LXESP8266DMX library required for RDM)
 
     @section  HISTORY
 
     v1.0 - First release
     v2.0 - Updated for OLED Feather Wing and RDM
+    v2.0.1 - Scene record triggered by ArtCommand
 */
 /**************************************************************************/
 
@@ -232,8 +234,6 @@ void displayPlayback() {
 void displayMenuOne() {
   display.clearDisplay();
   displayPlayback();
-  display.setCursor(0,12);
-  display.print("Setup");
   display.setCursor(0,24);
   display.print("exit");
   display.display();
@@ -276,6 +276,13 @@ void artRDMReceived(uint8_t* pdata) {
     Serial.println("sent and got response!");
     artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
   }
+}
+
+void artCmdReceived(uint8_t* pdata) {
+  if ( strcmp((const char*)pdata, "record=1") == 0 ) {
+    rememberScene();
+  }
+  
 }
 
 /* 
@@ -561,6 +568,7 @@ void setup() {
     artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
     artNetInterface->setArtRDMCallback(&artRDMReceived);
   }
+  artNetInterface->setArtCommandCallback(&artCmdReceived);
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);
@@ -805,44 +813,15 @@ void loop() {
         displayIPLine();
         displayMenuLine();
       }
-    } else {                  // button C high (not pressed) check the other buttons
-      
-      if ( menu_mode == MENU_MODE_PLAYBACK ) {
+                        		// button C high (not pressed) check the another button
+    } else if ( menu_mode == MENU_MODE_PLAYBACK ) {
         if ( digitalRead(BUTTON_A) == LOW ) {       // button A is playback in this mode
           while ( digitalRead(BUTTON_A) == LOW ) {  // wait for button to be released
           }
           cycleScene();
-        }
-        if ( digitalRead(BUTTON_B) == LOW ) {         // button B switches to MENU_MODE_RECORD
-            while ( digitalRead(BUTTON_B) == LOW ) {  // wait for button to be released
-              menu_mode = MENU_MODE_RECORD;
-            }
-            display.clearDisplay();
-            display.setCursor(0,0);
-            display.print("Record Scene");
-            display.setCursor(0,12);
-            display.println("back");
-            display.setCursor(0,24);
-            display.println("exit");
-            display.display();
-        }
-      
-      } else if ( menu_mode == MENU_MODE_RECORD ) {   // check next menu mode
-        if ( digitalRead(BUTTON_A) == LOW ) {         // button A is record in this mode
-          while ( digitalRead(BUTTON_A) == LOW ) {    // wait for button to be released
-          }
-          rememberScene();
-        }
-        if ( digitalRead(BUTTON_B) == LOW ) {         // button B switches to MENU_MODE_PLAYBACK
-            while ( digitalRead(BUTTON_B) == LOW ) {  // wait for button to be released
-              menu_mode = MENU_MODE_PLAYBACK;
-            }
-            displayMenuOne();
-        }
-      }   // == MENU_MODE_RECORD
-      
-    }     // button C not pressed
-  }       // menu mode != MENU_MODE_OFF
+        } // button a pressed
+      }	  // playback mode, button C not pressed
+    }     // menu mode != MENU_MODE_OFF
 	
 }// loop()
 

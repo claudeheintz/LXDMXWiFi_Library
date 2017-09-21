@@ -332,6 +332,9 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 				opcode = parse_art_rdm( wUDP );
 			}
 			break;
+		case ARTNET_ART_CMD:
+			parse_art_cmd( wUDP );
+			break;
 		default:
 			if ( opcode != ARTNET_ART_POLL_REPLY ) {
 				//Serial.print("unknown Art-Net received ");
@@ -485,7 +488,7 @@ void LXWiFiArtNet::setArtAddressReceivedCallback(ArtNetReceiveCallback callback)
 	_artaddress_receive_callback = callback;
 }
 
-void LXWiFiArtNet::setArtTodRequestCallback(ArtNetRDMRecvCallback callback) {
+void LXWiFiArtNet::setArtTodRequestCallback(ArtNetDataRecvCallback callback) {
 	_art_tod_req_callback = callback;
 }
 
@@ -493,8 +496,12 @@ void LXWiFiArtNet::setArtIpProgReceivedCallback(ArtIpProgRecvCallback callback) 
 	_artip_receive_callback = callback;
 }
 
-void LXWiFiArtNet::setArtRDMCallback(ArtNetRDMRecvCallback callback) {
+void LXWiFiArtNet::setArtRDMCallback(ArtNetDataRecvCallback callback) {
 		_art_rdm_callback = callback;
+}
+
+void LXWiFiArtNet::setArtCommandCallback(ArtNetDataRecvCallback callback) {
+		_art_cmd_callback = callback;
 }
 
 uint16_t LXWiFiArtNet::parse_header( void ) {
@@ -619,6 +626,16 @@ uint16_t LXWiFiArtNet::parse_art_rdm( UDP* wUDP ) {
 		}
 	}
 	return ARTNET_NOP;
+}
+
+void LXWiFiArtNet::parse_art_cmd( UDP* wUDP ) {
+	if ( _art_rdm_callback != NULL ) {
+		if ( _packet_buffer[12] == 0xFF ) {			// wildcard mfg ID
+			if ( _packet_buffer[13] == 0xFF ) {
+				_art_cmd_callback(&_packet_buffer[16]);
+			}
+		}
+	}
 }
 
 void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {

@@ -22,16 +22,17 @@
 #define ARTNET_LONG_NAME_LENGTH 64
 
 
-#define ARTNET_ART_POLL 0x2000
-#define ARTNET_ART_POLL_REPLY 0x2100
-#define ARTNET_ART_DMX 0x5000
-#define ARTNET_ART_ADDRESS 0x6000
-#define ARTNET_ART_IPPROG 0xF800
+#define ARTNET_ART_POLL 		0x2000
+#define ARTNET_ART_POLL_REPLY	0x2100
+#define ARTNET_ART_CMD			0x2400
+#define ARTNET_ART_DMX			0x5000
+#define ARTNET_ART_ADDRESS		0x6000
+#define ARTNET_ART_IPPROG		0xF800
 #define ARTNET_ART_IPPROG_REPLY 0xF900
 #define ARTNET_ART_TOD_REQUEST	0x8000
 #define ARTNET_ART_TOD_CONTROL	0x8200
 #define ARTNET_ART_RDM			0x8300
-#define ARTNET_NOP 0
+#define ARTNET_NOP 				0x0000
 
 #define ARTADDRESS_NO_CHANGE 0x7f
 #define ARTADDRESS_PROG_BIT 0x80
@@ -45,7 +46,7 @@
 #define ARTNET_STATUS2_DHCP_USED 0x02
 
 typedef void (*ArtNetReceiveCallback)(void);
-typedef void (*ArtNetRDMRecvCallback)(uint8_t* pdata);
+typedef void (*ArtNetDataRecvCallback)(uint8_t* pdata);
 typedef void (*ArtIpProgRecvCallback)(uint8_t cmd, IPAddress ipaddr, IPAddress subnet);
 
 /*!
@@ -283,13 +284,19 @@ class LXWiFiArtNet : public LXDMXWiFi {
  *             to distinguish between ARTNET_ART_TOD_REQUEST *0
  *             and ARTNET_ART_TOD_CONTROL *1
 */
-   void setArtTodRequestCallback(ArtNetRDMRecvCallback callback);
+   void setArtTodRequestCallback(ArtNetDataRecvCallback callback);
    
    /*!
 	* @brief function callback when ArtRDM is received
 	* @discussion callback has pointer to RDM payload
 	*/
-   void setArtRDMCallback(ArtNetRDMRecvCallback callback);
+   void setArtRDMCallback(ArtNetDataRecvCallback callback);
+   
+   /*!
+	* @brief function callback when ArtRDM is received
+	* @discussion callback has pointer to RDM payload
+	*/
+   void setArtCommandCallback(ArtNetDataRecvCallback callback);
    
 /*!
  * @brief Function called when ArtIpProg packet is received
@@ -393,12 +400,17 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	/*!
     * @brief Pointer to art tod request callback
    */
-  	ArtNetRDMRecvCallback _art_tod_req_callback;
+  	ArtNetDataRecvCallback _art_tod_req_callback;
   	
   	/*!
     * @brief Pointer to art RDM packet received callback function
    */
-  	ArtNetRDMRecvCallback _art_rdm_callback;
+  	ArtNetDataRecvCallback _art_rdm_callback;
+  	
+  	/*!
+    * @brief Pointer to art command packet received callback function
+   */
+  	ArtNetDataRecvCallback _art_cmd_callback;
   	
   	/*!
     * @brief Pointer to artIpProg received callback function
@@ -431,6 +443,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief utility for parsing ArtRDM packets
 */     
    uint16_t parse_art_rdm( UDP* wUDP );
+   
+/*!
+* @brief utility for parsing ArtCommand packets
+*/   
+   void parse_art_cmd( UDP* wUDP );
    
 /*!
 * @brief initialize data structures

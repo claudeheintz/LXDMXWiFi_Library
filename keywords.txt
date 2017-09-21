@@ -25,15 +25,23 @@ sendDMX				KEYWORD2
 
 setSubnetUniverse		KEYWORD2
 sendDMX					KEYWORD2
+send_art_tod			KEYWORD2
+send_art_rdm			KEYWORD2
 
-replyData							KEYWORD2
+replyData						KEYWORD2
 send_art_poll_reply				KEYWORD2
-shortName							KEYWORD2
-longName								KEYWORD2
+shortName						KEYWORD2
+longName						KEYWORD2
 setArtAddressReceivedCallback	KEYWORD2
+setStatus1Flag					KEYWORD2
+setStatus2Flag					KEYWORD2
 
-DMXWiFiConfig				KEYWORD2
-ArtAddressRecvCallback	KEYWORD2
+DMXWiFiConfig					KEYWORD2
+ArtAddressRecvCallback			KEYWORD2
+setArtIpProgReceivedCallback	KEYWORD2
+setArtTodRequestCallback		KEYWORD2
+setArtRDMCallback				KEYWORD2
+setArtCommandCallback			KEYWORD2
 
 
 #######################################
