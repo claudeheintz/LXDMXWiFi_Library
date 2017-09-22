@@ -36,18 +36,12 @@ LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
 {
     initialize(0);
     setLocalAddressMask(address, subnet_mask);
-    uint32_t a = (uint32_t) address;
-    uint32_t s = (uint32_t) subnet_mask;
-    _broadcast_address = IPAddress(a | ~s);
 }
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask, uint8_t* buffer )
 {
     initialize(buffer);
-    setLocalAddress(address);
-    uint32_t a = (uint32_t) address;
-    uint32_t s = (uint32_t) subnet_mask;
-    _broadcast_address = IPAddress(a | ~s);
+    setLocalAddressMask(address, subnet_mask);
 }
 
 LXWiFiArtNet::~LXWiFiArtNet ( void )
@@ -640,13 +634,20 @@ void LXWiFiArtNet::parse_art_cmd( UDP* wUDP ) {
 
 void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {
 	_my_address = address;
-	initializePollReply();
+	
+	_reply_buffer[10] = ((uint32_t)_my_address) & 0xff;      //ip address
+  	_reply_buffer[11] = ((uint32_t)_my_address) >> 8;
+  	_reply_buffer[12] = ((uint32_t)_my_address) >> 16;
+  	_reply_buffer[13] = ((uint32_t)_my_address) >>24;
 }
 
 void  LXWiFiArtNet::setLocalAddressMask ( IPAddress address, IPAddress subnet_mask ) {
-	_my_address = address;
+	setLocalAddress(address);
 	_my_subnetmask = subnet_mask;
-	initializePollReply();
+	
+	uint32_t a = (uint32_t) address;
+    uint32_t s = (uint32_t) subnet_mask;
+    _broadcast_address = IPAddress(a | ~s);
 }
 
 void LXWiFiArtNet::setStatus1Flag ( uint8_t flag, uint8_t set ) {
