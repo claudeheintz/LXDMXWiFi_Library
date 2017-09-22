@@ -92,6 +92,8 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     _artip_receive_callback = 0;
     _art_tod_req_callback = 0;
     _art_rdm_callback = 0;
+    
+    initializePollReply();
 }
 
 uint16_t  LXWiFiArtNet::universe ( void ) {
