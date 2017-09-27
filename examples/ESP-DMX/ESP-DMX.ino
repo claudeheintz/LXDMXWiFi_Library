@@ -83,6 +83,7 @@ uint8_t rdm_enabled = 0;
 uint8_t discovery_state = DISC_STATE_TBL_CK;
 uint8_t discovery_tbl_ck_index = 0;
 uint8_t tableChangedFlag = 0;
+uint8_t idle_count = 0;
 TOD tableOfDevices;
 TOD discoveryTree;
 
@@ -552,34 +553,40 @@ void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
 void loop() {
 	if ( dmx_direction ) {    //direction is input to network
   
-    if ( DMXWiFiConfig.sACNMode() ) {
-      checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
-    } else {
-      checkInput(artNetInterface, &aUDP, 0);
-    }
+		if ( DMXWiFiConfig.sACNMode() ) {
+		  checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
+		} else {
+		  checkInput(artNetInterface, &aUDP, 0);
+		}
 		
 	} else {                  //direction is output from network
   
-    art_packet_result = artNetInterface->readDMXPacket(&aUDP);
-    if ( art_packet_result == RESULT_NONE ) {
-      checkConfigReceived(artNetInterface, aUDP);
-    }
-    
-    acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
-    if ( acn_packet_result == RESULT_NONE ) {
-      checkConfigReceived(sACNInterface, sUDP);
-    }
-    
-    if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
-      copyDMXToOutput();
-      blinkLED();
-    } else {
-      // output was not updated so use a cycle to perform the next step of RDM discovery
-      if ( rdm_enabled ) {
-        updateRDMDiscovery();
-      }
-    }
+		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
+		if ( art_packet_result == RESULT_NONE ) {
+		  checkConfigReceived(artNetInterface, aUDP);
+		}
+	
+		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
+		if ( acn_packet_result == RESULT_NONE ) {
+		  checkConfigReceived(sACNInterface, sUDP);
+		}
+	
+		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
+		  copyDMXToOutput();
+		  blinkLED();
+		  idle_count = 0;
+		} else {
+		  // output was not updated last 5 times through loop so use a cycle to perform the next step of RDM discovery
+		  if ( rdm_enabled ) {
+		  	idle_count++;
+		    if ( idle_count > 5 ) {
+				updateRDMDiscovery();
+				idle_count = 0;
+			}
+		  }
+		}
 		
-	}
+	}                  //direction is output from network
+	
 }// loop()
 
