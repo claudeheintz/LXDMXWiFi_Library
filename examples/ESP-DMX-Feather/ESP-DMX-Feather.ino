@@ -52,11 +52,10 @@
 #include <EEPROM.h>
 #include "LXDMXWiFiConfig.h"
 
+//#define ESP_PRINT_DEBUG_MSGS 1
+
 #define DIRECTION_PIN 15    // pin for output direction enable on MAX481 chip
                             // this GPIO is wired to both pins 2 and 3 of the Max481
-                            // the RX pin is tied to the USB chip on the Adafruit ESP8266 Feather
-                            // This holds the pin high and prevents serial input.
-                            // Direction pin (and free RX input) is necessary for RDM
 
 #define RDM_CAPABLE_HARDWARE 1
 
@@ -99,6 +98,7 @@ uint8_t rdm_enabled = 0;
 uint8_t discovery_state = DISC_STATE_TBL_CK;
 uint8_t discovery_tbl_ck_index = 0;
 uint8_t tableChangedFlag = 0;
+uint8_t idle_count = 0;
 TOD tableOfDevices;
 TOD discoveryTree;
 
@@ -260,7 +260,9 @@ void artTodRequestReceived(uint8_t* type) {
 }
 
 void artRDMReceived(uint8_t* pdata) {
+#if defined ESP_PRINT_DEBUG_MSGS
   Serial.println("got rdm!");
+#endif
   uint8_t plen = pdata[1] + 2;
   uint8_t j;
 
@@ -273,7 +275,9 @@ void artRDMReceived(uint8_t* pdata) {
 
     
   if ( ESP8266DMX.sendRDMControllerPacket() ) {
+#if defined ESP_PRINT_DEBUG_MSGS
     Serial.println("sent and got response!");
+#endif
     artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
   }
 }
@@ -281,6 +285,12 @@ void artRDMReceived(uint8_t* pdata) {
 void artCmdReceived(uint8_t* pdata) {
   if ( strcmp((const char*)pdata, "record=1") == 0 ) {
     rememberScene();
+    for (int j=0; j<3; j++) {
+    	blinkConnection();
+    	delay(100);
+    	blinkConnection();
+    	delay(100);
+    }
   }
   
 }
@@ -435,8 +445,10 @@ void updateRDMDiscovery() {
         // if this were an Art-Net application, you would send an 
         // ArtTOD packet here, because the device table has changed.
         // for this test, we just print the list of devices
+#if defined ESP_PRINT_DEBUG_MSGS
         Serial.println("_______________ Table Of Devices _______________");
         tableOfDevices.printTOD();
+#endif
       }
     } //end table check ended
   } else {    // search for devices in range popped from discoveryTree
@@ -469,7 +481,9 @@ void updateRDMDiscovery() {
 *************************************************************************/
 
 void setup() {
+#if defined ESP_PRINT_DEBUG_MSGS
   Serial.begin(115200);
+#endif
   Serial.setDebugOutput(1); //use uart0 for debugging
  #if defined DIRECTION_PIN
   pinMode(DIRECTION_PIN, OUTPUT);
@@ -485,26 +499,34 @@ void setup() {
   pinMode(BUTTON_B, INPUT_PULLUP);
   pinMode(BUTTON_C, INPUT);
   
+// -------------------   initialize config  ------------------- 
   uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(BUTTON_B));
   uint8_t dhcpStatus = 0;
   
   dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
-   #if defined RDM_CAPABLE_HARDWARE
+#if defined RDM_CAPABLE_HARDWARE
   rdm_enabled = DMXWiFiConfig.rdmMode();
-   #endif
+  if ( digitalRead(BUTTON_C) == 0 ) {
+    rdm_enabled = !rdm_enabled;
+  }
+#endif
 
-  // display setup
-  // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
+// -------------------   display setup  ------------------- 
+// by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
   display.setTextSize(1);
   display.setTextColor(WHITE);
   
+// -------------------   DMX  ------------------- 
   if ( rdm_enabled ) {
     if ( dmx_direction ) {
       ESP8266DMX.startRDM(DIRECTION_PIN, 0);  // start RDM in input task mode
     } else {
       ESP8266DMX.startRDM(DIRECTION_PIN);     // defaults to RDM output task mode
     }
+    
+    LX8266DMX::THIS_DEVICE_ID.setBytes(0x6C, 0x78, 0x01, 0x02, 0x03, 0x04);		//change device ID from default
+    
   } else if ( dmx_direction ) {					      // DMX Driver startup based on direction flag
     #if defined DIRECTION_PIN
       ESP8266DMX.setDirectionPin(DIRECTION_PIN);
@@ -520,17 +542,25 @@ void setup() {
 
   displayWelcomeLine();
 
+// -------------------   WiFi  ------------------- 
+
   if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
+#if defined ESP_PRINT_DEBUG_MSGS
     Serial.print("AP_MODE ");
     Serial.print(DMXWiFiConfig.SSID());
+#endif
     WiFi.mode(WIFI_AP);
     WiFi.softAP(DMXWiFiConfig.SSID());
     WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
+#if defined ESP_PRINT_DEBUG_MSGS
     Serial.print("created access point ");
     Serial.print(DMXWiFiConfig.SSID());
     Serial.print(", ");
+#endif
   } else {
+#if defined ESP_PRINT_DEBUG_MSGS
     Serial.print("wifi connecting... ");
+#endif
     WiFi.mode(WIFI_STA);
     WiFi.begin(DMXWiFiConfig.SSID(),DMXWiFiConfig.password());
 
@@ -546,7 +576,9 @@ void setup() {
       blinkConnection();
     }
   }
+#if defined ESP_PRINT_DEBUG_MSGS
   Serial.println("wifi started.");
+#endif
   displayIPLine();
   
   //------------------- Initialize network<->DMX interfaces -------------------
@@ -581,8 +613,9 @@ void setup() {
   if ( bootStatus ) {
     artNetInterface->setStatus1Flag(ARTNET_STATUS1_FACTORY_BOOT, 1);
   }
+#if defined ESP_PRINT_DEBUG_MSGS
   Serial.print("interfaces created, ");
-  
+#endif
  
 	if ( DMXWiFiConfig.multicastMode() ) {
 		if ( DMXWiFiConfig.APMode() ) {
@@ -596,9 +629,11 @@ void setup() {
   
   aUDP.begin(artNetInterface->dmxPort());
   artNetInterface->send_art_poll_reply(&aUDP);
- Serial.print("udp started listening,");
   
+#if defined ESP_PRINT_DEBUG_MSGS
+  Serial.print("udp started listening,");
   Serial.println(" setup complete.");
+#endif
   
   displayMenuLine();
 } //setup
@@ -645,27 +680,35 @@ void copyDMXToOutput(void) {
 
 void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
 	if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {	//match header to config packet
+#if defined ESP_PRINT_DEBUG_MSGS
 		Serial.print("config packet received, ");
+#endif
 		uint8_t reply = 0;
 		if ( interface->packetBuffer()[8] == '?' ) {	//packet opcode is query
 			DMXWiFiConfig.readFromPersistentStore();
 			reply = 1;
 		} else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
+#if defined ESP_PRINT_DEBUG_MSGS
 			Serial.println("upload packet");
+#endif
 			DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
 			DMXWiFiConfig.commitToPersistentStore();
 			reply = 1;
 		} else if ( interface->packetBuffer()[8] == '^' ) {
 			ESP.reset();
 		} else {
+#if defined ESP_PRINT_DEBUG_MSGS
 			Serial.println("unknown config opcode.");
+#endif
 	  	}
 		if ( reply) {
 			DMXWiFiConfig.hidePassword();													// don't transmit password!
 			cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());				// unicast reply
 			cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
 			cUDP.endPacket();
+#if defined ESP_PRINT_DEBUG_MSGS
 			Serial.println("reply complete.");
+#endif
 			DMXWiFiConfig.restorePassword();
 		}
 		interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
@@ -788,10 +831,15 @@ void loop() {
   		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
   			copyDMXToOutput();
   			blinkOutput();
+  			idle_count = 0;
   		} else {
-      // output was not updated so use a cycle to perform the next step of RDM discovery
+      // output was not updated last 5 times through loop so use a cycle to perform the next step of RDM discovery
       if ( rdm_enabled ) {
-        updateRDMDiscovery();
+      	idle_count++;
+		if ( idle_count > 5 ) {
+        	updateRDMDiscovery();
+        	idle_count = 0;
+		}
       }
     }
   		

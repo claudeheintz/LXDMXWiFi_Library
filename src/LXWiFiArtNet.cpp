@@ -625,9 +625,11 @@ uint16_t LXWiFiArtNet::parse_art_rdm( UDP* wUDP ) {
 }
 
 void LXWiFiArtNet::parse_art_cmd( UDP* wUDP ) {
-	if ( _art_rdm_callback != NULL ) {
+	if ( _art_cmd_callback != NULL ) {
 		if ( _packet_buffer[12] == 0xFF ) {			// wildcard mfg ID
 			if ( _packet_buffer[13] == 0xFF ) {
+				uint8_t strl = (_packet_buffer[14]<<8) + _packet_buffer[15];
+				_packet_buffer[16+strl] = 0;	//insure zero term of string
 				_art_cmd_callback(&_packet_buffer[16]);
 			}
 		}
