@@ -22,7 +22,7 @@ DMXwifiConfig DMXWiFiConfig;
  * This is static storage for the configuration settings.  The compiler allocates it in flash memory.
  * It occupies a complete row of flash, comprised of 4 @ 64 byte pages
  */
-__attribute__((__aligned__(256))) static const uint8_t _config_in_flash[DMXWiFiConfigSIZE] {};
+__attribute__((__aligned__(256))) static const uint8_t _config_in_flash[256] {};    //used to use DMXWiFiConfigSIZE
 
 /*******************************************************************************
  ***********************  DMXwifiConfig member functions  ********************/
@@ -59,9 +59,10 @@ void DMXwifiConfig::initConfig(void) {
   strncpy(_wifi_config->ssid, "MKR-DMX-WiFi", 63);
   strncpy(_wifi_config->pwd, "****", 63);
   _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
-  _wifi_config->protocol_flags = MULTICAST_MODE;    // sACN multicast mode
+  _wifi_config->protocol_flags = MULTICAST_MODE | RDM_MODE;    // sACN multicast mode
   																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
   																	 // optional: | STATIC_MODE   to use static not dhcp address for station
+                                     // optional: | RDM_MODE      enables RDM (requires v2.0 SAMD21DMX driver)
                                         				 // eg. _wifi_config->protocol_flags = MULTICAST_MODE | INPUT_TO_NETWORK_MODE | SACN_MODE;
   _wifi_config->ap_address    = IPAddress(192,168,1,1);       // ip address of access point
   _wifi_config->ap_gateway    = IPAddress(192,168,1,1);
@@ -113,6 +114,10 @@ bool DMXwifiConfig::sACNMode(void) {
 
 bool DMXwifiConfig::multicastMode(void) {
 	return ( _wifi_config->protocol_flags & MULTICAST_MODE );
+}
+
+bool DMXwifiConfig::rdmMode(void) {
+  return ( _wifi_config->protocol_flags & RDM_MODE );
 }
 
 bool DMXwifiConfig::inputToNetworkMode(void) {
@@ -188,7 +193,6 @@ void DMXwifiConfig::setNodeName(char* nn) {
 
 void DMXwifiConfig::copyConfig(uint8_t* pkt, uint8_t size) {
 	if (( size < 171 ) || ( size > DMXWiFiConfigSIZE)) {
-    Serial.print("bad size!!!!!!!");
 		return;	//validate incoming size
 	}
 	uint8_t k;
@@ -213,7 +217,7 @@ uint8_t DMXwifiConfig::readFromPersistentStore(void) {
   	// check to see if ident matches
   	if ( strcmp(CONFIG_PACKET_IDENT, _wifi_config->ident) != 0 ) {
   		initConfig();										// invalid ident, init & store default
-  		commitToPersistentStore();
+  		//commitToPersistentStore();      // store initialized default config... may not be needed, no different result if stored or by calling initConfig
   	} else {
   		_wifi_config->opcode = 0;
   		did_default = 0;
@@ -233,16 +237,23 @@ uint32_t packBytes(uint8_t* p) {
  */
 
 void DMXwifiConfig::commitToPersistentStore(void) {
-    Serial.println("Writing to Flash");
-		while ( ! (NVMCTRL->INTFLAG.reg & NVMCTRL_INTFLAG_READY) ) {} 	//wait until nvm controller is ready
+  /* Clear previous error flags (?)  May want to check for locked...*/
+    NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK;
+    
+		while ( NVMCTRL->INTFLAG.bit.READY == 0 ) {
+		  delay(5);
+		} 	//wait until nvm controller is ready
     
     // first erase the row (all 256 bytes)
-    uint32_t flash_address = (uint32_t) _config_in_flash;
-		Serial.print("will erase ");
-    Serial.println(flash_address);
-		NVMCTRL->ADDR.reg = flash_address / 2;                           //16bit address see pg 403
-		NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMDEX_KEY | NVMCTRL_CTRLA_CMD_ER;
-		while ( ! (NVMCTRL->INTFLAG.reg & NVMCTRL_INTFLAG_READY) ) {} 	//wait until nvm controller is ready pg 400
+    const volatile void* flash_address = _config_in_flash;
+    
+		NVMCTRL->ADDR.reg =  ((uint32_t)flash_address) / 2;                   //16bit address see pg 403
+
+		NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMDEX_KEY | NVMCTRL_CTRLA_CMD_ER;  // execution stopping here 
+    
+		while ( NVMCTRL->INTFLAG.bit.READY == 0 ) {
+		  delay(5);
+		} 	//wait until nvm controller is ready pg 400
 		
 		uint8_t* p = (uint8_t*) _wifi_config;
       volatile uint32_t* fp = (volatile uint32_t *)_config_in_flash;
@@ -250,12 +261,13 @@ void DMXwifiConfig::commitToPersistentStore(void) {
 		
 		NVMCTRL->CTRLB.bit.MANW = 0x1; //set manual write mode
     
-		// write out the pages in the row one at a time
+		// write out the pages in the row, one at a time
 		for (int k=0; k<4; k++) {
 			//clear the page buffer 
-        //NVMCTRL->ADDR.reg = fp/2; //set ADDR register before pg buffer clear? probably unneeded see pg 388 | 403
+        NVMCTRL->ADDR.reg = ((uint32_t)fp)/2; //set ADDR register before pg buffer clear? probably unneeded see pg 388 | 403
+
 			  NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMDEX_KEY | NVMCTRL_CTRLA_CMD_PBC;
-			  while ( ! (NVMCTRL->INTFLAG.reg & NVMCTRL_INTFLAG_READY) ) {} 	//wait until nvm controller is ready
+			  while ( NVMCTRL->INTFLAG.bit.READY == 0 ) {} 	//wait until nvm controller is ready
 
      		/* Clear error flags (from Atmel EEPROM simulator sdk code)*/
       	NVMCTRL->STATUS.reg |= NVMCTRL_STATUS_MASK;
@@ -270,10 +282,9 @@ void DMXwifiConfig::commitToPersistentStore(void) {
 			
 			//execute the write  (see pg 403, ADDR register is set when *fp is assigned)
 			NVMCTRL->CTRLA.reg = NVMCTRL_CTRLA_CMDEX_KEY | NVMCTRL_CTRLA_CMD_WP;
-			while ( ! (NVMCTRL->INTFLAG.reg & NVMCTRL_INTFLAG_READY) ) {} 	//wait until nvm controller is ready
-			
+			while ( NVMCTRL->INTFLAG.bit.READY == 0 ) {} 	//wait until nvm controller is ready
 		}	//page writes
-		Serial.println("saved config to flash");
+
 }   //commitToPersistentStore
 
 uint8_t* DMXwifiConfig::config(void) {
