@@ -3,7 +3,7 @@
     @file     ESP-DMX.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015-2016 by Claude Heintz All Rights Reserved
+    @copyright 2015-2017 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
     ESP 8266 WiFi connection to serial DMX.  Or, input from DMX to the network.
@@ -33,6 +33,8 @@
     v4.1 - Supports Art-Net 3+ Port Addresses and additional poll reply information
 
     v5.0 - Adds RDM support (requires LXESP8266DMX library v2.0)
+    v5.1 - Change to on demand RDM discovery
+    		  RDM discovery runs for limited cycles at startup and after TOD request.
 */
 /**************************************************************************/
 
@@ -54,6 +56,14 @@
 // RDM defines
 #define DISC_STATE_SEARCH 0
 #define DISC_STATE_TBL_CK 1
+/*
+ * If RDM_DISCOVER_ALWAYS == 0, the times RDM discovery runs is limited to 10 cycles
+ * of table check and search.  When rdm_discovery_enable reaches zero, continous RDM 
+ * discovery stops.  Other ArtRDM packets continue to be relayed.
+ * If an Art-Net TODRequest or TODControl packet is received, the rdm_discovery_enable
+ * counter is reset and discovery runs again until rdm_discovery_enable reaches zero.
+ */
+#define RDM_DISCOVER_ALWAYS 0
 
 /*         
  *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
@@ -79,13 +89,14 @@ int got_dmx = 0;
 
 
 // RDM globals
-uint8_t rdm_enabled = 0;
-uint8_t discovery_state = DISC_STATE_TBL_CK;
-uint8_t discovery_tbl_ck_index = 0;
-uint8_t tableChangedFlag = 0;
-uint8_t idle_count = 0;
-TOD tableOfDevices;
-TOD discoveryTree;
+uint8_t rdm_enabled = 0;						// global RDM flag
+uint8_t rdm_discovery_enable = 10;				// limit RDM discovery which can cause flicker in some equipment
+uint8_t discovery_state = DISC_STATE_TBL_CK;	// alternates between checking the TOD and discovery search
+uint8_t discovery_tbl_ck_index = 0;				// next entry in table to check by sending DISC_MUTE
+uint8_t tableChangedFlag = 0;					// set when TOD is changed by device added or removed
+uint8_t idle_count = 0;							// count to determine cycles devoted to RDM discovery
+TOD tableOfDevices;								// UUIDs of found devices
+TOD discoveryTree;								// stack of UUID ranges for discovery search
 
 UID lower(0,0,0,0,0,0);
 UID upper(0,0,0,0,0,0);
@@ -123,6 +134,7 @@ void artTodRequestReceived(uint8_t* type) {
   if ( type[0] ) {
     tableOfDevices.reset();
   }
+  rdm_discovery_enable = 10;
   artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
 }
 
@@ -137,7 +149,7 @@ void artRDMReceived(uint8_t* pdata) {
   }
   pkt[0] = 0xCC;
 
-    
+  // reply from RDM to network
   if ( ESP8266DMX.sendRDMControllerPacket() ) {
     artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
   }
@@ -274,35 +286,46 @@ uint8_t checkNextRange() {
   return 0;     // none left to pop
 }
 
-void updateRDMDiscovery() {
-  if ( discovery_state ) {
-    // check the table of devices
-    discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+void sendTODifChanged() {
+  if ( tableChangedFlag ) {   //if the table has changed...
+    tableChangedFlag--;
     
-    if ( discovery_tbl_ck_index == 0 ) {
-      // done with table check
-      discovery_state = DISC_STATE_SEARCH;
-      pushInitialBranch();
-   
-      if ( tableChangedFlag ) {   //if the table has changed...
-        tableChangedFlag = 0;
+    artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
 
-        artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
-        // if this were an Art-Net application, you would send an 
-        // ArtTOD packet here, because the device table has changed.
-        // for this test, we just print the list of devices
-        Serial.println("_______________ Table Of Devices _______________");
-        tableOfDevices.printTOD();
-      }
-    } //end table check ended
-  } else {    // search for devices in range popped from discoveryTree
+#if defined PRINT_DEBUG_MESSAGES
+    Serial.println("_______________ Table Of Devices _______________");
+    tableOfDevices.printTOD();
+#endif
+  }
+}
 
-    if ( checkNextRange() == 0 ) {
-      // done with search
-      discovery_tbl_ck_index = 0;
-      discovery_state = DISC_STATE_TBL_CK;
-    }
-  }           //end search
+void updateRDMDiscovery() {				// RDM discovery replies can cause flicker in some equipment
+	if ( rdm_discovery_enable ) {  // run RDM updates for a limited number of times
+                          
+	  if ( discovery_state ) {
+			// check the table of devices
+			discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+	
+			if ( discovery_tbl_ck_index == 0 ) {
+			  // done with table check
+			  discovery_state = DISC_STATE_SEARCH;
+			  pushInitialBranch();
+	 
+			  sendTODifChanged();
+			}                     // <= table check ended
+	  } else {                // search for devices in range popped from discoveryTree
+  		if ( checkNextRange() == 0 ) {
+  		  // done with search
+  		  discovery_tbl_ck_index = 0;
+  		  discovery_state = DISC_STATE_TBL_CK;
+  		 
+          sendTODifChanged();
+          if ( RDM_DISCOVER_ALWAYS == 0 ) {
+            rdm_discovery_enable--;
+          }
+  		} //  <= if discovery search complete
+      }   //  <= discovery search
+	}     //  <= rdm_discovery_enable  
 }
 
 
@@ -580,9 +603,9 @@ void loop() {
 		  if ( rdm_enabled ) {
 		  	idle_count++;
 		    if ( idle_count > 5 ) {
-				updateRDMDiscovery();
-				idle_count = 0;
-			}
+				  updateRDMDiscovery();
+				  idle_count = 0;
+			  }
 		  }
 		}
 		
