@@ -15,8 +15,10 @@
 
 #define SACN_PORT 0x15C0
 #define SACN_BUFFER_MAX 638
+#define SACN_PRIORITY_OFFSET 108
 #define SACN_ADDRESS_OFFSET 125
 #define SACN_CID_LENGTH 16
+#define SLOTS_AND_START_CODE 513
 
 /*!
 * @class LXWiFiSACN
@@ -144,7 +146,12 @@ class LXWiFiSACN : public LXDMXWiFi {
  * @param to_ip target address
  * @param interfaceAddr != 0 for multicast
  */  
-   void     sendDMX        ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   void sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   
+ /*!
+ * @brief clear dmx buffers and sender CIDs
+ */    
+   void clearDMXOutput ( void );
 
    
   private:
@@ -177,6 +184,10 @@ class LXWiFiSACN : public LXDMXWiFi {
   	int       _dmx_slots;
   	int       _dmx_slots_a;
   	int       _dmx_slots_b;
+  	uint8_t   _priority_a;
+  	uint8_t   _priority_b;
+  	long      _last_packet_a;
+  	long      _last_packet_b;
 /// universe 1-255 in this implementation
   	uint16_t  _universe;
 /// sequence number for sending sACN DMX packets
@@ -200,6 +211,11 @@ class LXWiFiSACN : public LXDMXWiFi {
 * @brief initialize data structures
 */
    void  initialize  ( uint8_t* b );
+   
+ /*!
+ * @brief clear "b" dmx buffer and sender CID
+ */    
+   void clearDMXSourceB ( void );
    
 };
 

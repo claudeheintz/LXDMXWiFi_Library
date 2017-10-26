@@ -168,6 +168,12 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param level level 0 to 255
  */  
    void     setSlot      ( int slot, uint8_t level );
+   
+ /*!
+ * @brief clear dmx buffers and sender IP addresses
+ */    
+   void clearDMXOutput ( void );
+	
  /*!
  * @brief direct pointer to dmx portion of packet buffer uint8_t[]
  * @return uint8_t* to dmx data portion of packet buffer
@@ -426,7 +432,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief utility for parsing ArtAddress packets
 * @return opcode in case command changes dmx data
 */
-   uint16_t  parse_art_address   ( void );
+   uint16_t  parse_art_address   ( UDP* wUDP );
    
 /*!
 * @brief utility for parsing ArtIPProg packets

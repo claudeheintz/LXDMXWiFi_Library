@@ -96,6 +96,17 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     initializePollReply();
 }
 
+void LXWiFiArtNet::clearDMXOutput ( void ) {
+	_dmx_sender_a = INADDR_NONE;
+	_dmx_sender_b = INADDR_NONE;
+	for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
+	   _dmx_buffer_a[j] = 0;
+	   _dmx_buffer_b[j] = 0;
+	   _dmx_buffer_c[j] = 0;
+	}
+	_dmx_slots = 512;
+}
+
 uint16_t  LXWiFiArtNet::universe ( void ) {
 	return _portaddress_lo + ( _portaddress_hi << 8 );
 }
@@ -296,7 +307,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 			break;
 		case ARTNET_ART_ADDRESS:
 			if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
-				opcode = parse_art_address();
+				opcode = parse_art_address( wUDP );
 				send_art_poll_reply( wUDP );
 			}
 			break;
@@ -514,7 +525,7 @@ uint16_t LXWiFiArtNet::parse_header( void ) {
      (after first ArtDmx packet, only packets from the same sender are accepted
      until a cancel merge command is received)
 */
-uint16_t LXWiFiArtNet::parse_art_address( void ) {
+uint16_t LXWiFiArtNet::parse_art_address( UDP* wUDP ) {
 	//[14] to [31] short name <= 18 bytes
 	//[32] to [95] long name  <= 64 bytes
 	//[96][97][98][99]                  input universe   ch 1 to 4
@@ -539,18 +550,21 @@ uint16_t LXWiFiArtNet::parse_art_address( void ) {
 			}
 			break;
 	   case 0x01:	//cancel merge: resets ip address used to identify dmx sender
-	   	_dmx_sender_a = INADDR_NONE;
-	   	_dmx_sender_b = INADDR_NONE;
+	   if ( _dmx_sender_a != wUDP->remoteIP() ) {
+	   		_dmx_sender_a = INADDR_NONE;
+	   		for (int k=0; k<DMX_UNIVERSE_SIZE; k++) {
+	   			_dmx_buffer_a[k] = 0;
+	   		}
+	   	}
+	   	if ( _dmx_sender_b != wUDP->remoteIP() ) {
+	   		_dmx_sender_b = INADDR_NONE;
+	   		for (int k=0; k<DMX_UNIVERSE_SIZE; k++) {
+	   			_dmx_buffer_b[k] = 0;
+	   		}
+	   	}
 	   	break;
 	   case 0x90:	//clear buffer
-	   	_dmx_sender_a = INADDR_NONE;
-	   	_dmx_sender_b = INADDR_NONE;
-	   	for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
-	   	   _dmx_buffer_a[j] = 0;
-	   	   _dmx_buffer_b[j] = 0;
-	   	   _dmx_buffer_c[j] = 0;
-	   	}
-	   	_dmx_slots = 512;
+	   	clearDMXOutput();
 	   	return ARTNET_ART_DMX;	// return ARTNET_ART_DMX so function calling readPacket
 	   	   						   // knows there has been a change in levels
 	   	break;

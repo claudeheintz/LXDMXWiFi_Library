@@ -3,7 +3,7 @@
     @file     LXWiFiSACN.cpp
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015-2016 by Claude Heintz All Rights Reserved
+    @copyright 2015-2017 by Claude Heintz All Rights Reserved
 
     LXWiFiSACN partially implements E1.31, Lightweight streaming protocol
     for transport of DMX512 using ACN, via ESP8266 WiFi connection.
@@ -15,6 +15,7 @@
 
     v1.0 - First release
     v1.1 - adds ability to use external packet buffer
+    v1.2 - adds respect of priority
 */
 /**************************************************************************/
 
@@ -53,9 +54,9 @@ void  LXWiFiSACN::initialize  ( uint8_t* b ) {
     	_packet_buffer[n] = 0;
     	if ( n <= DMX_UNIVERSE_SIZE ) {
     	   _dmx_buffer_a[n] = 0;
-	   	_dmx_buffer_b[n] = 0;
-	   	_dmx_buffer_c[n] = 0;
-	   	if ( n < SACN_CID_LENGTH ) {
+	   	   _dmx_buffer_b[n] = 0;
+	   	   _dmx_buffer_c[n] = 0;
+	   	   if ( n < SACN_CID_LENGTH ) {
     		    _dmx_sender_id_a[n] = 0;
     		    _dmx_sender_id_b[n] = 0;
     	   }
@@ -65,8 +66,40 @@ void  LXWiFiSACN::initialize  ( uint8_t* b ) {
     _dmx_slots = 0;
     _dmx_slots_a = 0;
     _dmx_slots_b = 0;
+    _priority_a = 0;
+    _priority_b = 0;
     _universe = 1;                    // NOTE: unlike Art-Net, sACN universes begin at 1
     _sequence = 1;
+}
+
+void LXWiFiSACN::clearDMXOutput ( void ) {
+	for (int n=0; n<SLOTS_AND_START_CODE; n++) {
+	   _dmx_buffer_a[n] = 0;
+	   _dmx_buffer_b[n] = 0;
+	   _dmx_buffer_c[n] = 0;
+	   if ( n < SACN_CID_LENGTH ) {
+			_dmx_sender_id_a[n] = 0;
+			_dmx_sender_id_b[n] = 0;
+	   }
+    }
+    
+    _dmx_slots = 0;
+    _dmx_slots_a = 0;
+    _dmx_slots_b = 0;
+    _priority_a = 0;
+    _priority_b = 0;
+    _last_packet_a = 0;
+}
+
+void LXWiFiSACN::clearDMXSourceB ( void ) {
+	for(int k=0; k<SACN_CID_LENGTH; k++) {
+		_dmx_sender_id_b[k] = 0;
+	}
+	for(int k=0; k<SLOTS_AND_START_CODE; k++) {
+		_dmx_buffer_b[k] = 0;
+	}
+	_priority_b = 0;
+	_dmx_slots_b = 0;
 }
 
 uint16_t  LXWiFiSACN::universe ( void ) {
@@ -258,14 +291,81 @@ uint16_t LXWiFiSACN::parse_dmp_layer( uint16_t size ) {
         if ( dsize != (tsize - 10) ) {
            return 0;
         }
-        if ( _dmx_sender_id_a[0] == 0  ) {			
+    
+        // new October 2017 replace sender a if this packet has higher priority
+        // sender b only maintained for HTP when priority is equal
+        
+        uint8_t new_higher_priority = 0;
+        uint8_t erase_b = 0;
+        
+        if ( _packet_buffer[SACN_PRIORITY_OFFSET] > _priority_a ) {
+        	// packet has higher priority than a or b (b only exists if equal to a)
+        	new_higher_priority = 1;
+        	erase_b = 1;
+        	
+        } else { // has lower or equal priority to sender a priority
+        
+        	if ( _priority_a > _packet_buffer[SACN_PRIORITY_OFFSET] ) {
+				// lower priority packet, no need for b if this came from b
+				if ( compareCID(&_dmx_sender_id_b[0], &_packet_buffer[22]) ) {
+					erase_b = 1;
+				}
+			}
+        	
+        	// but if haven't heard from source a for three seconds...
+        	if ( abs(millis()-_last_packet_a) > 3000 ) {
+        		// no more source a
+        		if ( _packet_buffer[SACN_PRIORITY_OFFSET] > _priority_b ) {
+        			// this packet takes over as source a if it has a higher priority than b
+        			//      (priority_b is zero if it does not exist)
+        			//      (could even be that this is a tardy packet from a)
+        			new_higher_priority = 1;
+        			erase_b = 1;
+				} else {
+					// otherwise copy b => a, handle this packet below as if it is a new b
+				   for(int k=0; k<SACN_CID_LENGTH; k++) {
+						_dmx_sender_id_a[k] = _dmx_sender_id_b[k];
+						_dmx_sender_id_b[k] = 0;
+					}
+					for(int k=0; k<SLOTS_AND_START_CODE; k++) {
+						_dmx_buffer_a[k] = _dmx_buffer_b[k];
+						_dmx_buffer_b[k] = 0;
+					}
+					_priority_a = _priority_b;
+					_priority_b = 0;
+        			_dmx_slots_a = _dmx_slots_b;
+        			_dmx_slots_b = 0;
+        			erase_b = 0;
+				}
+        	}
+        }
+        
+        if ( erase_b ) {	// b exists and is flagged to be erased
+        	if ( _dmx_slots_b ) {
+        		clearDMXSourceB();
+        	}
+        }
+        
+        if (( _dmx_sender_id_a[0] == 0  ) || new_higher_priority) {			
           for(int k=0; k<SACN_CID_LENGTH; k++) {		 // if _dmx_sender_id is not set
             _dmx_sender_id_a[k] = _packet_buffer[k+22];  // set it to id of this packet
           }
         }
+        
         if ( compareCID(&_dmx_sender_id_a[0], &_packet_buffer[22]) ) {
            _dmx_slots_a = dsize;
-           int di;
+           _last_packet_a = millis();
+           _priority_a = _packet_buffer[SACN_PRIORITY_OFFSET];
+           
+           // if b exists and is expired, erase it
+           if ( _dmx_slots_b ) {
+			   if ( abs(millis()-_last_packet_b) > 3000 ) {
+				  clearDMXSourceB();
+			   }
+		   }
+           
+          int di;
+          if ( _priority_a == _priority_b ) {
 			  for (di=0; di<_dmx_slots_a; di++) {
 				 _dmx_buffer_a[di] = _packet_buffer[SACN_ADDRESS_OFFSET+di];
 				 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
@@ -274,38 +374,53 @@ uint16_t LXWiFiSACN::parse_dmp_layer( uint16_t size ) {
 					_dmx_buffer_c[di] = _dmx_buffer_b[di];
 				 }
 			  }
-           int slots = _dmx_slots_a -1;					//remove extra 1 for start code
+		   } else {
+		      for (di=0; di<_dmx_slots_a; di++) {
+				 _dmx_buffer_a[di] = _packet_buffer[SACN_ADDRESS_OFFSET+di];
+				 // this packet has priority, sender_a will always have equal or higher priority
+				 _dmx_buffer_c[di] = _dmx_buffer_a[di];
+			  }
+		   }
+           int slots = _dmx_slots_a-1;					//remove extra 1 for start code
            if ( _dmx_slots_b > _dmx_slots_a ) {
               slots = _dmx_slots_b;
            }
-           return slots;
-        } else { //CID match
-           if ( _dmx_sender_id_b[0] == 0  ) {
+           
+           return slots;	// <- CID matches sender_id_a
+           
+        } else if ( _packet_buffer[SACN_PRIORITY_OFFSET] == _priority_a ) {
+           // if CID did not match sender_a and message has equal priority, this could be sender_b
+           if ( _dmx_sender_id_b[0] == 0  ) {	
               for(int k=0; k<SACN_CID_LENGTH; k++) {		 // if _dmx_sender_id is not set
                  _dmx_sender_id_b[k] = _packet_buffer[k+22];  // set it to id of this packet
                }
            }
            if ( compareCID(&_dmx_sender_id_b[0], &_packet_buffer[22]) ) {
               _dmx_slots_b = dsize;
+              _last_packet_b = millis();
+              _priority_b = _packet_buffer[SACN_PRIORITY_OFFSET];
               int di;
-				  for (di=0; di<_dmx_slots_b; di++) {
-					 _dmx_buffer_b[di] = _packet_buffer[SACN_ADDRESS_OFFSET+di];
-					 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
-						_dmx_buffer_c[di] = _dmx_buffer_a[di];
-					 } else {
-						_dmx_buffer_c[di] = _dmx_buffer_b[di];
-					 }
-				  }
-				  int slots = _dmx_slots_b - 1;					//remove extra 1 for start code
-				  if ( _dmx_slots_a > _dmx_slots_b ) {
-					  slots = _dmx_slots_a;
-				  }
+			  for (di=0; di<_dmx_slots_b; di++) {
+				 _dmx_buffer_b[di] = _packet_buffer[SACN_ADDRESS_OFFSET+di];
+				// always HTP (b does not exist unless priority is equal to a)
+				 if ( _dmx_buffer_a[di] > _dmx_buffer_b[di] ) {
+					_dmx_buffer_c[di] = _dmx_buffer_a[di];
+				 } else {
+					_dmx_buffer_c[di] = _dmx_buffer_b[di];
+				 }
+			  }
+			  int slots = _dmx_slots_b - 1;					//remove extra 1 for start code
+			  if ( _dmx_slots_a > _dmx_slots_b ) {
+				  slots = _dmx_slots_a;
+			  }
+			  
               return slots;
-           } //CID match
-        }
-      }
-    }
-  }
+              
+           }//<=CID match sender b
+        }	// <=priority == sender a
+      }		// <=format
+    }		// <=setProperty
+  }			// <=flags && length
   return 0;
 }
 
