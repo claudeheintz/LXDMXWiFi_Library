@@ -109,8 +109,22 @@ bool DMXwifiConfig::APMode(void) {
 	return ( _wifi_config->wifi_mode == AP_MODE );
 }
 
+void DMXwifiConfig::setStationMode(void) {
+  _wifi_config->wifi_mode = STATION_MODE;
+}
+
 bool DMXwifiConfig::staticIPAddress(void) {
 	return ( _wifi_config->protocol_flags & STATIC_MODE );
+}
+
+void DMXwifiConfig::setSSID(char* s, uint8_t len) {
+  strncpy(_wifi_config->ssid, s, len);
+  _wifi_config->ssid[len] = 0;
+}
+
+void DMXwifiConfig::setPassword(char* s, uint8_t len) {
+  strncpy(_wifi_config->pwd, s, len);
+  _wifi_config->pwd[len] = 0;
 }
 
 void DMXwifiConfig::setStaticIPAddress(uint8_t staticip) {
@@ -131,6 +145,10 @@ bool DMXwifiConfig::sACNMode(void) {
 
 bool DMXwifiConfig::multicastMode(void) {
 	return ( _wifi_config->protocol_flags & MULTICAST_MODE );
+}
+
+bool DMXwifiConfig::rdmMode(void) {
+  return ( _wifi_config->protocol_flags & RDM_MODE );
 }
 
 bool DMXwifiConfig::inputToNetworkMode(void) {
@@ -237,6 +255,9 @@ uint8_t DMXwifiConfig::readFromPersistentStore(void) {
 uint8_t DMXwifiConfig::commitToPersistentStore(void) {
 	_wifi_config->opcode = 0;
 	esp_err_t err = nvs_set_blob(_handle, "config", _wifi_config, sizeof(DMXWiFiconfig));
+ if ( err ) {
+  Serial.println(err);
+ }
 	return err;
 }
 
