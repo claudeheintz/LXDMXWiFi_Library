@@ -117,6 +117,7 @@ void artAddressReceived() {
 }
 
 void artTodRequestReceived(uint8_t* pdata) {
+  rdm_discovery_enable = 10;
   artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
 }
 
@@ -334,26 +335,15 @@ void setup() {
   //debugging
 
   
-  uint8_t bootStatus = DMXWiFiConfig.begin(1);
-  uint8_t dhcpStatus = 0;
+  uint8_t bootStatus = DMXWiFiConfig.begin(1);//aparently need to read from persistent to be able to write to it
+  uint8_t dhcpStatus = 0;                     //hence, read in begin and replace below if startup pin is low
 
   if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {
-    DMXWiFiConfig.initConfig();
-    //DMXWiFiConfig.commitToPersistentStore();
+    DMXWiFiConfig.initConfig();               
   }
   
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
   rdm_enabled   = DMXWiFiConfig.rdmMode();
-  
-  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {					      // DMX Driver startup based on direction flag
-    Serial.println("starting DMX");
-    ESP32DMX.startRDM(DIRECTION_PIN);
-  } else {
-    Serial.println("starting DMX input");
-    ESP32DMX.setDirectionPin(DIRECTION_PIN);
-    ESP32DMX.setDataReceivedCallback(&gotDMXCallback);
-    ESP32DMX.startInput();
-  }
 
   if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
     Serial.print("AP_MODE ");
@@ -385,11 +375,24 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED)  {
       delay(100);
       blinkLED();
+      
     }
 
   }
   Serial.print("wifi started ");
   Serial.println(WiFi.localIP());
+
+  //------------------- Initialize serialDMX  -------------------
+
+  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {                // DMX Driver startup based on direction flag
+    Serial.println("starting DMX");
+    ESP32DMX.startRDM(DIRECTION_PIN);
+  } else {
+    Serial.println("starting DMX input");
+    ESP32DMX.setDirectionPin(DIRECTION_PIN);
+    ESP32DMX.setDataReceivedCallback(&gotDMXCallback);
+    ESP32DMX.startInput();
+  }
   
   //------------------- Initialize network<->DMX interfaces -------------------
     
@@ -439,6 +442,10 @@ void setup() {
 
   Serial.println(" setup complete.");
   blinkLED();
+
+  // trial:  Increase loop priority to 2 above DMX, which is 1
+  vTaskPrioritySet(xTaskGetCurrentTaskHandle(), 2);
+  
 } //setup
 
 /************************************************************************
@@ -566,11 +573,15 @@ void loop() {
 		if ( art_packet_result == RESULT_NONE ) {
 			checkConfigReceived(artNetInterface, &aUDP);
 		}
+    esp_task_wdt_feed();
+    vTaskDelay(1);
 		
 		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
 		if ( acn_packet_result == RESULT_NONE ) {
 			checkConfigReceived(sACNInterface, &sUDP);
 		}
+    esp_task_wdt_feed();
+    vTaskDelay(1);
 		
 		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
 			copyDMXToOutput();
@@ -595,7 +606,9 @@ void loop() {
 		}
 		
 	}
+ 
   esp_task_wdt_feed();
-  taskYIELD();
+  vTaskDelay(1);
+  //taskYIELD();
 }// loop()
 
