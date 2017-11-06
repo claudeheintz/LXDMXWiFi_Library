@@ -18,6 +18,7 @@
     @section  HISTORY
 
     v1.0 - First release
+    v1.1 - Improve multi-task compatibility
 
 */
 /**************************************************************************/
@@ -560,9 +561,13 @@ void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP* cUDP) {
 void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
   if ( got_dmx ) {
     interface->setNumberOfSlots(got_dmx);			// set slots & copy to interface
+
+    xSemaphoreTake( ESP32DMX.lxDataLock, portMAX_DELAY );
     for (int i = 1; i <= got_dmx; i++) {
       interface->setSlot(i, ESP32DMX.getSlot(i));
     }
+    xSemaphoreGive( ESP32DMX.lxDataLock );
+    
     if ( multicast ) {
       interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
     } else {
@@ -633,7 +638,6 @@ void loop() {
   }
   //digitalWrite(DEBUG_PIN_C, HIGH);
   vTaskDelay(1);
-  //taskYIELD();
   
 }// loop()
 
