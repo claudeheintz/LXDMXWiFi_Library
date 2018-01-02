@@ -35,7 +35,7 @@ typedef struct dmxwifiConfig {
    uint8_t artnet_portaddr_hi;
    uint8_t artnet_portaddr_lo;
    uint8_t sacn_universe_hi;		 // backwards compatability
-   uint8_t node_name[32];
+   char node_name[32];
    uint32_t input_address;  // IP address for sending DMX to network in input mode
    uint16_t device_address; // dmx address (if applicable)
    uint8_t reserved[22];

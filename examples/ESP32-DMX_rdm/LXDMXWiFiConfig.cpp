@@ -69,6 +69,10 @@ uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
 
 void DMXwifiConfig::initConfig(void) {
   //zero the complete config struct
+  //if ( _wifi_config ) {
+  //  free(_wifi_config);
+  //}
+  //_wifi_config = (DMXWiFiconfig*) malloc(sizeof(DMXWiFiconfig));
   memset(_wifi_config, 0, DMXWiFiConfigSIZE);
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
@@ -78,7 +82,7 @@ void DMXwifiConfig::initConfig(void) {
   																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
   																	 // optional: | STATIC_MODE   to use static not dhcp address for station
                                         				 // eg. _wifi_config->protocol_flags = MULTICAST_MODE | INPUT_TO_NETWORK_MODE | SACN_MODE;
-  strncpy(_wifi_config->ssid, "ESP-DMX-WiFi", 63);
+  strncpy(_wifi_config->ssid, "ESP-DMX-WiFiX", 63);
   strncpy(_wifi_config->pwd, "*****", 63);
   _wifi_config->ap_address    = IPAddress(10,110,115,10);       // ip address of access point
   _wifi_config->ap_gateway    = IPAddress(10,110,115,10);
@@ -92,7 +96,7 @@ void DMXwifiConfig::initConfig(void) {
   _wifi_config->artnet_portaddr_lo = 0;
   _wifi_config->artnet_portaddr_hi = 0;
   _wifi_config->device_address  = 1;
-  strcpy((char*)_wifi_config->node_name, "com.claudeheintzdesign.esp-dmx");
+  strncpy(_wifi_config->node_name, "com.claudeheintzdesign.esp-dmx", 31);
   _wifi_config->input_address = IPAddress(10,255,255,255);
 }
 

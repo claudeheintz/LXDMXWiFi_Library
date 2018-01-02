@@ -505,7 +505,7 @@ void setup() {
 #if defined ESP_PRINT_DEBUG_MSGS
   Serial.begin(115200);
 #endif
-  Serial.setDebugOutput(1); //use uart0 for debugging
+  Serial.setDebugOutput(UART0); //use uart0 for debugging
  #if defined DIRECTION_PIN
   pinMode(DIRECTION_PIN, OUTPUT);
  #endif

@@ -3,7 +3,7 @@
     @file     ESP32-DMX.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2017 by Claude Heintz All Rights Reserved
+    @copyright 2017-2018 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
     ESP32 WiFi connection to serial DMX.  Or, input from DMX to the network.
@@ -19,6 +19,7 @@
 
     v1.0 - First release
     v1.1 - Improve multi-task compatibility
+    v1.2 - Modified for Adafruit ESP-32 Feather
 
 */
 /**************************************************************************/
@@ -38,7 +39,7 @@
 #define STARTUP_MODE_PIN 18      // pin for force default setup when low (use 10k pullup to insure high)
 #define DIRECTION_PIN 21          // pin for output direction enable on MAX481 chip
 
-#define STATUS_LED 19
+#define STATUS_LED 13
 
 #define DEBUG_PIN_A 22
 #define DEBUG_PIN_B 23
@@ -335,7 +336,7 @@ void updateRDMDiscovery() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.setDebugOutput(1); //use uart0 for debugging
+  //Serial.setDebugOutput(1); //use uart0 for debugging
   pinMode(STATUS_LED, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
   pinMode(DIRECTION_PIN, OUTPUT);
@@ -350,6 +351,9 @@ void setup() {
 
   if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {
     DMXWiFiConfig.initConfig();
+    Serial.println("default startup config ");
+  } else {
+    Serial.println("using stored config ");
   }
 
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
@@ -362,7 +366,12 @@ void setup() {
     WiFi.softAP(DMXWiFiConfig.SSID());
     Serial.print("created access point at ");
     Serial.print(DMXWiFiConfig.apIPAddress());
-    WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
+
+    if ( digitalRead(STARTUP_MODE_PIN) != 0 ) {
+      WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
+    } else {
+      Serial.println(DMXWiFiConfig.nodeName());
+    }
 
     Serial.print(" accessPoint SSID ");
     Serial.print(DMXWiFiConfig.SSID());

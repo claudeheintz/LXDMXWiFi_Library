@@ -351,7 +351,7 @@ void updateRDMDiscovery() {				// RDM discovery replies can cause flicker in som
 
 void setup() {
   Serial.begin(115200);
-  Serial.setDebugOutput(1); //use uart0 for debugging
+  Serial.setDebugOutput(UART0); //use uart0 for debugging
   pinMode(BUILTIN_LED, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
   pinMode(DIRECTION_PIN, OUTPUT);
