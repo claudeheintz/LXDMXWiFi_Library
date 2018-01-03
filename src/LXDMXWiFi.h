@@ -132,6 +132,7 @@ class LXDMXWiFi {
 
  /*!
  * @brief read UDP packet
+ * @discussion Use this method when the packet buffer is owned by a single object.
  * @param wUDP pointer to UDP object
  * @return 1 if packet contains dmx
  */   
@@ -139,7 +140,8 @@ class LXDMXWiFi {
    
  /*!
  * @brief read contents of packet from _packet_buffer
- * @discussion _packet_buffer should already contain packet payload when this is called
+ * @discussion _packet_buffer should already contain packet payload when this is called.
+ *.            Use this method when the packet buffer is shared with other instances.
  * @param wUDP pointer to UDP object
  * @param packetSize size of received packet
  * @return 1 if packet contains dmx

@@ -45,6 +45,9 @@
 #define ARTNET_STATUS2_DHCP_CAPABLE 0x04
 #define ARTNET_STATUS2_DHCP_USED 0x02
 
+#define ARTPOLL_OUTPUT_MODE 0
+#define ARTPOLL_INPUT_MODE  1
+
 typedef void (*ArtNetReceiveCallback)(void);
 typedef void (*ArtNetDataRecvCallback)(uint8_t* pdata);
 typedef void (*ArtIpProgRecvCallback)(uint8_t cmd, IPAddress ipaddr, IPAddress subnet);
@@ -199,6 +202,12 @@ class LXWiFiArtNet : public LXDMXWiFi {
    uint8_t* replyData      ( void );
    
 /*!
+ * @brief sets flag enabling automatic response to poll reply
+ * @param en enable flag
+ */    
+   void enablePollReply(uint8_t en);
+   
+/*!
  * @brief direct pointer to short name
  * @return char* to short name 
  */  
@@ -230,6 +239,15 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @return Art-Net opcode of packet
  */
    uint16_t readArtNetPacket    ( UDP* wUDP );  
+   
+ /*!
+ * @brief process packet, reading it into _packet_buffer
+ * @discussion This method only responds to poll replies as input to network
+ * @param wUDP pointer to UDP object (used to send Poll Reply)
+ * @return Art-Net opcode of packet
+ */
+   uint16_t readArtPollPacket    ( UDP* wUDP );  
+   
  /*!
  * @brief read contents of packet from _packet_buffer
  * @param wUDP pointer to UDP object (used for Poll Reply if applicable)
@@ -237,6 +255,14 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @return Art-Net opcode of packet
  */   
    uint16_t readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize );
+ /*!
+ * @brief read contents of packet from _packet_buffer
+ * @discussion This method only responds to poll replies as input to network
+ * @param wUDP pointer to UDP object (used for Poll Reply)
+ * @param packetSize size of received packet
+ * @return Art-Net opcode of packet
+ */    
+   uint16_t readArtPollPacketContents ( UDP* wUDP, uint16_t packetSize );
  /*!
  * @brief send Art-Net ArtDMX packet for dmx output from network
  * @param wUDP pointer to UDP object to be used for sending UDP packet
@@ -250,7 +276,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
  *             Otherwise, reply is unicast to remoteIP belonging to the sender of the poll
  * @param wUDP pointer to UDP object to be used for sending UDP packet
  */  
-   void     send_art_poll_reply ( UDP* wUDP );
+   void     send_art_poll_reply ( UDP* wUDP, uint8_t mode  );
    
   /*!
  * @brief send ArtIpProgReply packet for dmx output from network
@@ -381,6 +407,8 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	uint8_t   _sequence;
 /// sequence number for sending ArtDMX packets
   	uint16_t   _poll_reply_counter;
+/// enable flag for sending poll replies
+    uint8_t    _poll_reply_enabled;	
 
 /// address included in poll reply 	
   	IPAddress _my_address;

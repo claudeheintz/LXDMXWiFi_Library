@@ -20,6 +20,7 @@
     v1.0 - First release
     v1.1 - Improve multi-task compatibility
     v1.2 - Modified for Adafruit ESP-32 Feather
+    v1.3 - adds ArtPoll response in input mode
 
 */
 /**************************************************************************/
@@ -456,11 +457,15 @@ void setup() {
     } else {
       sUDP.begin(sACNInterface->dmxPort());
     }
-
     aUDP.begin(artNetInterface->dmxPort());
-    artNetInterface->send_art_poll_reply(&aUDP);
+    artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_OUTPUT_MODE);
     Serial.print("udp started listening,");
+  } else {
+    aUDP.begin(artNetInterface->dmxPort());
+    artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_INPUT_MODE);
   }
+  
+  
 
   Serial.println(" setup complete.");
   blinkLED();
@@ -567,7 +572,7 @@ void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP* cUDP) {
 
 *************************************************************************/
 
-void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
+uint8_t checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
   if ( got_dmx ) {
     interface->setNumberOfSlots(got_dmx);			// set slots & copy to interface
 
@@ -584,7 +589,9 @@ void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
     }
     got_dmx = 0;
     blinkLED();
+    return 1;
   }       // got_dmx
+  return 0;
 }
 
 /************************************************************************
@@ -637,11 +644,16 @@ void loop() {
     }
 
   } else {    //direction is input to network
-
     if ( DMXWiFiConfig.sACNMode() ) {
       checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
     } else {
-      checkInput(artNetInterface, &aUDP, 0);
+      if ( checkInput(artNetInterface, &aUDP, 0) == 0 ) {
+        // if no dmx input, attempt to read from network (only handles ArtPoll, responding as input)
+        art_packet_result = artNetInterface->readArtPollPacket(&aUDP);
+        if ( art_packet_result == RESULT_NONE ) {
+          checkConfigReceived(artNetInterface, &aUDP);
+        }
+      }
     }
 
   }

@@ -16,6 +16,7 @@
     v1.2 - fixes cancel merge
     v1.2 - adds setLocalAddress
     v1.3 - adds ArtIpProg / ArtIpProgReply
+    v1.4 - adds ArtPoll response in input mode
 */
 /**************************************************************************/
 
@@ -85,6 +86,7 @@ void  LXWiFiArtNet::initialize  ( uint8_t* b ) {
     _dmx_sender_b = INADDR_NONE;
     _sequence = 1;
     _poll_reply_counter = 0;
+    _poll_reply_enabled = 1;
     
     strcpy(_short_name, "ESP-DMX");
     strcpy(_long_name, "com.claudeheintzdesign.esp-dmx");
@@ -176,6 +178,10 @@ uint8_t* LXWiFiArtNet::replyData( void ) {
 	return &_reply_buffer[0];
 }
 
+void LXWiFiArtNet::enablePollReply(uint8_t en) {
+	_poll_reply_enabled = en;
+}
+
 char* LXWiFiArtNet::shortName( void ) {
 	return &_short_name[0];
 }
@@ -183,6 +189,10 @@ char* LXWiFiArtNet::shortName( void ) {
 char* LXWiFiArtNet::longName( void ) {
 	return &_long_name[0];
 }
+
+// super class methods
+//  readDMXPacket 			(single object packet buffer)
+//  readDMXPacketContents	(shared packet buffer)
 
 uint8_t LXWiFiArtNet::readDMXPacket ( UDP* wUDP ) {
 	_packetSize = 0;
@@ -192,6 +202,7 @@ uint8_t LXWiFiArtNet::readDMXPacket ( UDP* wUDP ) {
    }
    return RESULT_NONE;
 }
+
 
 uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 	uint16_t opcode = readArtNetPacketContents(wUDP, packetSize);
@@ -216,10 +227,22 @@ uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
 uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
 	int packetSize = wUDP->parsePacket();							//change to int to accomodate -1
 	uint16_t opcode = ARTNET_NOP;
-	if ( packetSize ) {
+	if ( packetSize > 0 ) {
 		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);	//can return -1 in ESP32
 		if ( _packetSize > 0 ) {										//trap invalid returns
 			opcode = readArtNetPacketContents(wUDP, _packetSize);
+		}
+	}
+	return opcode;
+}
+
+uint16_t LXWiFiArtNet::readArtPollPacket ( UDP* wUDP ) {
+	int packetSize = wUDP->parsePacket();
+	uint16_t opcode = ARTNET_NOP;
+	if ( packetSize > 0 ) {
+		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);	//can return -1 in ESP32
+		if ( _packetSize > 0 ) {										//trap invalid returns
+			opcode = readArtPollPacketContents(wUDP, _packetSize);
 		}
 	}
 	return opcode;
@@ -308,12 +331,14 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 		case ARTNET_ART_ADDRESS:
 			if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
 				opcode = parse_art_address( wUDP );
-				send_art_poll_reply( wUDP );
+				send_art_poll_reply( wUDP, ARTPOLL_OUTPUT_MODE );
 			}
 			break;
 		case ARTNET_ART_POLL:
 			if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
-				send_art_poll_reply( wUDP );
+			    if ( _poll_reply_enabled ) {
+					send_art_poll_reply( wUDP, ARTPOLL_OUTPUT_MODE );
+				}
 			}
 			break;
 		case ARTNET_ART_IPPROG:
@@ -351,6 +376,33 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
    return opcode;
 }
 
+uint16_t LXWiFiArtNet::readArtPollPacketContents ( UDP* wUDP, uint16_t packetSize ) {
+   uint16_t opcode = ARTNET_NOP;
+
+	uint16_t t_slots = 0;
+	/* Buffer now may not contain dmx data for desired universe.
+		After reading the packet into the buffer, check to make sure
+		that it is an Art-Net packet and retrieve the opcode that
+		tells what kind of message it is.                            */
+	opcode = parse_header();
+	switch ( opcode ) {
+		case ARTNET_ART_POLL:
+			if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
+			    if ( _poll_reply_enabled ) {
+					send_art_poll_reply( wUDP, ARTPOLL_INPUT_MODE );
+				}
+			}
+			break;
+		default:
+			if ( opcode != ARTNET_ART_POLL_REPLY ) {
+				//Serial.print("unknown Art-Net received ");
+				//Serial.println(opcode, HEX);
+			}
+	}
+   return opcode;
+}
+
+
 void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr ) {
    strcpy((char*)_packet_buffer, "Art-Net");
    _packet_buffer[8] = 0;        //op code lo-hi
@@ -380,9 +432,7 @@ void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr
   ( remoteIP is set when parsePacket() is called )
   includes my_ip as address of this node
 */
-void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
-  _reply_buffer[182] = 128;  // sending DMX flag
-  
+void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) { 
   _poll_reply_counter++;
   if ( _poll_reply_counter > 9999 ) {
   	 _poll_reply_counter = 0;
@@ -392,14 +442,25 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
   }
   sprintf((char*)&_reply_buffer[108], "#0001 [%04d] ", _poll_reply_counter);
   
-  if ( _dmx_sender_a != INADDR_NONE ) {
-    sprintf((char*)&_reply_buffer[121], "ArtDMX");
-    if ( _dmx_sender_b != INADDR_NONE ) {
-      sprintf((char*)&_reply_buffer[127], ", 2 Sources");
-      _reply_buffer[182] |= 0x08;  //  merging
-    }
+  if ( mode == ARTPOLL_OUTPUT_MODE ) {
+	if ( _dmx_sender_a != INADDR_NONE ) {
+		sprintf((char*)&_reply_buffer[121], "ArtDMX");
+		if ( _dmx_sender_b != INADDR_NONE ) {
+			sprintf((char*)&_reply_buffer[127], ", 2 Sources");
+			_reply_buffer[182] |= 0x08;  //  merging
+		}
+	} else {
+		sprintf((char*)&_reply_buffer[121], "Idle: no ArtDMX");
+	}
+	_reply_buffer[174] = 128;  // can output from network
+	_reply_buffer[182] = 128;  // sending DMX flag
+	_reply_buffer[190] = _portaddress_lo & 0x0f;	//output port
+	  
   } else {
-    sprintf((char*)&_reply_buffer[121], "Idle: no ArtDMX");
+	  sprintf((char*)&_reply_buffer[121], "DMX Input");
+	  
+	  _reply_buffer[174] = 64;  // can input to network
+	  _reply_buffer[186] = _portaddress_lo & 0x0f;	//input port
   }
   
   strcpy((char*)&_reply_buffer[26], _short_name);
@@ -407,7 +468,6 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP ) {
   _reply_buffer[18] = _portaddress_hi;
   _reply_buffer[19] = _portaddress_lo >> 4;
   
-  _reply_buffer[190] = _portaddress_lo & 0x0f;
   
   IPAddress a = _broadcast_address;
   if ( a == INADDR_NONE ) {
@@ -713,7 +773,7 @@ void  LXWiFiArtNet::initializePollReply  ( void ) {
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[173] = 1;    // number of ports
-  _reply_buffer[174] = 128;  // can output from network
+  
   _reply_buffer[190] = _portaddress_lo & 0x0f;
   _reply_buffer[211] = 1;	 // bind index of root device is always 1
   _reply_buffer[212] = _status2;
