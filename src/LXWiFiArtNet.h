@@ -276,7 +276,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
  *             Otherwise, reply is unicast to remoteIP belonging to the sender of the poll
  * @param wUDP pointer to UDP object to be used for sending UDP packet
  */  
-   void     send_art_poll_reply ( UDP* wUDP, uint8_t mode  );
+   void     send_art_poll_reply ( UDP* wUDP, uint8_t mode = ARTPOLL_OUTPUT_MODE );
    
   /*!
  * @brief send ArtIpProgReply packet for dmx output from network
