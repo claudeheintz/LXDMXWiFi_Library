@@ -61,9 +61,20 @@ char password[32];
 */
 #define RDM_DISCOVER_ALWAYS 0
 
-/*
-    Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
-*/
+/*         
+ *  To allow use of the configuration utility, uncomment the following to define USE_REMOTE_CONFIG
+ *  When using remote configuration:
+ *        The remote configuration utility can be used to edit the settings without re-loading the sketch.
+ *        Settings from persistent memory are used unless the startup pin is read LOW.
+ *        Holding the startup pin low temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
+ *        This insures there is a default way of connecting to the sketch in order to use the remote utility,
+ *        even if it is configured to use a WiFi network that is unavailable.
+ *
+ *	Without remote configuration (USE_REMOTE_CONFIG remains undefined), settings are read from the 
+ *  LXDMXWiFiConfig.initConfig() method.  So, it is necessary to edit that function in order to change
+ *  the settings.
+ */
+ //#define USE_REMOTE_CONFIG 0
 
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
