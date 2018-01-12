@@ -3,7 +3,7 @@
     @file     LXDMXWiFiconfig.h
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h or http://lx.claudeheintzdesign.com/opensource.html)
-    @copyright 2016 by Claude Heintz All Rights Reserved
+    @copyright 2016-2018 by Claude Heintz All Rights Reserved
     
     
 */
@@ -63,6 +63,19 @@ typedef struct dmxwifiConfig {
 @abstract
    DMXwifiConfig abstracts WiFi and Protocol configuration settings so that they can
    be saved and retrieved from persistent storage.
+   
+@discussion
+    To allow use of the configuration utility use DMXwifiConfig.begin(1);
+    When using remote configuration:
+       The remote configuration utility can be used to edit the settings without re-loading the sketch.
+       Settings from persistent memory.
+       Calling DMXwifiConfig.begin(0) temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
+       This insures there is a default way of connecting to the sketch in order to use the remote utility,
+       even if it is configured to use a WiFi network that is unavailable.
+ 
+    Without remote configuration, ( using DMXwifiConfig.begin() or DMXwifiConfig.begin(0) ),
+       settings are read from the LXDMXWiFiConfig.initConfig() method.
+       In this case, it is necessary to edit that function and recompile the sketch in order to change the settings.
 */
 
 class DMXwifiConfig {
@@ -76,7 +89,7 @@ class DMXwifiConfig {
 	 	handles init of config data structure, reading from persistent if desired.
 	 	returns 1 if boot uses default settings, 0 if settings are read from EEPROM
 	 */
-	 uint8_t begin ( uint8_t mode );
+	 uint8_t begin ( uint8_t mode = 0 );
 	 
 	 /*
 	 initConfig initializes the DMXWiFiConfig structure with default settings

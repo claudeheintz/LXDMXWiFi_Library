@@ -3,7 +3,7 @@
     @file     ESP-DMX.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2015-2017 by Claude Heintz All Rights Reserved
+    @copyright 2015-2018 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
     ESP 8266 WiFi connection to serial DMX.  Or, input from DMX to the network.
@@ -35,6 +35,8 @@
     v5.0 - Adds RDM support (requires LXESP8266DMX library v2.0)
     v5.1 - Change to on demand RDM discovery
     		  RDM discovery runs for limited cycles at startup and after TOD request.
+    		  
+    v5.2 - Add USE_REMOTE_CONFIG option 
 */
 /**************************************************************************/
 
@@ -66,8 +68,19 @@
 #define RDM_DISCOVER_ALWAYS 0
 
 /*         
- *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
-*/
+ *  To allow use of the configuration utility, uncomment the following to define USE_REMOTE_CONFIG
+ *  When using remote configuration:
+ *        The remote configuration utility can be used to edit the settings without re-loading the sketch.
+ *        Settings from persistent memory are used unless the startup pin is read LOW.
+ *        Holding the startup pin low temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
+ *        This insures there is a default way of connecting to the sketch in order to use the remote utility,
+ *        even if it is configured to use a WiFi network that is unavailable.
+ *
+ *	Without remote configuration (USE_REMOTE_CONFIG remains undefined), settings are read from the 
+ *  LXDMXWiFiConfig.initConfig() method.  So, it is necessary to edit that function in order to change
+ *  the settings.
+ */
+//#define USE_REMOTE_CONFIG 0
 
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
@@ -152,6 +165,12 @@ void artRDMReceived(uint8_t* pdata) {
   // reply from RDM to network
   if ( ESP8266DMX.sendRDMControllerPacket() ) {
     artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
+  }
+}
+
+void artCmdReceived(uint8_t* pdata) {
+  if ( strcmp((const char*)pdata, "clearSACN") == 0 ) {
+  	sACNInterface->clearDMXOutput();
   }
 }
 
@@ -356,7 +375,11 @@ void setup() {
   pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
   pinMode(DIRECTION_PIN, OUTPUT);
   
-  uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
+#ifdef USE_REMOTE_CONFIG
+  uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));	// uses settings from persistent memory unless pin is low.
+#else
+  uint8_t bootStatus = DMXWiFiConfig.begin();								// must edit DMXWiFiConfig.initConfig() to change settings
+#endif
   uint8_t dhcpStatus = 0;
   
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
@@ -419,6 +442,7 @@ void setup() {
     artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
     artNetInterface->setArtRDMCallback(&artRDMReceived);
   }
+  artNetInterface->setArtCommandCallback(&artCmdReceived);
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);
@@ -585,14 +609,18 @@ void loop() {
 	} else {                  //direction is output from network
   
 		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
+		#ifdef USE_REMOTE_CONFIG
 		if ( art_packet_result == RESULT_NONE ) {
-		  checkConfigReceived(artNetInterface, aUDP);
+			checkConfigReceived(artNetInterface, aUDP);
 		}
+		#endif
 	
 		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
+		#ifdef USE_REMOTE_CONFIG
 		if ( acn_packet_result == RESULT_NONE ) {
-		  checkConfigReceived(sACNInterface, sUDP);
+			checkConfigReceived(sACNInterface, sUDP);
 		}
+		#endif
 	
 		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
 		  copyDMXToOutput();

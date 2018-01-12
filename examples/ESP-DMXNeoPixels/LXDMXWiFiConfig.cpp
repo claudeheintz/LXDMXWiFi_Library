@@ -3,7 +3,7 @@
     @file     LXDMXWiFiconfig.cpp
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h or http://lx.claudeheintzdesign.com/opensource.html)
-    @copyright 2016 by Claude Heintz All Rights Reserved
+    @copyright 2016-2018 by Claude Heintz All Rights Reserved
 
     Edit initConfig for your own default settings.
 */

@@ -19,6 +19,7 @@
     @section  HISTORY
 
     v1.0 - First release
+    v1.1 - Add USE_REMOTE_CONFIG option 
 
 */
 /**************************************************************************/
@@ -35,7 +36,7 @@
   #include <avr/power.h>
 #endif
 
-#define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
+#define STARTUP_MODE_PIN 16      // pin for force default setup when low (if not input_pullup capable, use 10k pullup to insure high)
 #define LED_PIN BUILTIN_LED
 
 // data pin for NeoPixels
@@ -52,8 +53,19 @@ const int total_pixels = _min(512, LEDS_PER_NEOPIXEL * NUM_OF_NEOPIXELS);
 byte pixels[NUM_OF_NEOPIXELS][LEDS_PER_NEOPIXEL];
 
 /*         
- *  Edit the LXDMXWiFiConfig.initConfig() function in LXDMXWiFiConfig.cpp to configure the WiFi connection and protocol options
+ *  To allow use of the configuration utility, uncomment the following to define USE_REMOTE_CONFIG
+ *  When using remote configuration:
+ *        The remote configuration utility can be used to edit the settings without re-loading the sketch.
+ *        Settings from persistent memory are used unless the startup pin is read LOW.
+ *        Holding the startup pin low temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
+ *        This insures there is a default way of connecting to the sketch in order to use the remote utility,
+ *        even if it is configured to use a WiFi network that is unavailable.
+ *
+ *	Without remote configuration (USE_REMOTE_CONFIG remains undefined), settings are read from the 
+ *  LXDMXWiFiConfig.initConfig() method.  So, it is necessary to edit that function in order to change
+ *  the settings.
  */
+//#define USE_REMOTE_CONFIG 0
 
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
@@ -182,8 +194,12 @@ void setup() {
  // while ( ! Serial ) {}     //force wait for serial connection.  Sketch will not continue until Serial Monitor is opened.
   Serial.begin(115200);       //debug messages
   Serial.println("_setup_");
-  
-  DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));
+
+#ifdef USE_REMOTE_CONFIG
+  DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));	// uses settings from persistent memory unless pin is low.
+#else
+  DMXWiFiConfig.begin();								// must edit DMXWiFiConfig.initConfig() to change settings
+#endif
 
   int wifi_status = WL_IDLE_STATUS;
   if ( DMXWiFiConfig.APMode() ) {                      // WiFi startup
@@ -363,14 +379,18 @@ void loop() {
 	if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
 	
 		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
+		#ifdef USE_REMOTE_CONFIG
 		if ( art_packet_result == RESULT_NONE ) {
 			checkConfigReceived(artNetInterface, aUDP);
 		}
+		#endif
 		
 		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
+		#ifdef USE_REMOTE_CONFIG
 		if ( acn_packet_result == RESULT_NONE ) {
 			checkConfigReceived(sACNInterface, sUDP);
 		}
+		#endif
 		
 		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
 			copyDMXToOutput();

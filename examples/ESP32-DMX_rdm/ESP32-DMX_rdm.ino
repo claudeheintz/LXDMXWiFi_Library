@@ -350,7 +350,11 @@ void setup() {
   uint8_t bootStatus = DMXWiFiConfig.begin(1);//aparently need to read from persistent to be able to write to it
   uint8_t dhcpStatus = 0;                     //hence, read in begin and replace below if startup pin is low
 
+#ifdef USE_REMOTE_CONFIG
   if ( digitalRead(STARTUP_MODE_PIN) == 0 ) {
+#else
+  if ( true ) {
+#endif
     DMXWiFiConfig.initConfig();
     Serial.println("default startup config ");
   } else {
@@ -618,15 +622,19 @@ void loop() {
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
 
     art_packet_result = artNetInterface->readDMXPacket(&aUDP);
-    if ( art_packet_result == RESULT_NONE ) {
-      checkConfigReceived(artNetInterface, &aUDP);
-    }
+    #ifdef USE_REMOTE_CONFIG
+	if ( art_packet_result == RESULT_NONE ) {
+		checkConfigReceived(artNetInterface, aUDP);
+	}
+	#endif
     vTaskDelay(1);
 
     acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
-    if ( acn_packet_result == RESULT_NONE ) {
-      checkConfigReceived(sACNInterface, &sUDP);
-    }
+    #ifdef USE_REMOTE_CONFIG
+	if ( acn_packet_result == RESULT_NONE ) {
+		checkConfigReceived(sACNInterface, sUDP);
+	}
+	#endif
     vTaskDelay(1);
 
     if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
