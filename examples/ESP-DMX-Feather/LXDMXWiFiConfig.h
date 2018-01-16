@@ -21,26 +21,26 @@ typedef struct dmxwifiConfig {
    uint8_t opcode;		  // data = 0, query = '?', set ='!'
    uint8_t version;		  // currently 1
    uint8_t wifi_mode;
-   uint8_t protocol_flags;
-   char    ssid[64];      // max is actually 32
-   char    pwd[64];       // depends on security 8, 13, 8-63
-   uint32_t ap_address;		// static IP address of access point
-   uint32_t ap_gateway;		//   gateway in access point mode
-   uint32_t ap_subnet;		//   subnet  in access point mode
+   uint8_t protocol_flags;		//[11]
+   char    ssid[64];      // max is actually 32, [12]
+   char    pwd[64];       // depends on security 8, 13, 8-63, [76]
+   uint32_t ap_address;		// static IP address of access point	[140]
+   uint32_t ap_gateway;		//   gateway in access point mode		[144]
+   uint32_t ap_subnet;		//   subnet  in access point mode		[148]
    uint32_t sta_address;	// static IP address in station mode (! DHCP bit set)
-   uint32_t sta_gateway;	//   gateway in station mode
-   uint32_t sta_subnet;		//   subnet  in station mode
-   uint32_t multi_address;  // multicast address for sACN
-   uint8_t sacn_universe;   // should match multicast address
-   uint8_t artnet_portaddr_hi;
-   uint8_t artnet_portaddr_lo;
-   uint8_t sacn_universe_hi;		 // backwards compatability
-   uint8_t node_name[32];
-   uint32_t input_address;  // IP address for sending DMX to network in input mode
-   uint16_t device_address; // dmx address (if applicable)
-   uint16_t scene_slots;
-   uint8_t reserved[20];	// UID
-   uint8_t scene[512];
+   uint32_t sta_gateway;	//   gateway in station mode			[156]
+   uint32_t sta_subnet;		//   subnet  in station mode			[160]
+   uint32_t multi_address;  // multicast address for sACN			[164]
+   uint8_t sacn_universe;   // should match multicast address		[168]
+   uint8_t artnet_portaddr_hi;//									[169]
+   uint8_t artnet_portaddr_lo;//									[170]
+   uint8_t sacn_universe_hi;		 // backwards compatibility		[171]
+   uint8_t node_name[32];	//										[172]										
+   uint32_t input_address;  // IP address for sending DMX to network in input mode	[204]
+   uint16_t device_address; // dmx address (if applicable)							[208]
+   uint16_t scene_slots;	//														[210]
+   uint8_t reserved[20];	// UID													[212]
+   uint8_t scene[512];		//														[230]
 } DMXWiFiconfig;
 
 #define CONFIG_PACKET_IDENT "ESP-DMX"

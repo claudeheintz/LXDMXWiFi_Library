@@ -71,6 +71,7 @@ c8v = IntVar()
 c9v = IntVar()
 c10v = IntVar()
 c11v = IntVar()
+c12v = IntVar()
 
 sv_ssid = StringVar()
 sv_pwd = StringVar()
@@ -132,13 +133,13 @@ def recvWiFiConfig(d,a):
       return -1
    if ord(d[8]) == 0:
       global sv_ssid
-      sv_ssid.set(d[9:73])
+      sv_ssid.set(d[12:44])
       global sv_pwd
-      sv_pwd.set(d[73:137])
+      sv_pwd.set(d[76:39])
       
       global c1v
       global c2v
-      if ( ord(d[137]) == 0 ):
+      if ( ord(d[10]) == 0 ):
          c1v.set(0)
          c2v.set(1)
       else:
@@ -146,7 +147,7 @@ def recvWiFiConfig(d,a):
          c2v.set(0)
       global c3v
       global c4v
-      if ( (ord(d[138]) & 1) == 0 ):
+      if ( (ord(d[11]) & 1) == 0 ):
          c3v.set(0)
          c4v.set(1)
       else:
@@ -154,7 +155,7 @@ def recvWiFiConfig(d,a):
          c4v.set(0)
       global c5v
       global c6v
-      if ( (ord(d[138]) & 2) == 0 ):
+      if ( (ord(d[11]) & 2) == 0 ):
          c5v.set(0)
          c6v.set(1)
       else:
@@ -162,17 +163,22 @@ def recvWiFiConfig(d,a):
          c6v.set(0)
       global c7v
       global c8v
-      if ( (ord(d[138]) & 4) == 0 ):
+      if ( (ord(d[11]) & 4) == 0 ):
          c7v.set(0)
          c8v.set(1)
       else:
          c7v.set(1)
          c8v.set(0)
       global c11v
-      if ( (ord(d[138]) & 8) == 0 ):
+      if ( (ord(d[11]) & 8) == 0 ):
          c11v.set(0)
       else:
          c11v.set(1)
+      if ( (ord(d[11]) & 16) == 0 ):
+         print ord(d[11])
+         c12v.set(0)
+      else:
+         c12v.set(1)
          
       global sv_apip
       sv_apip.set(bytes2ipstr(d,140))
@@ -195,7 +201,7 @@ def recvWiFiConfig(d,a):
       global sv_anu
       sv_anu.set(str(ord(d[170])))
       global sv_nn
-      sv_nn.set(d[171:203])
+      sv_nn.set(d[172:203])
       global sv_nettar
       sv_nettar.set(bytes2ipstr(d,204))
       global sb
@@ -250,7 +256,7 @@ def upload():
    
    global sv_ssid
    s = sv_ssid.get()
-   spacket[9:9+len(s)] = s
+   spacket[12:12+len(s)] = s
    
    global c1v
    global sv_pwd
@@ -260,16 +266,15 @@ def upload():
       tkMessageBox.showerror("invalid password", "enter password")
       sv_pwd.set("**** enter password ****")
       return
-   spacket[73:73+len(s)] = s
+   spacket[76:76+len(s)] = s
    
-   spacket[137] = c1v.get()
+   spacket[10] = c1v.get()
    global c3v
    global c5v
    global c7v
    global c11v
-   spacket[138] = c3v.get() + 2*c5v.get() + 4*c7v.get()+ 8*c11v.get()
+   spacket[11] = c3v.get() + 2*c5v.get() + 4*c7v.get()+ 8*c11v.get()+ 16*c12v.get()
    
-   spacket[139] = 2 #not implemented
    global sv_apip
    ipstr2bytes(sv_apip.get(), spacket, 140)
    global sv_apgw
@@ -294,7 +299,7 @@ def upload():
    sl = len(s)
    if ( sl > 31 ):
       sl = 31
-   spacket[171:171+len(s)] = s
+   spacket[172:172+len(s)] = s
    spacket[203] = 0
    global sv_nettar
    ipstr2bytes(sv_nettar.get(), spacket, 204)
@@ -423,7 +428,6 @@ def cb8_cmd():
       
 def cb9_cmd():
    global udpport
-   print "cb9_cmd"
    if c9v.get():
       c10.deselect()
       udpport = 0x15C0
@@ -434,7 +438,6 @@ def cb9_cmd():
 
 def cb10_cmd():
    global udpport
-   print "cb9_cmd"
    if c10v.get():
       c9.deselect()
       udpport = 0x1936
@@ -444,6 +447,9 @@ def cb10_cmd():
    print udpport
 
 def cb11_cmd():
+   pass
+   
+def cb12_cmd():
    pass
 
 def get_info_cmd():
@@ -572,6 +578,9 @@ h9.pack(side="left")
 e9 = Entry(g9, width=16, textvariable=sv_ansn)
 e9.pack(side="left")
 g9.pack(fill=X, side="top")
+c12 = Checkbutton(g9, text="RDM", width=14, variable=c12v, command=cb12_cmd)
+c12.pack(side="left")
+g9.pack(fill=X, side="top")
 
 g10 = Frame(f)
 h10 = Label(g10, text="Art-Net universe:", width=20, anchor="e")
@@ -625,6 +634,7 @@ c9 = Checkbutton(gp, text="sACN port", width=14, variable=c9v, command=cb9_cmd)
 c9.pack(side="left")
 gp.pack(fill=X, side="top")
 c10v.set(1)
+
 
 
 root.title("ESP-DMX Configuration Utility")
