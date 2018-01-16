@@ -1,7 +1,7 @@
 /* ESPDMXConfig.java
  * (part of LXDMXWiFiLibrary)
  *
- * Copyright 2017 Claude Heintz Design, All rights reserved
+ * Copyright 2017-2018 Claude Heintz Design, All rights reserved
  *
  * see https://www.claudeheintzdesign.com/lx/opensource.html for license
  *
@@ -1763,7 +1763,7 @@ DatagramPacket send_packet = null;
 			String starget = null;
 			int i=0;
 			progress = "searching";
-			while (i<6) {
+			while (i<7) {
 				switch (i) {
 				case 0:
 					starget = "10.110.115.10";
@@ -1781,6 +1781,9 @@ DatagramPacket send_packet = null;
 					starget = "192.168.1.255";
 					break;
 				case 5:
+					starget = "255.255.255.255";
+					break;
+				case 6:
 					starget = _jtfMulticastAddress.getText();
 					if ( starget.length() == 0 ) {
 						starget = "239.255.0.1";
