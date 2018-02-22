@@ -21,6 +21,7 @@
     v1.1 - Improve multi-task compatibility
     v1.2 - Modified for Adafruit ESP-32 Feather
     v1.3 - adds ArtPoll response in input mode
+	v1.4 - add variable tx/rx pin assignments
 
 */
 /**************************************************************************/
@@ -38,13 +39,19 @@
 #include "freertos/task.h"
 
 #define STARTUP_MODE_PIN 18      // pin for force default setup when low (use 10k pullup to insure high)
-#define DIRECTION_PIN 21          // pin for output direction enable on MAX481 chip
 
+#define DIRECTION_PIN			21		// pin for output direction enable on MAX481 chip
+#define DMXSERIAL_INPUT_PIN		16		// default UART2 RX pin
+#define DMXSERIAL_OUTPUT_PIN	17		// default UART2 TX pin
+										// For AdaFruit ESP32/ESP8266 compatible shield use:
+										//    STARTUP_MODE_PIN		32
+										//    DIRECTION_PIN			33
+										//    DMXSERIAL_OUTPUT_PIN	14
 #define STATUS_LED 13
 
 #define DEBUG_PIN_A 22
 #define DEBUG_PIN_B 23
-#define DEBUG_PIN_C 14
+#define DEBUG_PIN_C 15
 
 char ssid[32];
 char password[32];
@@ -424,12 +431,12 @@ void setup() {
 
   if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {                // DMX Driver startup based on direction flag
     Serial.println("starting DMX");
-    ESP32DMX.startRDM(DIRECTION_PIN);
+    ESP32DMX.startRDM(DIRECTION_PIN, DMXSERIAL_INPUT_PIN, DMXSERIAL_OUTPUT_PIN);
   } else {
     Serial.println("starting DMX input");
     ESP32DMX.setDirectionPin(DIRECTION_PIN);
     ESP32DMX.setDataReceivedCallback(&gotDMXCallback);
-    ESP32DMX.startInput();
+    ESP32DMX.startInput(DMXSERIAL_INPUT_PIN);
   }
 
   //------------------- Initialize network<->DMX interfaces -------------------
@@ -635,7 +642,7 @@ void loop() {
     art_packet_result = artNetInterface->readDMXPacket(&aUDP);
     #ifdef USE_REMOTE_CONFIG
 	if ( art_packet_result == RESULT_NONE ) {
-		checkConfigReceived(artNetInterface, aUDP);
+		checkConfigReceived(artNetInterface, &aUDP);
 	}
 	#endif
     vTaskDelay(1);
@@ -643,7 +650,7 @@ void loop() {
     acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
     #ifdef USE_REMOTE_CONFIG
 	if ( acn_packet_result == RESULT_NONE ) {
-		checkConfigReceived(sACNInterface, sUDP);
+		checkConfigReceived(sACNInterface, &sUDP);
 	}
 	#endif
     vTaskDelay(1);
