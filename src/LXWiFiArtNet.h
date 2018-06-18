@@ -51,6 +51,7 @@
 typedef void (*ArtNetReceiveCallback)(void);
 typedef void (*ArtNetDataRecvCallback)(uint8_t* pdata);
 typedef void (*ArtIpProgRecvCallback)(uint8_t cmd, IPAddress ipaddr, IPAddress subnet);
+typedef void (*ArtNetIndicatorCallback)(bool normal, bool mute, bool locate);
 
 /*!
 *  @class LXWiFiArtNet
@@ -309,7 +310,13 @@ class LXWiFiArtNet : public LXDMXWiFi {
  *             when an ArtAddress packet is received
 */
    void setArtAddressReceivedCallback(ArtNetReceiveCallback callback);
-   
+
+/*!
+* @brief Function called when ArtAddress packet is received
+* @discussion Sets a pointer to a function that is called
+*             when an ArtAddress packet is received
+*/
+  void setArtIndicatorReceivedCallback(ArtNetIndicatorCallback callback);
 /*!
  * @brief function callback when ArtTODRequest is received
  * @discussion callback pointer is to integer
@@ -430,7 +437,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
     * @brief Pointer to art address received callback function
    */
   	ArtNetReceiveCallback _artaddress_receive_callback;
-  	
+
+    /*!
+    * @brief Pointer to Art-Net identify callback function
+   */
+  	ArtNetIndicatorCallback _art_indicator_callback;
   	/*!
     * @brief Pointer to art tod request callback
    */
