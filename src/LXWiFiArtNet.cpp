@@ -555,6 +555,10 @@ void LXWiFiArtNet::setArtAddressReceivedCallback(ArtNetReceiveCallback callback)
 	_artaddress_receive_callback = callback;
 }
 
+void LXWiFiArtNet::setArtIndicatorReceivedCallback(ArtNetIndicatorCallback callback) {
+    _art_indicator_callback = callback;
+}
+
 void LXWiFiArtNet::setArtTodRequestCallback(ArtNetDataRecvCallback callback) {
 	_art_tod_req_callback = callback;
 }
@@ -623,6 +627,21 @@ uint16_t LXWiFiArtNet::parse_art_address( UDP* wUDP ) {
 	   		}
 	   	}
 	   	break;
+        case 0x02:
+ 	      if ( _art_indicator_callback != NULL ) {
+ 				_art_indicator_callback(true, false, false);
+ 			}
+			break;
+        case 0x03:
+ 	      if ( _art_indicator_callback != NULL ) {
+ 				_art_indicator_callback(false, true, false);
+ 			}
+ 			break;
+        case 0x04:
+ 	      if ( _art_indicator_callback != NULL ) {
+ 				_art_indicator_callback(false, false, true);
+ 			}
+ 			break;
 	   case 0x90:	//clear buffer
 	   	clearDMXOutput();
 	   	return ARTNET_ART_DMX;	// return ARTNET_ART_DMX so function calling readPacket

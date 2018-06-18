@@ -198,6 +198,19 @@ void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
 }
 
 /*
+  Indicator was requested by ArtAddress packet
+*/
+void artIndicatorReceived(bool normal, bool mute, bool locate) {
+    if (normal) {
+        Serial.println("Normal mode");
+    } else if (mute) {
+        Serial.println("Mute mode");
+    } else if (locate) {
+        Serial.println("Locate mode");
+    }
+}
+
+/*
   DMX input callback function sets number of slots received by ESP32DMX
 */
 
@@ -450,6 +463,7 @@ void setup() {
   artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
   artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
   artNetInterface->setArtRDMCallback(&artRDMReceived);
+  artNetInterface->setArtIndicatorReceivedCallback(&artIndicatorReceived);
   char* nn = DMXWiFiConfig.nodeName();
   if ( nn[0] != 0 ) {
     strcpy(artNetInterface->longName(), nn);

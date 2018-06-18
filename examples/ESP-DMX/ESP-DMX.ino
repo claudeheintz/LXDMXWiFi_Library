@@ -207,6 +207,19 @@ void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
 }
 
 /*
+  Indicator was request by ArtAddress packet
+*/
+void artIndicatorReceived(bool normal, bool mute, bool locate) {
+    if (normal) {
+        Serial.println("Normal mode");
+    } else if (mute) {
+        Serial.println("Mute mode");
+    } else if (locate) {
+        Serial.println("Locate mode");
+    }
+}
+
+/*
   DMX input callback function sets number of slots received by ESP8266DMX
 */
 
@@ -438,6 +451,7 @@ void setup() {
   artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
   artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
+  artNetInterface->setArtIndicatorReceivedCallback(&artIndicatorReceived);
   if ( rdm_enabled ) {
     artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
     artNetInterface->setArtRDMCallback(&artRDMReceived);
