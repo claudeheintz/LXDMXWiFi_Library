@@ -146,6 +146,14 @@ void LXWiFiArtNet::setNetAddress   ( uint8_t u ) {
 	}
 }
 
+void LXWiFiArtNet::setMode   ( uint8_t mode ) {
+	_mode = mode;
+}
+
+uint8_t LXWiFiArtNet::getMode   ( void ) {
+	return _mode;
+}
+
 int  LXWiFiArtNet::numberOfSlots ( void ) {
 	return _dmx_slots;
 }
@@ -331,13 +339,13 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 		case ARTNET_ART_ADDRESS:
 			if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
 				opcode = parse_art_address( wUDP );
-				send_art_poll_reply( wUDP, ARTPOLL_OUTPUT_MODE );
+				send_art_poll_reply( wUDP, _mode );
 			}
 			break;
 		case ARTNET_ART_POLL:
 			if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
 			    if ( _poll_reply_enabled ) {
-					send_art_poll_reply( wUDP, ARTPOLL_OUTPUT_MODE );
+					send_art_poll_reply( wUDP, _mode );
 				}
 			}
 			break;
@@ -389,7 +397,7 @@ uint16_t LXWiFiArtNet::readArtPollPacketContents ( UDP* wUDP, uint16_t packetSiz
 		case ARTNET_ART_POLL:
 			if (( packetSize >= 14 ) && ( _packet_buffer[11] >= 14 )) {
 			    if ( _poll_reply_enabled ) {
-					send_art_poll_reply( wUDP, ARTPOLL_INPUT_MODE );
+					send_art_poll_reply( wUDP, _mode );
 				}
 			}
 			break;
