@@ -495,10 +495,12 @@ void setup() {
     }
     aUDP.begin(artNetInterface->dmxPort());
     artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_OUTPUT_MODE);
+	artNetInterface->setMode(ARTPOLL_OUTPUT_MODE);
     Serial.print("udp started listening,");
   } else {
     aUDP.begin(artNetInterface->dmxPort());
     artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_INPUT_MODE);
+	artNetInterface->setMode(ARTPOLL_INPUT_MODE);
   }
   
   
