@@ -393,6 +393,18 @@ uint16_t LXWiFiArtNet::readArtPollPacketContents ( UDP* wUDP, uint16_t packetSiz
 				}
 			}
 			break;
+			
+		case ARTNET_ART_ADDRESS:
+			if (( packetSize >= 107 ) && ( _packet_buffer[11] >= 14 )) {  //protocol version [10] hi byte [11] lo byte
+				opcode = parse_art_address( wUDP );
+				send_art_poll_reply( wUDP, ARTPOLL_INPUT_MODE );
+			}
+			break;
+			
+		case ARTNET_ART_CMD:
+			parse_art_cmd( wUDP );
+			break;
+			
 		default:
 			if ( opcode != ARTNET_ART_POLL_REPLY ) {
 				//Serial.print("unknown Art-Net received ");
