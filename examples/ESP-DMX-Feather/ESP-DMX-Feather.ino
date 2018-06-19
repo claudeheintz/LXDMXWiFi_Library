@@ -850,6 +850,12 @@ void loop() {
         checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
       } else {
         checkInput(artNetInterface, &aUDP, 0);
+        art_packet_result = artNetInterface->readArtNetPacketInputMode(&aUDP);
+		#ifdef USE_REMOTE_CONFIG
+		  if ( art_packet_result == RESULT_NONE ) {
+			  checkConfigReceived(artNetInterface, aUDP);
+		  }
+      	#endif
       }
       
     } else {    //direction is output to network

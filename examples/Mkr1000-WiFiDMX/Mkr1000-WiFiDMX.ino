@@ -630,6 +630,10 @@ void loop() {
 			checkInput(sACNInterface, &sUDP, DMXWiFiConfig.multicastMode());
 		} else {
 			checkInput(artNetInterface, &aUDP, 0);
+			art_packet_result = artNetInterface->readArtNetPacketInputMode(&aUDP);
+			if ( art_packet_result == RESULT_NONE ) {
+				checkConfigReceived(artNetInterface, aUDP);
+			}
 		}
 		
 	}
