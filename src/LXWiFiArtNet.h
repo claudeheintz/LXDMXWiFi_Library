@@ -247,7 +247,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param wUDP pointer to UDP object (used to send Poll Reply)
  * @return Art-Net opcode of packet
  */
-   uint16_t readArtPollPacket    ( UDP* wUDP );  
+   uint16_t readArtNetPacketInputMode    ( UDP* wUDP );  
    
  /*!
  * @brief read contents of packet from _packet_buffer
@@ -263,7 +263,7 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param packetSize size of received packet
  * @return Art-Net opcode of packet
  */    
-   uint16_t readArtPollPacketContents ( UDP* wUDP, uint16_t packetSize );
+   uint16_t readArtNetPacketContentsInputMode ( UDP* wUDP, uint16_t packetSize );
  /*!
  * @brief send Art-Net ArtDMX packet for dmx output from network
  * @param wUDP pointer to UDP object to be used for sending UDP packet

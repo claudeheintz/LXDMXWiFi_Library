@@ -689,7 +689,7 @@ void loop() {
     } else {
       if ( checkInput(artNetInterface, &aUDP, 0) == 0 ) {
         // if no dmx input, attempt to read from network (only handles ArtPoll, responding as input)
-        art_packet_result = artNetInterface->readArtPollPacket(&aUDP);
+        art_packet_result = artNetInterface->readArtNetPacketInputMode(&aUDP);
         if ( art_packet_result == RESULT_NONE ) {
           checkConfigReceived(artNetInterface, &aUDP);
         }

@@ -236,13 +236,13 @@ uint16_t LXWiFiArtNet::readArtNetPacket ( UDP* wUDP ) {
 	return opcode;
 }
 
-uint16_t LXWiFiArtNet::readArtPollPacket ( UDP* wUDP ) {
+uint16_t LXWiFiArtNet::readArtNetPacketInputMode ( UDP* wUDP ) {
 	int packetSize = wUDP->parsePacket();
 	uint16_t opcode = ARTNET_NOP;
 	if ( packetSize > 0 ) {
 		_packetSize = wUDP->read(_packet_buffer, ARTNET_BUFFER_MAX);	//can return -1 in ESP32
 		if ( _packetSize > 0 ) {										//trap invalid returns
-			opcode = readArtPollPacketContents(wUDP, _packetSize);
+			opcode = readArtNetPacketContentsInputMode(wUDP, _packetSize);
 		}
 	}
 	return opcode;
@@ -376,7 +376,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
    return opcode;
 }
 
-uint16_t LXWiFiArtNet::readArtPollPacketContents ( UDP* wUDP, uint16_t packetSize ) {
+uint16_t LXWiFiArtNet::readArtNetPacketContentsInputMode ( UDP* wUDP, uint16_t packetSize ) {
    uint16_t opcode = ARTNET_NOP;
 
 	uint16_t t_slots = 0;
