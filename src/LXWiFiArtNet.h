@@ -147,6 +147,19 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @param s subnet 0-16 + flag 0x80
 */
    void    setNetAddress   ( uint8_t u );
+   
+/*!
+* @brief set the mode of this node.
+* @discussion This mode is primarily used by send_art_poll_reply().
+* @param mode ARTPOLL_OUTPUT_MODE or ARTPOLL_INPUT_MODE
+*/
+   void    setMode   ( uint8_t mode );
+   
+/*!
+* @brief get the mode of this node.
+* @discussion This method is primarily used by send_art_poll_reply().
+*/
+   uint8_t getMode   ( void );
 
  /*!
  * @brief number of slots (aka addresses or channels)
@@ -416,6 +429,9 @@ class LXWiFiArtNet : public LXDMXWiFi {
   	uint16_t   _poll_reply_counter;
 /// enable flag for sending poll replies
     uint8_t    _poll_reply_enabled;	
+	
+/// Output mode of this note, either ARTPOLL_OUTPUT_MODE or ARTPOLL_INPUT_MODE
+    uint8_t    _mode = ARTPOLL_OUTPUT_MODE;	
 
 /// address included in poll reply 	
   	IPAddress _my_address;
