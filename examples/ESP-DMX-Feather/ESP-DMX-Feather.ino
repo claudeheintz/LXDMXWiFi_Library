@@ -664,7 +664,11 @@ void setup() {
 	}
   
   aUDP.begin(artNetInterface->dmxPort());
-  artNetInterface->send_art_poll_reply(&aUDP);
+  if ( dmx_direction ) {
+    artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_INPUT_MODE);
+  } else {
+    artNetInterface->send_art_poll_reply(&aUDP);
+  }
   
 #if defined ESP_PRINT_DEBUG_MSGS
   Serial.print("udp started listening,");

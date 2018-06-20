@@ -441,7 +441,11 @@ void setup() {
     }
     
     aUDP.begin(artNetInterface->dmxPort());
-    artNetInterface->send_art_poll_reply(&aUDP);
+    if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
+    	artNetInterface->send_art_poll_reply(&aUDP);
+    } else {
+    	artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_INPUT_MODE);
+    }
 
 #if defined MKR_WIFIDMX_DEBUG_MESSAGES
     Serial.print("udp listening started-starting DMX output;");

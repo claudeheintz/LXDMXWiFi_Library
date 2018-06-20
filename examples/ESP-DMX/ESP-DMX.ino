@@ -488,6 +488,8 @@ void setup() {
   aUDP.begin(artNetInterface->dmxPort());
   if ( dmx_direction == 0 ) {  
     artNetInterface->send_art_poll_reply(&aUDP);
+  } else {
+    artNetInterface->send_art_poll_reply(&aUDP, ARTPOLL_INPUT_MODE);
   }
  Serial.print("udp started listening,");
 
