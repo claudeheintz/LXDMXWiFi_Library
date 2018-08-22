@@ -75,11 +75,11 @@ void DMXwifiConfig::initConfig(void) {
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
   _wifi_config->version = DMXWIFI_CONFIG_VERSION;
-  _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
-  _wifi_config->protocol_flags = MULTICAST_MODE;     // sACN multicast mode
-  																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
-  																	 // optional: | STATIC_MODE   to use static not dhcp address for station
-                                        				 // eg. _wifi_config->protocol_flags = MULTICAST_MODE | INPUT_TO_NETWORK_MODE | SACN_MODE;
+  _wifi_config->wifi_mode = AP_MODE;                            // AP_MODE or STATION_MODE
+  _wifi_config->protocol_flags = MULTICAST_MODE | RDM_MODE;     // sACN multicast mode
+  																	                            // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
+  																	                            // optional: | STATIC_MODE   to use static not dhcp address for station
+                                                                // eg. _wifi_config->protocol_flags = MULTICAST_MODE | INPUT_TO_NETWORK_MODE | SACN_MODE;
   strncpy(_wifi_config->ssid, "ESP-DMX-WiFi", 63);
   strncpy(_wifi_config->pwd, "*****", 63);
   _wifi_config->ap_address    = IPAddress(10,110,115,10);       // ip address of access point
