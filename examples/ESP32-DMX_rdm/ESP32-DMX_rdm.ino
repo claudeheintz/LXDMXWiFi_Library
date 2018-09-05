@@ -38,15 +38,19 @@
 #include "LXDMXWiFiConfig.h"
 #include "freertos/task.h"
 
-#define STARTUP_MODE_PIN 18      // pin for force default setup when low (use 10k pullup to insure high)
+#define STARTUP_MODE_PIN 32      // pin for force default setup when low (use 10k pullup to insure high)
 
-#define DIRECTION_PIN			21		// pin for output direction enable on MAX481 chip
+#define DIRECTION_PIN			33		// pin for output direction enable on MAX481 chip
 #define DMXSERIAL_INPUT_PIN		16		// default UART2 RX pin
-#define DMXSERIAL_OUTPUT_PIN	17		// default UART2 TX pin
-										// For AdaFruit ESP32/ESP8266 compatible shield use:
-										//    STARTUP_MODE_PIN		32
-										//    DIRECTION_PIN			33
-										//    DMXSERIAL_OUTPUT_PIN	14
+#define DMXSERIAL_OUTPUT_PIN	14		// default UART2 TX pin
+										// For AdaFruit Feather ESP32/ESP8266 compatible shield use:
+										//    STARTUP_MODE_PIN        32
+										//    DIRECTION_PIN           33
+										//    DMXSERIAL_OUTPUT_PIN    14
+										// For v1 shield design use:
+										//    STARTUP_MODE_PIN		  32
+										//    DIRECTION_PIN			  21
+										//    DMXSERIAL_OUTPUT_PIN	  17
 #define STATUS_LED 13
 
 #define DEBUG_PIN_A 22
