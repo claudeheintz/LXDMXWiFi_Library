@@ -81,19 +81,43 @@
 #define RDM_DISCOVER_ALWAYS 0
 
 /*         
- *  To allow use of the configuration utility, uncomment the following to define USE_REMOTE_CONFIG
- *  When using remote configuration:
- *        The remote configuration utility can be used to edit the settings without re-loading the sketch.
- *        Settings from persistent memory are used unless the startup pin is read LOW.
- *        Holding the startup pin low temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
- *        This insures there is a default way of connecting to the sketch in order to use the remote utility,
- *        even if it is configured to use a WiFi network that is unavailable.
+ *  To allow use of the configuration utility, uncomment the following statement
+ *  to define USE_REMOTE_CONFIG.
  *
- *	Without remote configuration (USE_REMOTE_CONFIG remains undefined), settings are read from the 
- *  LXDMXWiFiConfig.initConfig() method.  So, it is necessary to edit that function in order to change
- *  the settings.
+ *  When using remote configuration:
+ *        The remote configuration utility can be used to edit the settings
+ *        without re-loading the sketch.  Settings from persistent memory are
+ *        used unless the startup pin is read LOW.  Holding the startup pin low
+ *        temporarily uses the settings in the LXDMXWiFiConfig.initConfig() method.
+ *        This insures there is a default way of connecting to the sketch
+ *        in order to use the remote utility, even if it is configured to use
+ *        a WiFi network that is unavailable.
+ *
+ *	Without remote configuration (USE_REMOTE_CONFIG remains undefined):
+ *        Settings are read from the LXDMXWiFiConfig.initConfig() method.
+ *        So, it is necessary to edit that function in order to change
+ *        the settings.
+ *
+ *  Important for using remote configuration:
+ *        It is necessary to initialize the boards EEPROM flash with the
+ *        following steps.
+ *
+ *       ------------------------------------------------
+ *        1) In ESP-DMX.ino line 83 should read:
+ *           #define USE_REMOTE_CONFIG 0
+ *
+ *        2) In LXDMXWiFiConfig.cpp uncomment line 35:
+ *           #define RESET_PERSISTENT_CONFIG_ON_DEFAULT 1
+ *
+ *        3) Flash the ESP8266 and reboot.
+ *
+ *        4) In LXDMXWiFiConfig.cpp comment out line 35:
+ *           //#define RESET_PERSISTENT_CONFIG_ON_DEFAULT 1
+ *
+ *        5) Flash the ESP8266 and reboot.
+*       --------------------------------------------------
  */
-//#define USE_REMOTE_CONFIG 0
+#define USE_REMOTE_CONFIG 0
 
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
@@ -922,4 +946,3 @@ void loop() {
     }     // menu mode != MENU_MODE_OFF
 	
 }// loop()
-

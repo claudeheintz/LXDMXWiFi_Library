@@ -30,6 +30,11 @@ DMXwifiConfig::~DMXwifiConfig ( void ) {
 	}
 }
 
+// uncomment the following line to force an overwrite of the configuration back to
+// the hard coded settings when the boot mode is default (mode==0)
+//#define RESET_PERSISTENT_CONFIG_ON_DEFAULT 1
+
+
 uint8_t DMXwifiConfig::begin ( uint8_t mode ) {
 	if ( mode ) {
 		_temp_config = 0;
