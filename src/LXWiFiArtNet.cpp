@@ -29,8 +29,8 @@ LXWiFiArtNet::LXWiFiArtNet ( IPAddress address )
 {	
     initialize(0);
     setLocalAddress(address);
-    _my_subnetmask = INADDR_NONE;
-    _broadcast_address = INADDR_NONE;
+    _my_subnetmask = INADDR_ANY;
+    _broadcast_address = INADDR_ANY;
 }
 
 LXWiFiArtNet::LXWiFiArtNet ( IPAddress address, IPAddress subnet_mask )
@@ -265,7 +265,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 				packetSize -= 18;
 				uint16_t slots = _packet_buffer[17] + (_packet_buffer[16] << 8);
 				if ( packetSize >= slots ) {
-					if ( (uint32_t)_dmx_sender_a == 0 ) {		//if first sender, remember address
+					if (_dmx_sender_a == INADDR_ANY ) {		//if first sender, remember address
 						_dmx_sender_a = wUDP->remoteIP();
 						for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
 							_dmx_buffer_b[j] = 0;	//insure clear buffer 'b' so cancel merge works properly
@@ -293,7 +293,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 							}
 						  }
 					} else { 												// did not match sender a
-						if ( (uint32_t)_dmx_sender_b == 0 ) {		// if 2nd sender, remember address
+						if ( _dmx_sender_b == INADDR_ANY) {		// if 2nd sender, remember address
 							_dmx_sender_b = wUDP->remoteIP();
 						}
 						if ( _dmx_sender_b == wUDP->remoteIP() ) {
@@ -379,7 +379,6 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 uint16_t LXWiFiArtNet::readArtNetPacketContentsInputMode ( UDP* wUDP, uint16_t packetSize ) {
    uint16_t opcode = ARTNET_NOP;
 
-	uint16_t t_slots = 0;
 	/* Buffer now may not contain dmx data for desired universe.
 		After reading the packet into the buffer, check to make sure
 		that it is an Art-Net packet and retrieve the opcode that
@@ -482,7 +481,7 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) {
   
   
   IPAddress a = _broadcast_address;
-  if ( a == INADDR_NONE ) {
+  if ( a == INADDR_ANY) {
     a = wUDP->remoteIP();   // reply directly if no broadcast address is supplied
   }
   wUDP->beginPacket(a, ARTNET_PORT);
@@ -500,7 +499,7 @@ void LXWiFiArtNet::send_art_ipprog_reply ( UDP* wUDP ) {
 }
 
 void LXWiFiArtNet::send_art_tod ( UDP* wUDP, uint8_t* todata, uint8_t ucount ) {
-	if ( _broadcast_address != INADDR_NONE ) {
+	if ( _broadcast_address != INADDR_ANY ) {
 		uint8_t _buffer[ARTNET_TOD_PKT_SIZE];
 		int i;
 		for ( i=0; i < ARTNET_TOD_PKT_SIZE; i++ ) {

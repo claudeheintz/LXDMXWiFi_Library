@@ -76,7 +76,7 @@ void DMXwifiConfig::initConfig(void) {
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
   _wifi_config->version = DMXWIFI_CONFIG_VERSION;
-  _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
+  _wifi_config->wifi_mode = LX_AP_MODE;                // LX_AP_MODE or LX_STATION_MODE
   _wifi_config->protocol_flags = MULTICAST_MODE;     // sACN multicast mode
   																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
   																	 // optional: | STATIC_MODE   to use static not dhcp address for station
@@ -108,7 +108,7 @@ char* DMXwifiConfig::password(void) {
 }
 
 bool DMXwifiConfig::APMode(void) {
-	return ( _wifi_config->wifi_mode == AP_MODE );
+	return ( _wifi_config->wifi_mode == LX_AP_MODE );
 }
 
 bool DMXwifiConfig::staticIPAddress(void) {

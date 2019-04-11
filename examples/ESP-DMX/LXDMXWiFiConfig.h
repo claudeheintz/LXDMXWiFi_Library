@@ -47,8 +47,8 @@ typedef struct dmxwifiConfig {
 #define DMXWIFI_CONFIG_VERSION 1
 #define DMXWIFI_CONFIG_INVALID_VERSION 27
 
-#define STATION_MODE  0
-#define AP_MODE       1
+#define LX_STATION_MODE  0
+#define LX_AP_MODE       1
 
 #define ARTNET_MODE           0
 #define SACN_MODE             1

@@ -85,7 +85,7 @@ char password[32];
  *  LXDMXWiFiConfig.initConfig() method.  So, it is necessary to edit that function in order to change
  *  the settings.
  */
- //#define USE_REMOTE_CONFIG 0
+ #define USE_REMOTE_CONFIG 0
 
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
@@ -705,4 +705,3 @@ void loop() {
   vTaskDelay(1);
   
 }// loop()
-

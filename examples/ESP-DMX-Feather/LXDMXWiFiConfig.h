@@ -49,8 +49,8 @@ typedef struct dmxwifiConfig {
 #define DMXWIFI_CONFIG_VERSION 1
 #define DMXWIFI_CONFIG_INVALID_VERSION 27
 
-#define STATION_MODE 0
-#define AP_MODE 1
+#define LX_STATION_MODE 0
+#define LX_AP_MODE 1
 
 #define ARTNET_MODE           0
 #define SACN_MODE             1
@@ -100,7 +100,7 @@ class DMXwifiConfig {
 	 /*
 	 initConfig initializes the DMXWiFiConfig structure with default settings
 	 The default is to receive Art-Net with the WiFi configured as an access point.
-	 (Modify the initConfig to change default settings.  But, highly recommend leaving AP_MODE for default startup.)
+	 (Modify the initConfig to change default settings.  But, highly recommend leaving LX_AP_MODE for default startup.)
 	 */
 	 void initConfig(void);
 	 

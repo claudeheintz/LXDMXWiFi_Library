@@ -231,7 +231,7 @@ void LXWiFiSACN::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr )
    _packet_buffer[123] = fplusl >> 8;
    _packet_buffer[124] = fplusl & 0xFF;
    //assume dmx data has been set
-   if ( interfaceAddr != 0 ) {
+   if ( interfaceAddr != INADDR_ANY ) {
    
 // Multicast is supported by WiFiUDP in ESP8266WiFi, but not in WiFi101 WiFiUDP
 #ifdef _UDP_SUPPORTS_BEGINMULTICASTPACKET
