@@ -219,7 +219,7 @@ uint8_t LXWiFiArtNet::readDMXPacketContents ( UDP* wUDP, uint16_t packetSize ) {
   attempts to read a packet from the supplied EthernetUDP object
   returns opcode
   sends ArtPollReply with IPAddress if packet is ArtPoll
-  replies directly to sender unless reply_ip != INADDR_NONE allowing specification of broadcast
+  replies directly to sender unless _broadcast_address != INADDR_ANY allowing specification of broadcast
   only returns ARTNET_ART_DMX if packet contained dmx data for this universe
   Packet size checks that packet is >= expected size to allow zero termination or padding
 */
@@ -265,7 +265,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 				packetSize -= 18;
 				uint16_t slots = _packet_buffer[17] + (_packet_buffer[16] << 8);
 				if ( packetSize >= slots ) {
-					if (_dmx_sender_a == INADDR_ANY ) {		//if first sender, remember address
+					if (_dmx_sender_a == INADDR_NONE ) {		//if first sender, remember address
 						_dmx_sender_a = wUDP->remoteIP();
 						for(int j=0; j<DMX_UNIVERSE_SIZE; j++) {
 							_dmx_buffer_b[j] = 0;	//insure clear buffer 'b' so cancel merge works properly
@@ -293,7 +293,7 @@ uint16_t LXWiFiArtNet::readArtNetPacketContents ( UDP* wUDP, uint16_t packetSize
 							}
 						  }
 					} else { 												// did not match sender a
-						if ( _dmx_sender_b == INADDR_ANY) {		// if 2nd sender, remember address
+						if ( _dmx_sender_b == INADDR_NONE) {		// if 2nd sender, remember address
 							_dmx_sender_b = wUDP->remoteIP();
 						}
 						if ( _dmx_sender_b == wUDP->remoteIP() ) {
@@ -439,7 +439,7 @@ void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr
 }
 
 /*
-  sends ArtDMX packet to EthernetUDP object's remoteIP if to_ip is not specified
+  sends ArtDMX packet to EthernetUDP object's remoteIP if _broadcast_address is not specified
   ( remoteIP is set when parsePacket() is called )
   includes my_ip as address of this node
 */
@@ -481,7 +481,7 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) {
   
   
   IPAddress a = _broadcast_address;
-  if ( a == INADDR_ANY) {
+  if ( a == INADDR_ANY ) {
     a = wUDP->remoteIP();   // reply directly if no broadcast address is supplied
   }
   wUDP->beginPacket(a, ARTNET_PORT);
