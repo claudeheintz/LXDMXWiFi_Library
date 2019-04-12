@@ -157,4 +157,13 @@ class LXDMXWiFi {
    virtual void    sendDMX       ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
 };
 
+
+// for esp32 compatibility:
+//  INADDR_ANY ie 0.0.0.0 is not defined in IPAddress.h along with INADDR_NONE
+#ifndef INADDR_ANY
+	
+	#define INADDR_ANY ((uint32_t)0)
+
+#endif
+
 #endif // ifndef LXDMXWIFI_H

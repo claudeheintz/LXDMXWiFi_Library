@@ -38,6 +38,7 @@
 #include "LXDMXWiFiConfig.h"
 #include "freertos/task.h"
 
+
 #define STARTUP_MODE_PIN 32      // pin for force default setup when low (use 10k pullup to insure high)
 
 #define DIRECTION_PIN			33		// pin for output direction enable on MAX481 chip
