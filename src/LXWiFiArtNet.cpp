@@ -404,8 +404,12 @@ uint16_t LXWiFiArtNet::readArtNetPacketContentsInputMode ( UDP* wUDP, uint16_t p
 			parse_art_cmd( wUDP );
 			break;
 			
+		case ARTNET_ART_POLL_REPLY:
+			parse_art_poll_reply( wUDP );
+			break;
+			
 		default:
-			if ( opcode != ARTNET_ART_POLL_REPLY ) {
+			{
 				//Serial.print("unknown Art-Net received ");
 				//Serial.println(opcode, HEX);
 			}
@@ -613,6 +617,10 @@ void LXWiFiArtNet::setArtCommandCallback(ArtNetDataRecvCallback callback) {
 		_art_cmd_callback = callback;
 }
 
+void LXWiFiArtNet::setArtPollReplyCallback(ArtNetDataRecvCallback callback) {
+	_art_poll_reply_callback = callback;
+}
+
 uint16_t LXWiFiArtNet::parse_header( void ) {
   if ( strcmp((const char*)_packet_buffer, "Art-Net") == 0 ) {
     return _packet_buffer[9] * 256 + _packet_buffer[8];  //opcode lo byte first
@@ -765,6 +773,13 @@ void LXWiFiArtNet::parse_art_cmd( UDP* wUDP ) {
 			}
 		}
 	}
+}
+
+uint16_t LXWiFiArtNet::parse_art_poll_reply( UDP* wUDP ) {
+    if ( _art_poll_reply_callback != NULL ) {
+		_art_poll_reply_callback(_packet_buffer);
+	}
+	return ARTNET_NOP;
 }
 
 void LXWiFiArtNet::setLocalAddress ( IPAddress address ) {

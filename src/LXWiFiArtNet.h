@@ -353,6 +353,12 @@ class LXWiFiArtNet : public LXDMXWiFi {
 */
    void setArtIpProgReceivedCallback(ArtIpProgRecvCallback callback);
    
+   /*!
+	* @brief function callback when ArtPollReply is received
+	* @discussion callback has pointer to packet data
+	*/
+   void setArtPollReplyCallback(ArtNetDataRecvCallback callback);
+   
 /*!
 * @brief set flags for ArtPollReply
 */   
@@ -469,6 +475,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
     * @brief Pointer to artIpProg received callback function
    */
   	ArtIpProgRecvCallback _artip_receive_callback;
+  	
+  	/*!
+    * @brief Pointer to art poll reply received callback function
+   */
+  	ArtNetDataRecvCallback _art_poll_reply_callback;
 
 /*!
 * @brief checks packet for "Art-Net" header
@@ -501,6 +512,11 @@ class LXWiFiArtNet : public LXDMXWiFi {
 * @brief utility for parsing ArtCommand packets
 */   
    void parse_art_cmd( UDP* wUDP );
+   
+/*!
+* @brief calls art_poll_reply_callback
+*/     
+   uint16_t parse_art_poll_reply( UDP* wUDP );
    
 /*!
 * @brief initialize data structures
