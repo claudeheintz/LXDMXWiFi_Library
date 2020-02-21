@@ -14,6 +14,7 @@
 #define ARTNET_PORT 0x1936
 #define ARTNET_BUFFER_MAX 530
 #define ARTNET_REPLY_SIZE 240
+#define ARTNET_POLL_SIZE  14
 #define ARTNET_TOD_PKT_SIZE	1228
 #define ARTNET_RDM_PKT_SIZE 281
 #define ARTNET_IPPROG_SIZE 34
@@ -271,6 +272,13 @@ class LXWiFiArtNet : public LXDMXWiFi {
  * @param interfaceAddr multicast unused for Art-Net
  */    
    void     sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr );
+   
+/*!
+ * @brief send Art-Net ArtPoll to broadcast address
+ * @param eUDP UDP* to be used for sending UDP packet
+ * @discussion does nothing if broadcast address is undefined
+ */ 
+   void     send_art_poll( UDP* eUDP );
  /*!
  * @brief send ArtPoll Reply packet for dmx output from network
  * @discussion If broadcast address is defined by passing subnet to constructor, reply is broadcast

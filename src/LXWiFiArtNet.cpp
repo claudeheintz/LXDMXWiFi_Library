@@ -438,8 +438,34 @@ void LXWiFiArtNet::sendDMX ( UDP* wUDP, IPAddress to_ip, IPAddress interfaceAddr
    wUDP->endPacket();
 }
 
+void LXWiFiArtNet::send_art_poll( UDP* eUDP ) {
+   IPAddress a = _broadcast_address;
+   if ( a != INADDR_NONE ) {
+      // modify _reply_buffer for poll content (replace opcode...)
+      _reply_buffer[8] = 0;        // op code lo-hi
+      _reply_buffer[9] = 0x20;
+      _reply_buffer[10] = 0;	//Protocol version hi
+      _reply_buffer[11] = 14;   //low, current version as of Art-Net 4 is 14 (0x0e)
+      _reply_buffer[12] = 0;	//talk options
+      _reply_buffer[13] = 0;	//priority of diagnostics
+   
+      eUDP->beginPacket(a, ARTNET_PORT);
+      eUDP->write(_reply_buffer, ARTNET_POLL_SIZE);
+      eUDP->endPacket();
+      
+      // return _reply_buffer to poll reply contents
+      _reply_buffer[8] = 0;        // op code lo-hi
+      _reply_buffer[9] = 0x21;
+      _reply_buffer[10] = ((uint32_t)_my_address) & 0xff;      //ip address
+      _reply_buffer[11] = ((uint32_t)_my_address) >> 8;
+      _reply_buffer[12] = ((uint32_t)_my_address) >> 16;
+      _reply_buffer[13] = ((uint32_t)_my_address) >> 24;
+   }
+  
+}
+
 /*
-  sends ArtDMX packet to EthernetUDP object's remoteIP if _broadcast_address is not specified
+  sends ArtPollReply packet to EthernetUDP object's remoteIP if _broadcast_address is not specified
   ( remoteIP is set when parsePacket() is called )
   includes my_ip as address of this node
 */
@@ -463,17 +489,18 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) {
 	} else {
 		sprintf((char*)&_reply_buffer[121], "Idle: no ArtDMX");
 	}
-	_reply_buffer[174] = 128;  // can output from network
-	_reply_buffer[182] = 128;  // sending DMX flag
+	_reply_buffer[174] = 0x80;  // can output from network
+	_reply_buffer[182] = 0x80;  // sending DMX flag
 	_reply_buffer[190] = _portaddress_lo & 0x0f;	//output port
 	  
   } else {
 	  sprintf((char*)&_reply_buffer[121], "DMX Input");
 	  
-	  _reply_buffer[174] = 64;  // can input to network
+	  _reply_buffer[174] = 0x40;  // can input to network
 	  _reply_buffer[186] = _portaddress_lo & 0x0f;	//input port
   }
   
+  _reply_buffer[173] = 1;    // number of ports
   strcpy((char*)&_reply_buffer[26], _short_name);
   strcpy((char*)&_reply_buffer[44], _long_name);
   _reply_buffer[18] = _portaddress_hi;
