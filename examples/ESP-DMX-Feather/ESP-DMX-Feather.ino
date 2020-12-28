@@ -30,10 +30,13 @@
 
     @section  HISTORY
 
-    v1.0 - First release
-    v2.0 - Updated for OLED Feather Wing and RDM
+    v1.0   - First release
+    v2.0   - Updated for OLED Feather Wing and RDM
     v2.0.1 - Scene record triggered by ArtCommand
-    v2.0.2 - Add USE_REMOTE_CONFIG option 
+    v2.0.2 - Add USE_REMOTE_CONFIG option
+    v3.0   - Refactor to clarify functionality
+             -move RDM functions to separate file
+             -move Art-Net callbacks and other functions to below setup and loop in main .ino file
 */
 /**************************************************************************/
 
@@ -41,10 +44,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <LXESP8266UARTDMX.h>
-#include <rdm/UID.h>
-#include <rdm/TOD.h>
-#include <rdm/rdm_utility.h>
+#include "wifi_dmx_rdm.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include "LXDMXWiFi.h"
@@ -67,18 +67,6 @@
 #define BUTTON_A 0          // buttons on OLED Feather wing
 #define BUTTON_B 16         // pin for force default setup when low
 #define BUTTON_C 13         // this button re-wired from pin 2 (add 10k external pullup to 3.3v)
-
-// RDM defines
-#define DISC_STATE_SEARCH 0
-#define DISC_STATE_TBL_CK 1
-/*
- * If RDM_DISCOVER_ALWAYS == 0, the times RDM discovery runs is limited to 10 cycles
- * of table check and search.  When rdm_discovery_enable reaches zero, continous RDM 
- * discovery stops.  Other ArtRDM packets continue to be relayed.
- * If an Art-Net TODRequest or TODControl packet is received, the rdm_discovery_enable
- * counter is reset and discovery runs again until rdm_discovery_enable reaches zero.
- */
-#define RDM_DISCOVER_ALWAYS 0
 
 /*         
  *  To allow use of the configuration utility, uncomment the following statement
@@ -137,21 +125,6 @@ int acn_packet_result = 0;
 // Input mode:  received slots when inputting dmx to network
 int got_dmx = 0;
 
-// RDM globals
-uint8_t rdm_enabled = 0;
-uint8_t rdm_discovery_enable = 10;				// limit RDM discovery which can cause flicker in some equipment
-uint8_t discovery_state = DISC_STATE_TBL_CK;
-uint8_t discovery_tbl_ck_index = 0;
-uint8_t tableChangedFlag = 0;
-uint8_t idle_count = 0;
-TOD tableOfDevices;
-TOD discoveryTree;
-
-UID lower(0,0,0,0,0,0);
-UID upper(0,0,0,0,0,0);
-UID mid(0,0,0,0,0,0);
-UID found(0,0,0,0,0,0);
-
 // used to toggle indicator LED on and off
 uint8_t led_state = 0;
 
@@ -164,359 +137,10 @@ uint8_t menu_mode = 0;
 // used to toggle on and off playback
 uint8_t scene_state = 0;
 
-// *************************** OLED display functions **********************
+
 
 // the OLED display for the Feather wing
 Adafruit_SSD1306 display = Adafruit_SSD1306();
-
-/* 
-   Indicates DMX input.
-*/
-void blinkInput() {
- #if defined LED_PIN_INPUT
-  if ( led_state ) {
-    digitalWrite(LED_PIN_INPUT, HIGH);
-    led_state = 0;
-  } else {
-    digitalWrite(LED_PIN_INPUT, LOW);
-    led_state = 1;
-  }
- #endif
-}
-
-/* 
-   Indicates DMX network packet received.
-*/
-void blinkOutput() {
-  #if defined LED_PIN_OUTPUT
-  if ( led_state ) {
-    digitalWrite(LED_PIN_OUTPUT, HIGH);
-    led_state = 0;
-  } else {
-    digitalWrite(LED_PIN_OUTPUT, LOW);
-    led_state = 1;
-  }
-  #endif
-}
-
-/* 
-   utility function for animating display. Indicates connecting.
-*/
-void blinkConnection() {
-  display.fillRect(95,0,30,10, 0);
-  display.setCursor(95,0);
-  if ( led_state ) {
-    display.print("<-->");
-    led_state = 0;
-  } else {
-    display.print(" <> ");
-    led_state = 1;
-  }
-  display.display();
-}
-
-/* 
-   displays the top line of the main screen
-*/
-
-void displayWelcomeLine() {
-  display.clearDisplay();
-  display.setCursor(0,0);
-  /*
-  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
-    display.print("DMX<- ");
-  } else {
-    display.print("DMX-> ");
-  }*/
-  display.print(DMXWiFiConfig.SSID());
-  display.display();
-}
-
-/* 
-   displays the second line of the main screen showing Access Point (AP) or Station (IP) and address.
-*/
-void displayIPLine() {
-  display.setCursor(0,12);
-  if ( DMXWiFiConfig.APMode() ) {
-    display.print("AP: ");
-    display.print(WiFi.softAPIP());
-  } else {
-    display.print("IP: ");
-    display.print(WiFi.localIP());
-  }
-  if ( rdm_enabled ) {
-    display.print("_");
-  }
-  display.display();
-}
-
-/* 
-   displays the final line of the main screen .
-*/
-void displayMenuLine() {
-  display.setCursor(0,24);
-  display.print("<- Press C for menu.");
-  display.display();
-}
-
-/* 
-   displays the playback on/off line in menu mode
-*/
-void displayPlayback() {
-  display.fillRect(0,0,100,10, 0);
-  if ( scene_state ) {  //toggle to off
-    display.setCursor(0,0);
-    display.print("Cancel Scene");
-  } else {
-    display.setCursor(0,0);
-    display.print("Play Scene");
-  }
-}
-
-/* 
-   displays the first level menu
-*/
-void displayMenuOne() {
-  display.clearDisplay();
-  displayPlayback();
-  display.setCursor(0,24);
-  display.print("exit");
-  display.display();
-}
-
-// *************************** Art-Net functions **********************
-
-/* 
-   artAddress callback allows storing of config information
-   artAddress may or may not have set this information
-   but relevant fields are copied to config struct and stored to EEPROM
-*/
-void artAddressReceived() {
-  DMXWiFiConfig.setArtNetPortAddress( artNetInterface->universe() );
-  DMXWiFiConfig.setNodeName( artNetInterface->longName() );
-  DMXWiFiConfig.commitToPersistentStore();
-}
-
-void artTodRequestReceived(uint8_t* type) {
-  if ( type[0] ) {
-    tableOfDevices.reset();
-  }
-  rdm_discovery_enable = 10;
-  artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
-}
-
-void artRDMReceived(uint8_t* pdata) {
-#if defined ESP_PRINT_DEBUG_MSGS
-  Serial.println("got rdm!");
-#endif
-  uint8_t plen = pdata[1] + 2;
-  uint8_t j;
-
-  //copy into ESP8266DMX outgoing packet
-  uint8_t* pkt = ESP8266DMX.rdmData();
-  for (j=0; j<plen; j++) {
-    pkt[j+1] = pdata[j];
-  }
-  pkt[0] = 0xCC;
-
-    
-  if ( ESP8266DMX.sendRDMControllerPacket() ) {
-#if defined ESP_PRINT_DEBUG_MSGS
-    Serial.println("sent and got response!");
-#endif
-    artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
-  }
-}
-
-void artCmdReceived(uint8_t* pdata) {
-  if ( strcmp((const char*)pdata, "record=1") == 0 ) {
-    rememberScene();
-    for (int j=0; j<3; j++) {
-    	blinkConnection();
-    	delay(100);
-    	blinkConnection();
-    	delay(100);
-    }
-  } else if ( strcmp((const char*)pdata, "clearSACN") == 0 ) {
-  	sACNInterface->clearDMXOutput();
-  }
-}
-
-/* 
-   artIpProg callback allows storing of config information
-   cmd field bit 7 indicates that settings should be programmed
-*/
-void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
-   if ( cmd & 0x80 ) {
-      if ( cmd & 0x40 ) {	//enable dhcp, other fields not written
-      	if ( DMXWiFiConfig.staticIPAddress() ) {
-      		DMXWiFiConfig.setStaticIPAddress(0);
-      	} else {
-      	   return;	// already set to dhcp
-      	}
-      } else {
-         if ( ! DMXWiFiConfig.staticIPAddress() ) {
-      	   DMXWiFiConfig.setStaticIPAddress(1);	// static not dhcp
-      	}
-      	if ( cmd & 0x08 ) {	//factory reset
-      	   DMXWiFiConfig.initConfig();
-      	} else {
-      	   if ( cmd & 0x04 ) {	//programIP
-      	      DMXWiFiConfig.setStationIPAddress(addr);
-      	   }
-      	   if ( cmd & 0x02 ) {	//programSubnet
-      	      DMXWiFiConfig.setStationSubnetMask(subnet);
-      	   }
-      	}
-      }	// else ( ! dhcp )
-      
-      DMXWiFiConfig.commitToPersistentStore();
-   }
-}
-
-// *************************** Input function **********************
-
-/*
-  DMX input callback function sets number of slots received by ESP8266DMX
-*/
-
-void gotDMXCallback(int slots) {
-  got_dmx = slots;
-}
-
-/****************************** RDM *****************************************/
-
-uint8_t testMute(UID u) {
-   // try three times to get response when sending a mute message
-   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
-     return 1;
-   }
-   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
-     return 1;
-   }
-   if ( ESP8266DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
-     return 1;
-   }
-   return 0;
-}
-
-void checkDeviceFound(UID found) {
-  if ( testMute(found) ) {
-    tableOfDevices.add(found);
-    tableChangedFlag = 1;
-  }
-}
-
-uint8_t checkTable(uint8_t ck_index) {
-  if ( ck_index == 0 ) {
-    ESP8266DMX.sendRDMDiscoveryMute(BROADCAST_ALL_DEVICES_ID, RDM_DISC_UNMUTE);
-  }
-
-  if ( tableOfDevices.getUIDAt(ck_index, &found) )  {
-    if ( testMute(found) ) {
-      // device confirmed
-      return ck_index += 6;
-    }
-    
-    // device not found
-    tableOfDevices.removeUIDAt(ck_index);
-    tableChangedFlag = 1;
-    return ck_index;
-  }
-  // index invalid
-  return 0;
-}
-
-//called when range responded, so divide into sub ranges push them on stack to be further checked
-void pushActiveBranch(UID lower, UID upper) {
-  if ( mid.becomeMidpoint(lower, upper) ) {
-    discoveryTree.push(lower);
-    discoveryTree.push(mid);
-    discoveryTree.push(mid);
-    discoveryTree.push(upper);
-  } else {
-    // No midpoint possible:  lower and upper are equal or a 1 apart
-    checkDeviceFound(lower);
-    checkDeviceFound(upper);
-  }
-}
-
-void pushInitialBranch() {
-  lower.setBytes(0);
-  upper.setBytes(BROADCAST_ALL_DEVICES_ID);
-  discoveryTree.push(lower);
-  discoveryTree.push(upper);
-
-  //ETC devices seem to only respond with wildcard or exact manufacturer ID
-  lower.setBytes(0x657400000000);
-  upper.setBytes(0x6574FFFFFFFF);
-  discoveryTree.push(lower);
-  discoveryTree.push(upper);
-}
-
-uint8_t checkNextRange() {
-  if ( discoveryTree.pop(&upper) ) {
-    if ( discoveryTree.pop(&lower) ) {
-      if ( lower == upper ) {
-        checkDeviceFound(lower);
-      } else {        //not leaf so, check range lower->upper
-        uint8_t result = ESP8266DMX.sendRDMDiscoveryPacket(lower, upper, &found);
-        if ( result ) {
-          //this range responded, so divide into sub ranges push them on stack to be further checked
-          pushActiveBranch(lower, upper);
-           
-        } else if ( ESP8266DMX.sendRDMDiscoveryPacket(lower, upper, &found) ) {
-            pushActiveBranch(lower, upper); //if discovery fails, try a second time
-        }
-      }         // end check range
-      return 1; // UID ranges may be remaining to test
-    }           // end valid pop
-  }             // end valid pop  
-  return 0;     // none left to pop
-}
-
-void sendTODifChanged() {
-  if ( tableChangedFlag ) {   //if the table has changed...
-    tableChangedFlag--;
-    
-    artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
-
-#if defined PRINT_DEBUG_MESSAGES
-    Serial.println("_______________ Table Of Devices _______________");
-    tableOfDevices.printTOD();
-#endif
-  }
-}
-
-void updateRDMDiscovery() {
-	if ( rdm_discovery_enable ) {  // run RDM updates for a limited number of times
-	  if ( discovery_state ) {
-		// check the table of devices
-		discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
-	
-		if ( discovery_tbl_ck_index == 0 ) {
-		  // done with table check
-		  discovery_state = DISC_STATE_SEARCH;
-		  pushInitialBranch();
-   
-		  sendTODifChanged();
-		} //end table check ended
-	  } else {    // search for devices in range popped from discoveryTree
-
-		if ( checkNextRange() == 0 ) {
-		  // done with search
-		  discovery_tbl_ck_index = 0;
-		  discovery_state = DISC_STATE_TBL_CK;
-	  
-		  sendTODifChanged();
-		  if ( RDM_DISCOVER_ALWAYS == 0 ) {
-			rdm_discovery_enable--;
-		  }
-		} //  <= if discovery search complete
-	  }   //  <= discovery search
-	}     //  <= rdm_discovery_enable 
-}
-
 
 /************************************************************************
 
@@ -565,9 +189,9 @@ void setup() {
   
   dmx_direction = ( DMXWiFiConfig.inputToNetworkMode() );
 #if defined RDM_CAPABLE_HARDWARE
-  rdm_enabled = DMXWiFiConfig.rdmMode();
+  setRDMisEnabled(DMXWiFiConfig.rdmMode());
   if ( digitalRead(BUTTON_C) == 0 ) {
-    rdm_enabled = !rdm_enabled;
+    setRDMisEnabled( ! rdmIsEnabled() );
   }
 #endif
 
@@ -578,7 +202,7 @@ void setup() {
   display.setTextColor(WHITE);
   
 // -------------------   DMX  ------------------- 
-  if ( rdm_enabled ) {
+  if ( rdmIsEnabled() ) {
     if ( dmx_direction ) {
       ESP8266DMX.startRDM(DIRECTION_PIN, 0);  // start RDM in input task mode
     } else {
@@ -656,7 +280,7 @@ void setup() {
   artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
   artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
-  if ( rdm_enabled ) {
+  if ( rdmIsEnabled() ) {
     artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
     artNetInterface->setArtRDMCallback(&artRDMReceived);
   }
@@ -701,155 +325,6 @@ void setup() {
   
   displayMenuLine();
 } //setup
-
-/************************************************************************
-
-  Copy to output merges slots for Art-Net and sACN on HTP basis
-  
-*************************************************************************/
-
-void copyDMXToOutput(void) {
-	uint8_t a, s;
-	uint16_t a_slots = artNetInterface->numberOfSlots();
-	uint16_t s_slots = sACNInterface->numberOfSlots();
-	for (int i=1; i <=DMX_UNIVERSE_SIZE; i++) {
-		if ( i <= a_slots ) {
-			a = artNetInterface->getSlot(i);
-		} else {
-			a = 0;
-		}
-		if ( i <= s_slots ) {
-			s = sACNInterface->getSlot(i);
-		} else {
-			s = 0;
-		}
-		if ( a > s ) {
-      	ESP8266DMX.setSlot(i , a);
-      } else {
-      	ESP8266DMX.setSlot(i , s);
-      }
-   }
-}
-
-/************************************************************************
-
-  Checks to see if packet is a config packet.
-  
-     In the case it is a query, it replies with the current config from persistent storage.
-     
-     In the case of upload, it copies the payload to persistent storage
-     and also replies with the config settings.
-  
-*************************************************************************/
-
-void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
-	if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) {	//match header to config packet
-#if defined ESP_PRINT_DEBUG_MSGS
-		Serial.print("config packet received, ");
-#endif
-		uint8_t reply = 0;
-		if ( interface->packetBuffer()[8] == '?' ) {	//packet opcode is query
-			DMXWiFiConfig.readFromPersistentStore();
-			reply = 1;
-		} else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-#if defined ESP_PRINT_DEBUG_MSGS
-			Serial.println("upload packet");
-#endif
-			DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
-			DMXWiFiConfig.commitToPersistentStore();
-			reply = 1;
-		} else if ( interface->packetBuffer()[8] == '^' ) {
-			ESP.reset();
-		} else {
-#if defined ESP_PRINT_DEBUG_MSGS
-			Serial.println("unknown config opcode.");
-#endif
-	  	}
-		if ( reply) {
-			DMXWiFiConfig.hidePassword();													// don't transmit password!
-			cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());				// unicast reply
-			cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
-			cUDP.endPacket();
-#if defined ESP_PRINT_DEBUG_MSGS
-			Serial.println("reply complete.");
-#endif
-			DMXWiFiConfig.restorePassword();
-		}
-		interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
-		interface->packetBuffer()[1] = 0;
-   
-		display.fillRect(95,0,30,10, 0);
-    display.setCursor(95,0);
-    display.print("CONFG");
-    display.display();
-    delay(1000);
-    display.fillRect(95,0,30,10, 0);
-    display.display();
-	}		// packet has config packet header
-}
-
-/************************************************************************
-
-  Checks to see if the dmx callback indicates received dmx
-     If so, send it using the selected interface.
-  
-*************************************************************************/
-
-void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
-	if ( got_dmx ) {
-		interface->setNumberOfSlots(got_dmx);			// set slots & copy to interface
-		for(int i=1; i<=got_dmx; i++) {
-		  interface->setSlot(i, ESP8266DMX.getSlot(i));
-		}
-		if ( multicast ) {
-			interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
-		} else {
-			interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), INADDR_NONE);
-		}
-      got_dmx = 0;
-      blinkInput();
-  }       // got_dmx
-}
-
-/************************************************************************
-
-  Either writes stored scene to dmx or writes zeros to DMX
-  
-*************************************************************************/
-
-void cycleScene() {
-	if ( scene_state ) {	//toggle to off
-		scene_state = 0;
-		uint16_t s = ESP8266DMX.numberOfSlots() + 1;
-		for(uint16_t i=1; i<s; i++) {
-			ESP8266DMX.setSlot(i, 0);
-		}
-	} else {
-		scene_state = 1;
-		uint16_t s = DMXWiFiConfig.numberOfSlots() + 1;
-    for(uint16_t i=1; i<s; i++) {
-			ESP8266DMX.setSlot(i, DMXWiFiConfig.getSlot(i));
-		}
-	}
-  displayPlayback();
-  display.display();
-}
-
-/************************************************************************
-
-  Remember scene writes the scene to the config structure and stores it
-  
-*************************************************************************/
-
-void rememberScene() {
-	uint16_t s = ESP8266DMX.numberOfSlots();
-	DMXWiFiConfig.setNumberOfSlots(s);
-	s++;
-	for(uint16_t i=1; i<s; i++) {
-		DMXWiFiConfig.setSlot(i, ESP8266DMX.getSlot(i));
-	}
-	DMXWiFiConfig.commitToPersistentStore();
-}
 
 /************************************************************************
 
@@ -902,19 +377,12 @@ void loop() {
 		}
 		#endif
   		
-  		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
-  			copyDMXToOutput();
-  			blinkOutput();
-  			idle_count = 0;
-  		} else {
-      // output was not updated last 5 times through loop so use a cycle to perform the next step of RDM discovery
-      if ( rdm_enabled ) {
-      	idle_count++;
-		if ( idle_count > 5 ) {
-        	updateRDMDiscovery();
-        	idle_count = 0;
-		}
-      }
+		if ( (art_packet_result == RESULT_DMX_RECEIVED) || (acn_packet_result == RESULT_DMX_RECEIVED) ) {
+			copyDMXToOutput();
+			blinkOutput();
+			resetRDMIdleCount();
+		} else {
+      updateRDM(artNetInterface,aUDP);
     }
   		
   	}
@@ -946,3 +414,373 @@ void loop() {
     }     // menu mode != MENU_MODE_OFF
 	
 }// loop()
+
+
+// *************************** OLED display functions **********************
+
+/* 
+   Indicates DMX input.
+*/
+void blinkInput() {
+ #if defined LED_PIN_INPUT
+  if ( led_state ) {
+    digitalWrite(LED_PIN_INPUT, HIGH);
+    led_state = 0;
+  } else {
+    digitalWrite(LED_PIN_INPUT, LOW);
+    led_state = 1;
+  }
+ #endif
+}
+
+/* 
+   Indicates DMX network packet received.
+*/
+void blinkOutput() {
+  #if defined LED_PIN_OUTPUT
+  if ( led_state ) {
+    digitalWrite(LED_PIN_OUTPUT, HIGH);
+    led_state = 0;
+  } else {
+    digitalWrite(LED_PIN_OUTPUT, LOW);
+    led_state = 1;
+  }
+  #endif
+}
+
+/* 
+   utility function for animating display. Indicates connecting.
+*/
+void blinkConnection() {
+  display.fillRect(95,0,30,10, 0);
+  display.setCursor(95,0);
+  if ( led_state ) {
+    display.print("<-->");
+    led_state = 0;
+  } else {
+    display.print(" <> ");
+    led_state = 1;
+  }
+  display.display();
+}
+
+/* 
+   displays the top line of the main screen
+*/
+
+void displayWelcomeLine() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  /*
+  if ( dmx_direction == OUTPUT_FROM_NETWORK_MODE ) {
+    display.print("DMX<- ");
+  } else {
+    display.print("DMX-> ");
+  }*/
+  display.print(DMXWiFiConfig.SSID());
+  display.display();
+}
+
+/* 
+   displays the second line of the main screen showing Access Point (AP) or Station (IP) and address.
+*/
+void displayIPLine() {
+  display.setCursor(0,12);
+  if ( DMXWiFiConfig.APMode() ) {
+    display.print("AP: ");
+    display.print(WiFi.softAPIP());
+  } else {
+    display.print("IP: ");
+    display.print(WiFi.localIP());
+  }
+  if ( rdmIsEnabled() ) {
+    display.print("_");
+  }
+  display.display();
+}
+
+/* 
+   displays the final line of the main screen .
+*/
+void displayMenuLine() {
+  display.setCursor(0,24);
+  display.print("<- Press C for menu.");
+  display.display();
+}
+
+/* 
+   displays the playback on/off line in menu mode
+*/
+void displayPlayback() {
+  display.fillRect(0,0,100,10, 0);
+  if ( scene_state ) {  //toggle to off
+    display.setCursor(0,0);
+    display.print("Cancel Scene");
+  } else {
+    display.setCursor(0,0);
+    display.print("Play Scene");
+  }
+}
+
+/* 
+   displays the first level menu
+*/
+void displayMenuOne() {
+  display.clearDisplay();
+  displayPlayback();
+  display.setCursor(0,24);
+  display.print("exit");
+  display.display();
+}
+
+// *************************** Input function **********************
+
+/*
+  DMX input callback function sets number of slots received by ESP8266DMX
+*/
+
+void gotDMXCallback(int slots) {
+  got_dmx = slots;
+}
+
+/************************************************************************
+
+  Checks to see if the dmx callback indicates received dmx
+     If so, send it using the selected interface.
+  
+*************************************************************************/
+
+void checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
+  if ( got_dmx ) {
+    interface->setNumberOfSlots(got_dmx);     // set slots & copy to interface
+    for(int i=1; i<=got_dmx; i++) {
+      interface->setSlot(i, ESP8266DMX.getSlot(i));
+    }
+    if ( multicast ) {
+      interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
+    } else {
+      interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), INADDR_NONE);
+    }
+      got_dmx = 0;
+      blinkInput();
+  }       // got_dmx
+}
+
+/************************************************************************
+
+  Copy to output merges slots for Art-Net and sACN on HTP basis
+  
+*************************************************************************/
+
+void copyDMXToOutput(void) {
+  uint8_t a, s;
+  uint16_t a_slots = artNetInterface->numberOfSlots();
+  uint16_t s_slots = sACNInterface->numberOfSlots();
+  for (int i=1; i <=DMX_UNIVERSE_SIZE; i++) {
+    if ( i <= a_slots ) {
+      a = artNetInterface->getSlot(i);
+    } else {
+      a = 0;
+    }
+    if ( i <= s_slots ) {
+      s = sACNInterface->getSlot(i);
+    } else {
+      s = 0;
+    }
+    if ( a > s ) {
+        ESP8266DMX.setSlot(i , a);
+      } else {
+        ESP8266DMX.setSlot(i , s);
+      }
+   }
+}
+
+/************************************************************************
+
+  Checks to see if packet is a config packet.
+  
+     In the case it is a query, it replies with the current config from persistent storage.
+     
+     In the case of upload, it copies the payload to persistent storage
+     and also replies with the config settings.
+  
+*************************************************************************/
+
+void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
+  if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) { //match header to config packet
+#if defined ESP_PRINT_DEBUG_MSGS
+    Serial.print("config packet received, ");
+#endif
+    uint8_t reply = 0;
+    if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
+      DMXWiFiConfig.readFromPersistentStore();
+      reply = 1;
+    } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
+#if defined ESP_PRINT_DEBUG_MSGS
+      Serial.println("upload packet");
+#endif
+      DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
+      DMXWiFiConfig.commitToPersistentStore();
+      reply = 1;
+    } else if ( interface->packetBuffer()[8] == '^' ) {
+      ESP.reset();
+    } else {
+#if defined ESP_PRINT_DEBUG_MSGS
+      Serial.println("unknown config opcode.");
+#endif
+      }
+    if ( reply) {
+      DMXWiFiConfig.hidePassword();                         // don't transmit password!
+      cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());        // unicast reply
+      cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
+      cUDP.endPacket();
+#if defined ESP_PRINT_DEBUG_MSGS
+      Serial.println("reply complete.");
+#endif
+      DMXWiFiConfig.restorePassword();
+    }
+    interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
+    interface->packetBuffer()[1] = 0;
+   
+    display.fillRect(95,0,30,10, 0);
+    display.setCursor(95,0);
+    display.print("CONFG");
+    display.display();
+    delay(1000);
+    display.fillRect(95,0,30,10, 0);
+    display.display();
+  }   // packet has config packet header
+}
+
+
+
+/************************************************************************
+
+  Either writes stored scene to dmx or writes zeros to DMX
+  
+*************************************************************************/
+
+void cycleScene() {
+  if ( scene_state ) {  //toggle to off
+    scene_state = 0;
+    uint16_t s = ESP8266DMX.numberOfSlots() + 1;
+    for(uint16_t i=1; i<s; i++) {
+      ESP8266DMX.setSlot(i, 0);
+    }
+  } else {
+    scene_state = 1;
+    uint16_t s = DMXWiFiConfig.numberOfSlots() + 1;
+    for(uint16_t i=1; i<s; i++) {
+      ESP8266DMX.setSlot(i, DMXWiFiConfig.getSlot(i));
+    }
+  }
+  displayPlayback();
+  display.display();
+}
+
+/************************************************************************
+
+  Remember scene writes the scene to the config structure and stores it
+  
+*************************************************************************/
+
+void rememberScene() {
+  uint16_t s = ESP8266DMX.numberOfSlots();
+  DMXWiFiConfig.setNumberOfSlots(s);
+  s++;
+  for(uint16_t i=1; i<s; i++) {
+    DMXWiFiConfig.setSlot(i, ESP8266DMX.getSlot(i));
+  }
+  DMXWiFiConfig.commitToPersistentStore();
+}
+
+
+// *************************** Art-Net functions **********************
+
+/* 
+   artAddress callback allows storing of config information
+   artAddress may or may not have set this information
+   but relevant fields are copied to config struct and stored to EEPROM
+*/
+void artAddressReceived() {
+  DMXWiFiConfig.setArtNetPortAddress( artNetInterface->universe() );
+  DMXWiFiConfig.setNodeName( artNetInterface->longName() );
+  DMXWiFiConfig.commitToPersistentStore();
+}
+
+void artTodRequestReceived(uint8_t* type) {
+  if ( type[0] ) {
+    rdmTOD().reset();
+  }
+  setRDMDiscoveryEnable(10);
+  artNetInterface->send_art_tod(&aUDP, rdmTOD().rawBytes(), rdmTOD().count());
+}
+
+void artRDMReceived(uint8_t* pdata) {
+#if defined ESP_PRINT_DEBUG_MSGS
+  Serial.println("got rdm!");
+#endif
+  uint8_t plen = pdata[1] + 2;
+  uint8_t j;
+
+  //copy into ESP8266DMX outgoing packet
+  uint8_t* pkt = ESP8266DMX.rdmData();
+  for (j=0; j<plen; j++) {
+    pkt[j+1] = pdata[j];
+  }
+  pkt[0] = 0xCC;
+
+    
+  if ( ESP8266DMX.sendRDMControllerPacket() ) {
+#if defined ESP_PRINT_DEBUG_MSGS
+    Serial.println("sent and got response!");
+#endif
+    artNetInterface->send_art_rdm(&aUDP, ESP8266DMX.receivedRDMData(), aUDP.remoteIP());
+  }
+}
+
+void artCmdReceived(uint8_t* pdata) {
+  if ( strcmp((const char*)pdata, "record=1") == 0 ) {
+    rememberScene();
+    for (int j=0; j<3; j++) {
+      blinkConnection();
+      delay(100);
+      blinkConnection();
+      delay(100);
+    }
+  } else if ( strcmp((const char*)pdata, "clearSACN") == 0 ) {
+    sACNInterface->clearDMXOutput();
+  }
+}
+
+/* 
+   artIpProg callback allows storing of config information
+   cmd field bit 7 indicates that settings should be programmed
+*/
+void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet) {
+   if ( cmd & 0x80 ) {
+      if ( cmd & 0x40 ) { //enable dhcp, other fields not written
+        if ( DMXWiFiConfig.staticIPAddress() ) {
+          DMXWiFiConfig.setStaticIPAddress(0);
+        } else {
+           return;  // already set to dhcp
+        }
+      } else {
+         if ( ! DMXWiFiConfig.staticIPAddress() ) {
+           DMXWiFiConfig.setStaticIPAddress(1); // static not dhcp
+        }
+        if ( cmd & 0x08 ) { //factory reset
+           DMXWiFiConfig.initConfig();
+        } else {
+           if ( cmd & 0x04 ) {  //programIP
+              DMXWiFiConfig.setStationIPAddress(addr);
+           }
+           if ( cmd & 0x02 ) {  //programSubnet
+              DMXWiFiConfig.setStationSubnetMask(subnet);
+           }
+        }
+      } // else ( ! dhcp )
+      
+      DMXWiFiConfig.commitToPersistentStore();
+   }
+}
