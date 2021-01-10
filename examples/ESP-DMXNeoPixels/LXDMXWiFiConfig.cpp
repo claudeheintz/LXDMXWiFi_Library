@@ -3,7 +3,7 @@
     @file     LXDMXWiFiconfig.cpp
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h or http://lx.claudeheintzdesign.com/opensource.html)
-    @copyright 2016-2018 by Claude Heintz All Rights Reserved
+    @copyright 2016-2021 by Claude Heintz All Rights Reserved
 
     Edit initConfig for your own default settings.
 */
@@ -75,7 +75,7 @@ void DMXwifiConfig::initConfig(void) {
   
   strncpy((char*)_wifi_config, CONFIG_PACKET_IDENT, 8); //add ident
   _wifi_config->version = DMXWIFI_CONFIG_VERSION;
-  _wifi_config->wifi_mode = AP_MODE;                // AP_MODE or STATION_MODE
+  _wifi_config->wifi_mode = CONFIG_AP_MODE;          // CONFIG_AP_MODE or CONFIG_STATION_MODE
   _wifi_config->protocol_flags = MULTICAST_MODE;     // sACN multicast mode
   																	 // optional: | INPUT_TO_NETWORK_MODE specify ARTNET_MODE or SACN_MODE
   																	 // optional: | STATIC_MODE   to use static not dhcp address for station
@@ -98,6 +98,62 @@ void DMXwifiConfig::initConfig(void) {
   _wifi_config->input_address = IPAddress(10,255,255,255);
 }
 
+uint8_t DMXwifiConfig::setupWiFi(IndicateActivityCallback indicateConnecting) {
+  if ( APMode() ) {                      // WiFi startup
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(SSID());
+    WiFi.softAPConfig(apIPAddress(), apGateway(), apSubnet());
+  } else {                                             // Station Mode
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(DMXWiFiConfig.SSID(), DMXWiFiConfig.password());
+
+    if ( staticIPAddress() ) {  
+      WiFi.config(stationIPAddress(), (uint32_t)0, stationGateway(), stationSubnet());
+    }
+     
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(100);
+      indicateConnecting();
+    }
+  }
+  return APMode();
+}
+
+void DMXwifiConfig::checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser) {
+  if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) { //match header to config packet
+    Serial.print("config packet received, ");
+    uint8_t reply = 0;
+    if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
+      readFromPersistentStore();
+      reply = 1;
+    } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
+      Serial.println("upload packet");
+      copyConfig( interface->packetBuffer(), interface->packetSize());
+      commitToPersistentStore();
+      reply = 1;
+    } else if ( interface->packetBuffer()[8] == '^' ) {
+      ESP.reset();
+    } else {
+      Serial.println("unknown config opcode.");
+      }
+    if ( reply) {
+      hidePassword();                         // don't transmit password!
+      cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());        // unicast reply
+      cUDP.write((uint8_t*)config(), DMXWiFiConfigSIZE);
+      cUDP.endPacket();
+      Serial.println("reply complete.");
+      restorePassword();
+    }
+    interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
+    interface->packetBuffer()[1] = 0;
+    informUser();
+    delay(100);
+    informUser();
+    delay(100);
+    informUser();
+  }   // packet has config packet header
+}
+
 char* DMXwifiConfig::SSID(void) {
 	return _wifi_config->ssid;
 }
@@ -107,7 +163,7 @@ char* DMXwifiConfig::password(void) {
 }
 
 bool DMXwifiConfig::APMode(void) {
-	return ( _wifi_config->wifi_mode == AP_MODE );
+	return ( _wifi_config->wifi_mode == CONFIG_AP_MODE );
 }
 
 bool DMXwifiConfig::staticIPAddress(void) {
@@ -209,7 +265,6 @@ void DMXwifiConfig::copyConfig(uint8_t* pkt, uint8_t size) {
 	if (( size < DMXWiFiConfigMinSIZE ) || ( size > DMXWiFiConfigSIZE)) {
 		return;	//validate incoming size
 	}
-	uint8_t k;
 	uint8_t s = size;
 	if ( size < 203 ) {			//does not include nodeName
 		s = DMXWiFiConfigMinSIZE;

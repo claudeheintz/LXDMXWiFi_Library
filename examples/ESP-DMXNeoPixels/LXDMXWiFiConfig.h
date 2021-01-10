@@ -3,7 +3,7 @@
     @file     LXDMXWiFiconfig.h
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h or http://lx.claudeheintzdesign.com/opensource.html)
-    @copyright 2016-2018 by Claude Heintz All Rights Reserved
+    @copyright 2016-2021 by Claude Heintz All Rights Reserved
     
     
 */
@@ -11,6 +11,9 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include "LXDMXWiFi.h"
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 
 /* 
 	structure for storing WiFi and Protocol configuration settings
@@ -47,16 +50,20 @@ typedef struct dmxwifiConfig {
 #define DMXWIFI_CONFIG_VERSION 1
 #define DMXWIFI_CONFIG_INVALID_VERSION 27
 
-#define STATION_MODE 0
-#define AP_MODE 1
+// updated with CONFIG_ to avoid conflict with 8266 user_interface.h
+#define CONFIG_STATION_MODE 0
+#define CONFIG_AP_MODE      1
 
-#define ARTNET_MODE 0
-#define SACN_MODE 1
-#define STATIC_MODE 2
-#define MULTICAST_MODE 4
+#define ARTNET_MODE         0
+#define SACN_MODE           1
+#define STATIC_MODE         2
+#define MULTICAST_MODE      4
 
 #define OUTPUT_FROM_NETWORK_MODE 0
-#define INPUT_TO_NETWORK_MODE 8
+#define INPUT_TO_NETWORK_MODE    8
+
+
+typedef void (*IndicateActivityCallback)(void);
 
 /*!   
 @class DMXwifiConfig
@@ -97,6 +104,21 @@ class DMXwifiConfig {
 	 (Modify the initConfig to change default settings.  But, highly recommend leaving AP_MODE for default startup.)
 	 */
 	 void initConfig(void);
+
+   /*
+    initialize the WiFi connection based on config settings
+   */
+   uint8_t setupWiFi(IndicateActivityCallback indicateConnecting);
+
+    /*
+     Check to see if packet is a config packet.
+  
+     In the case it is a query, it replies with the current config from persistent storage.
+     
+     In the case of upload, it copies the payload to persistent storage
+     and also replies with the config settings.
+    */
+   void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser);
 	 
 	 /* 
 	 	WiFi setup parameters
