@@ -41,6 +41,8 @@
     v6.0 - Refactor to clarify functionality
            -move RDM functions to separate file
            -move Art-Net callbacks and other functions to below setup and loop in main .ino file
+
+    v6.1 - Refactor to move setup of WiFi connection and config packet handling to LXDMXWiFiConfig
 */
 /**************************************************************************/
 
@@ -55,7 +57,7 @@
 #include "LXDMXWiFiConfig.h"
 
 #define STARTUP_MODE_PIN 16      // pin for force default setup when low (use 10k pullup to insure high)
-#define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip
+#define DIRECTION_PIN 4          // pin for output direction enable on MAX481 chip (pin D4 or D15)
 
 /*         
  *  To allow use of the configuration utility, uncomment the following statement
@@ -80,7 +82,7 @@
  *        following steps.
  *
  *       ------------------------------------------------
- *        1) In ESP-DMX.ino line 83 should read:
+ *        1) In ESP-DMX.ino line 99 should read:
  *           #define USE_REMOTE_CONFIG 0
  *
  *        2) In LXDMXWiFiConfig.cpp uncomment line 35:
@@ -138,13 +140,13 @@ uint8_t led_state = 0;
 
 void setup() {
   //Serial.begin(115200);
-  Serial.setDebugOutput(UART0); //use uart0 for debugging
+  Serial.setDebugOutput(1); //use uart0 for debugging  UART0
   pinMode(BUILTIN_LED, OUTPUT);
   pinMode(STARTUP_MODE_PIN, INPUT_PULLUP);
   pinMode(DIRECTION_PIN, OUTPUT);
   
 #ifdef USE_REMOTE_CONFIG
-  uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));	// uses settings from persistent memory unless pin is low.
+  uint8_t bootStatus = DMXWiFiConfig.begin(digitalRead(STARTUP_MODE_PIN));	// uses settings from persistent memory unless pin is low. 
 #else
   uint8_t bootStatus = DMXWiFiConfig.begin();								// must edit DMXWiFiConfig.initConfig() to change settings
 #endif
@@ -152,6 +154,7 @@ void setup() {
   
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
   setRDMisEnabled(DMXWiFiConfig.rdmMode());
+
 
   if ( rdmIsEnabled() ) {
     if ( dmx_direction ) {
@@ -169,33 +172,22 @@ void setup() {
     ESP8266DMX.startOutput();
   }
 
-  if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
-    Serial.print("AP_MODE ");
-    Serial.print(DMXWiFiConfig.SSID());
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(DMXWiFiConfig.SSID());
-    WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
-    Serial.print("created access point ");
-    Serial.print(DMXWiFiConfig.SSID());
-    Serial.print(", ");
-  } else {
-    Serial.print("wifi connecting... ");
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(DMXWiFiConfig.SSID(),DMXWiFiConfig.password());
+  // -------------------   WiFi  ------------------- 
 
-    // static IP otherwise uses DHCP
-    if ( DMXWiFiConfig.staticIPAddress() ) {  
-      WiFi.config(DMXWiFiConfig.stationIPAddress(), DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
-    } else {
+  Serial.print("initializing wifi... ");
+  
+  uint8_t wifi_result = DMXWiFiConfig.setupWiFi(blinkLED);
+  
+  if ( wifi_result & LX_AP_MODE ) {
+    Serial.print("created access point ");
+    Serial.println(DMXWiFiConfig.SSID());
+  } else {
+    if ( ( wifi_result & STATIC_MODE ) == 0 ) {
       dhcpStatus = 1;
     }
-    
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(100);
-      blinkLED();
-    }
+    Serial.println("wifi started.");
   }
-  Serial.println("wifi started.");
+ 
   
   //------------------- Initialize network<->DMX interfaces -------------------
     
@@ -281,7 +273,7 @@ void loop() {
 		  art_packet_result = artNetInterface->readArtNetPacketInputMode(&aUDP);
 		  #ifdef USE_REMOTE_CONFIG
 		  if ( art_packet_result == RESULT_NONE ) {
-			  checkConfigReceived(artNetInterface, aUDP);
+			  DMXWiFiConfig.checkConfigReceived(artNetInterface, aUDP, blinkLED, CONFIG_PRINT_MESSAGES);
 		  }
       #endif
 		}
@@ -291,14 +283,14 @@ void loop() {
 		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
 		#ifdef USE_REMOTE_CONFIG
 		if ( art_packet_result == RESULT_NONE ) {
-			checkConfigReceived(artNetInterface, aUDP);
+			DMXWiFiConfig.checkConfigReceived(artNetInterface, aUDP, blinkLED, CONFIG_PRINT_MESSAGES);
 		}
 		#endif
 	
 		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
 		#ifdef USE_REMOTE_CONFIG
 		if ( acn_packet_result == RESULT_NONE ) {
-			checkConfigReceived(sACNInterface, sUDP);
+			DMXWiFiConfig.checkConfigReceived(sACNInterface, aUDP, blinkLED, CONFIG_PRINT_MESSAGES);
 		}
 		#endif
 	
@@ -390,51 +382,6 @@ void copyDMXToOutput(void) {
    }
 }
 
-/************************************************************************
-
-  Checks to see if packet is a config packet.
-  
-     In the case it is a query, it replies with the current config from persistent storage.
-     
-     In the case of upload, it copies the payload to persistent storage
-     and also replies with the config settings.
-  
-*************************************************************************/
-
-void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
-  if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) { //match header to config packet
-    Serial.print("config packet received, ");
-    uint8_t reply = 0;
-    if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
-      DMXWiFiConfig.readFromPersistentStore();
-      reply = 1;
-    } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-      Serial.println("upload packet");
-      DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
-      DMXWiFiConfig.commitToPersistentStore();
-      reply = 1;
-    } else if ( interface->packetBuffer()[8] == '^' ) {
-      ESP.reset();
-    } else {
-      Serial.println("unknown config opcode.");
-      }
-    if ( reply) {
-      DMXWiFiConfig.hidePassword();                         // don't transmit password!
-      cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());        // unicast reply
-      cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
-      cUDP.endPacket();
-      Serial.println("reply complete.");
-      DMXWiFiConfig.restorePassword();
-    }
-    interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
-    interface->packetBuffer()[1] = 0;
-    blinkLED();
-    delay(100);
-    blinkLED();
-    delay(100);
-    blinkLED();
-  }   // packet has config packet header
-}
 
 /************************************************************************
  *          Art-Net Implementation Callback Functions

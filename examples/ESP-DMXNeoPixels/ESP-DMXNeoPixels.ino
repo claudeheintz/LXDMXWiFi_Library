@@ -143,7 +143,7 @@ void setup() {
 #endif
 
 
-  if ( DMXWiFiConfig.setupWiFi(blinkLED) ) {
+  if ( DMXWiFiConfig.setupWiFi(blinkLED) & CONFIG_AP_MODE ) {
     Serial.print("Access Point IP Address: ");
   } else {
     Serial.print("Station IP Address: ");
@@ -218,14 +218,14 @@ void loop() {
 		art_packet_result = artNetInterface->readDMXPacket(&aUDP);
 		#ifdef USE_REMOTE_CONFIG
 		if ( art_packet_result == RESULT_NONE ) {
-			DMXWiFiConfig.checkConfigReceived(artNetInterface, aUDP, blinkLED);
+			DMXWiFiConfig.checkConfigReceived(artNetInterface, aUDP, blinkLED, CONFIG_PRINT_MESSAGES);
 		}
 		#endif
 		
 		acn_packet_result = sACNInterface->readDMXPacket(&sUDP);
 		#ifdef USE_REMOTE_CONFIG
 		if ( acn_packet_result == RESULT_NONE ) {
-			DMXWiFiConfig.checkConfigReceived(sACNInterface, sUDP, blinkLED);
+			DMXWiFiConfig.checkConfigReceived(sACNInterface, sUDP, blinkLED, CONFIG_PRINT_MESSAGES);
 		}
 		#endif
 		

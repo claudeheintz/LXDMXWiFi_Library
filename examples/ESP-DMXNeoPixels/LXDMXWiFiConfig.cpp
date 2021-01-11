@@ -99,7 +99,9 @@ void DMXwifiConfig::initConfig(void) {
 }
 
 uint8_t DMXwifiConfig::setupWiFi(IndicateActivityCallback indicateConnecting) {
+  uint8_t rv = 0;
   if ( APMode() ) {                      // WiFi startup
+    rv = CONFIG_AP_MODE;
     WiFi.mode(WIFI_AP);
     WiFi.softAP(SSID());
     WiFi.softAPConfig(apIPAddress(), apGateway(), apSubnet());
@@ -109,6 +111,7 @@ uint8_t DMXwifiConfig::setupWiFi(IndicateActivityCallback indicateConnecting) {
 
     if ( staticIPAddress() ) {  
       WiFi.config(stationIPAddress(), (uint32_t)0, stationGateway(), stationSubnet());
+      rv = STATIC_MODE;
     }
      
     while (WiFi.status() != WL_CONNECTED) {
@@ -116,32 +119,40 @@ uint8_t DMXwifiConfig::setupWiFi(IndicateActivityCallback indicateConnecting) {
       indicateConnecting();
     }
   }
-  return APMode();
+  return rv;
 }
 
-void DMXwifiConfig::checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser) {
+void DMXwifiConfig::checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser, uint8_t printMessages) {
   if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) { //match header to config packet
-    Serial.print("config packet received, ");
+    if ( printMessages ) {
+      Serial.print("config packet received, ");
+    }
+    
     uint8_t reply = 0;
     if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
       readFromPersistentStore();
       reply = 1;
     } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-      Serial.println("upload packet");
+      if ( printMessages ) {
+        Serial.println("upload packet");
+      }
       copyConfig( interface->packetBuffer(), interface->packetSize());
       commitToPersistentStore();
       reply = 1;
     } else if ( interface->packetBuffer()[8] == '^' ) {
       ESP.reset();
-    } else {
+    } else if ( printMessages ) {
       Serial.println("unknown config opcode.");
-      }
+    }
+    
     if ( reply) {
       hidePassword();                         // don't transmit password!
       cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());        // unicast reply
       cUDP.write((uint8_t*)config(), DMXWiFiConfigSIZE);
       cUDP.endPacket();
-      Serial.println("reply complete.");
+      if ( printMessages ) {
+        Serial.println("reply complete.");
+      }
       restorePassword();
     }
     interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger

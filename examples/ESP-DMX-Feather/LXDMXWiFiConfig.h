@@ -11,6 +11,9 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include "LXDMXWiFi.h"
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 
 /* 
 	structure for storing WiFi and Protocol configuration settings
@@ -59,6 +62,10 @@ typedef struct dmxwifiConfig {
 #define INPUT_TO_NETWORK_MODE 8
 #define RDM_MODE              16
 
+#define CONFIG_NO_MESSAGES    0
+#define CONFIG_PRINT_MESSAGES 1
+
+typedef void (*IndicateActivityCallback)(void);
 
 // uncomment the following line to force an overwrite of the configuration back to
 // the hard coded settings when the boot mode is default (mode==0)
@@ -103,6 +110,22 @@ class DMXwifiConfig {
 	 (Modify the initConfig to change default settings.  But, highly recommend leaving LX_AP_MODE for default startup.)
 	 */
 	 void initConfig(void);
+  
+	  /*
+    initialize the WiFi connection based on config settings
+   */
+   uint8_t setupWiFi(IndicateActivityCallback indicateConnecting);
+
+    /*
+     Check to see if packet is a config packet.
+  
+     In the case it is a query, it replies with the current config from persistent storage.
+     
+     In the case of upload, it copies the payload to persistent storage
+     and also replies with the config settings.
+    */
+   uint8_t checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser, uint8_t printMessages);
+	 
 	 
 	 /* 
 	 	WiFi setup parameters

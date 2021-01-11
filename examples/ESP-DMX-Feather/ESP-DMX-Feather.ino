@@ -107,6 +107,8 @@
  */
 #define USE_REMOTE_CONFIG 0
 
+uint8_t print_config_messages = 0;
+
 // dmx protocol interfaces for parsing packets (created in setup)
 LXWiFiArtNet* artNetInterface;
 LXWiFiSACN*   sACNInterface;
@@ -141,6 +143,15 @@ uint8_t scene_state = 0;
 
 // the OLED display for the Feather wing
 Adafruit_SSD1306 display = Adafruit_SSD1306();
+
+/* some of the functions defined below loop
+void artAddressReceived();
+void artIpProgReceived(uint8_t cmd, IPAddress addr, IPAddress subnet);
+void artTodRequestReceived(uint8_t* type);
+void artRDMReceived(uint8_t* pdata);
+void artCmdReceived(uint8_t* pdata);
+void cycleScene();
+*/
 
 /************************************************************************
 
@@ -228,41 +239,29 @@ void setup() {
 
 // -------------------   WiFi  ------------------- 
 
-  if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
 #if defined ESP_PRINT_DEBUG_MSGS
-    Serial.print("AP_MODE ");
-    Serial.print(DMXWiFiConfig.SSID());
+    Serial.print("initializing wifi... ");
+    print_config_messages = 1;
 #endif
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(DMXWiFiConfig.SSID());
-    WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
-#if defined ESP_PRINT_DEBUG_MSGS
+
+  uint8_t wifi_result = DMXWiFiConfig.setupWiFi(blinkConnection);
+  
+  if ( wifi_result & LX_AP_MODE ) {
+ #if defined ESP_PRINT_DEBUG_MSGS
     Serial.print("created access point ");
-    Serial.print(DMXWiFiConfig.SSID());
+    Serial.println(DMXWiFiConfig.SSID());
     Serial.print(", ");
 #endif
   } else {
-#if defined ESP_PRINT_DEBUG_MSGS
-    Serial.print("wifi connecting... ");
-#endif
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(DMXWiFiConfig.SSID(),DMXWiFiConfig.password());
-
-    // static IP otherwise uses DHCP
-    if ( DMXWiFiConfig.staticIPAddress() ) {  
-      WiFi.config(DMXWiFiConfig.stationIPAddress(), DMXWiFiConfig.stationGateway(), DMXWiFiConfig.stationSubnet());
-    } else {
+    if ( ( wifi_result & STATIC_MODE ) == 0 ) {
       dhcpStatus = 1;
     }
-    
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(100);
-      blinkConnection();
-    }
-  }
 #if defined ESP_PRINT_DEBUG_MSGS
   Serial.println("wifi started.");
 #endif
+  }
+ 
+
   displayIPLine();
   
   //------------------- Initialize network<->DMX interfaces -------------------
@@ -598,50 +597,12 @@ void copyDMXToOutput(void) {
 /************************************************************************
 
   Checks to see if packet is a config packet.
-  
-     In the case it is a query, it replies with the current config from persistent storage.
-     
-     In the case of upload, it copies the payload to persistent storage
-     and also replies with the config settings.
+ 
   
 *************************************************************************/
 
 void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP) {
-  if ( strcmp(CONFIG_PACKET_IDENT, (const char *) interface->packetBuffer()) == 0 ) { //match header to config packet
-#if defined ESP_PRINT_DEBUG_MSGS
-    Serial.print("config packet received, ");
-#endif
-    uint8_t reply = 0;
-    if ( interface->packetBuffer()[8] == '?' ) {  //packet opcode is query
-      DMXWiFiConfig.readFromPersistentStore();
-      reply = 1;
-    } else if (( interface->packetBuffer()[8] == '!' ) && (interface->packetSize() >= 171)) { //packet opcode is set
-#if defined ESP_PRINT_DEBUG_MSGS
-      Serial.println("upload packet");
-#endif
-      DMXWiFiConfig.copyConfig( interface->packetBuffer(), interface->packetSize());
-      DMXWiFiConfig.commitToPersistentStore();
-      reply = 1;
-    } else if ( interface->packetBuffer()[8] == '^' ) {
-      ESP.reset();
-    } else {
-#if defined ESP_PRINT_DEBUG_MSGS
-      Serial.println("unknown config opcode.");
-#endif
-      }
-    if ( reply) {
-      DMXWiFiConfig.hidePassword();                         // don't transmit password!
-      cUDP.beginPacket(cUDP.remoteIP(), interface->dmxPort());        // unicast reply
-      cUDP.write((uint8_t*)DMXWiFiConfig.config(), DMXWiFiConfigSIZE);
-      cUDP.endPacket();
-#if defined ESP_PRINT_DEBUG_MSGS
-      Serial.println("reply complete.");
-#endif
-      DMXWiFiConfig.restorePassword();
-    }
-    interface->packetBuffer()[0] = 0; //insure loop without recv doesn't re-trigger
-    interface->packetBuffer()[1] = 0;
-   
+  if ( DMXWiFiConfig.checkConfigReceived(interface, cUDP, blinkConnection, print_config_messages ) ) {
     display.fillRect(95,0,30,10, 0);
     display.setCursor(95,0);
     display.print("CONFG");

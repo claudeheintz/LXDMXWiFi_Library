@@ -62,6 +62,8 @@ typedef struct dmxwifiConfig {
 #define OUTPUT_FROM_NETWORK_MODE 0
 #define INPUT_TO_NETWORK_MODE    8
 
+#define CONFIG_NO_MESSAGES    0
+#define CONFIG_PRINT_MESSAGES 1
 
 typedef void (*IndicateActivityCallback)(void);
 
@@ -118,7 +120,7 @@ class DMXwifiConfig {
      In the case of upload, it copies the payload to persistent storage
      and also replies with the config settings.
     */
-   void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser);
+   void checkConfigReceived(LXDMXWiFi* interface, WiFiUDP cUDP, IndicateActivityCallback informUser, uint8_t printMessages);
 	 
 	 /* 
 	 	WiFi setup parameters
