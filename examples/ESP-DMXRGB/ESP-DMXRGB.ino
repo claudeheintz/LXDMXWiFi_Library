@@ -1,28 +1,25 @@
 /**************************************************************************/
 /*!
-    @file     ESP-DMXNeoPixels.ino
+    @file     ESP-DMXRGB.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
-    @copyright 2016-2021 by Claude Heintz All Rights Reserved
+    @copyright 2021 by Claude Heintz All Rights Reserved
 
     Example using LXDMXWiFi_Library for output of Art-Net or E1.31 sACN from
-    ESP8266 Adafruit Huzzah WiFi connection to an Adafruit NeoPixel Ring.
+    ESP8266 Adafruit Huzzah WiFi connection to 3 PWM Pins that could be used
+    for an RGB LED.
     
     Art-Net(TM) Designed by and Copyright Artistic Licence Holdings Ltd.
     sACN E 1.31 is a public standard published by the PLASA technical standards program
-    
-    NOTE:  This example requires the Adafruit NeoPixel Library and WiFi101 Library
 
-           Remote config is supported using the configuration utility in the examples folder.
-           Otherwise edit initConfig() in LXDMXWiFiConfig.cpp.
+
+           Remote config is supported using the configuration utility in the examples
+           folder.  See the notes about enable/disable remote config below.
+           Edit initConfig() in LXDMXWiFiConfig.cpp if not using remote config.
 
     @section  HISTORY
 
     v1.0 - First release
-    v1.1 - Add USE_REMOTE_CONFIG option
-    v1.2 - Refactor order of utility functions in main sketch,
-           move WiFi connection setup to LXDMXWiFiConfig
-           move checkConfigReceived to LXDMXWiFiConfig
 
 */
 /**************************************************************************/
