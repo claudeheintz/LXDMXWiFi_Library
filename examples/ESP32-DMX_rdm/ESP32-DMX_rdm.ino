@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*!
+/*
     @file     ESP32-DMX.ino
     @author   Claude Heintz
     @license  BSD (see LXDMXWiFi.h)
