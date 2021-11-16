@@ -162,9 +162,8 @@ class LXDMXWiFi {
 //  INADDR_ANY ie 0.0.0.0 is not defined in IPAddress.h along with INADDR_NONE
 //  modified 1-29-20 from ((uint32_t)0) because of crash on ESP32
 #ifndef INADDR_ANY
-	
+	#warning INADDR_ANY not previously defined
 	#define INADDR_ANY IPAddress((uint32_t)0)
-
 #endif
 
 #endif // ifndef LXDMXWIFI_H

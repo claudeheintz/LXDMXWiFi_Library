@@ -512,7 +512,7 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) {
   
   
   IPAddress a = _broadcast_address;
-  if ( a == INADDR_ANY ) {
+  if ( a == (IPAddress)INADDR_ANY ) {	   //seemingly unnecessary cast for esp32
     a = wUDP->remoteIP();   // reply directly if no broadcast address is supplied
   }
   wUDP->beginPacket(a, ARTNET_PORT);
@@ -530,7 +530,7 @@ void LXWiFiArtNet::send_art_ipprog_reply ( UDP* wUDP ) {
 }
 
 void LXWiFiArtNet::send_art_tod ( UDP* wUDP, uint8_t* todata, uint8_t ucount ) {
-	if ( _broadcast_address != INADDR_ANY ) {
+	if ( _broadcast_address !=  (IPAddress)INADDR_ANY ) {	//seemingly unnecessary cast for esp32
 		uint8_t _buffer[ARTNET_TOD_PKT_SIZE];
 		int i;
 		for ( i=0; i < ARTNET_TOD_PKT_SIZE; i++ ) {
