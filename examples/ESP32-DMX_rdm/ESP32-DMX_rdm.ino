@@ -399,18 +399,24 @@ void setup() {
 
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
   rdm_enabled   = DMXWiFiConfig.rdmMode();
+  // the following appear to be ESP32's default AP address/subnet mask
+  // required to specify as WiFi.localIP() seems to return 0.0.0.0 when in AP mode
+  IPAddress local_ip_address = IPAddress(192,168,4,1);
+  IPAddress local_subnet_mask = IPAddress(255,255,255,0);
 
   if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
     Serial.print("AP_MODE ");
     Serial.print(DMXWiFiConfig.SSID());
     WiFi.mode(WIFI_AP);
     WiFi.softAP(DMXWiFiConfig.SSID());
-    Serial.print("created access point at ");
-    Serial.print(DMXWiFiConfig.apIPAddress());
+    
 
-    if ( digitalRead(STARTUP_MODE_PIN) != 0 ) {
+    if ( digitalRead(STARTUP_MODE_PIN) != 0 ) { 
       WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
+      local_ip_address = DMXWiFiConfig.apIPAddress();
+      local_subnet_mask = DMXWiFiConfig.apSubnet();
     } else {
+      Serial.print(" default AP settings ");
       Serial.println(DMXWiFiConfig.nodeName());
     }
 
@@ -438,12 +444,13 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED)  {
       delay(100);
       blinkLED();
-
     }
 
+    local_ip_address = WiFi.localIP();
+    local_subnet_mask = WiFi.subnetMask();
   }
-  Serial.print("wifi started ");
-  Serial.println(WiFi.localIP());
+  Serial.print("wifi started: ");
+  Serial.println(local_ip_address);
 
   //------------------- Initialize serialDMX  -------------------
 
@@ -462,7 +469,7 @@ void setup() {
   sACNInterface = new LXWiFiSACN();
   sACNInterface->setUniverse(DMXWiFiConfig.sACNUniverse());
 
-  artNetInterface = new LXWiFiArtNet(WiFi.localIP(), WiFi.subnetMask());
+  artNetInterface = new LXWiFiArtNet(local_ip_address, local_subnet_mask);
   artNetInterface->setUniverse(DMXWiFiConfig.artnetPortAddress());	//setUniverse for LXArtNet class sets complete Port-Address
   artNetInterface->setArtAddressReceivedCallback(&artAddressReceived);
   artNetInterface->setArtIpProgReceivedCallback(&artIpProgReceived);
