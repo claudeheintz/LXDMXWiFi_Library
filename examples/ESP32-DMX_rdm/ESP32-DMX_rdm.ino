@@ -96,6 +96,11 @@ LXWiFiSACN*   sACNInterface;
 WiFiUDP aUDP;
 WiFiUDP sUDP;
 
+// the following appear to be ESP32's default AP address/subnet mask
+// required to specify as WiFi.localIP() returns 0.0.0.0 when in AP mode and must use softAPIP() instead
+IPAddress local_ip_address = IPAddress(192,168,4,1);
+IPAddress local_subnet_mask = IPAddress(255,255,255,0);
+
 // direction output from network/input to network
 uint8_t dmx_direction = 0;
 
@@ -399,10 +404,6 @@ void setup() {
 
   dmx_direction = DMXWiFiConfig.inputToNetworkMode();
   rdm_enabled   = DMXWiFiConfig.rdmMode();
-  // the following appear to be ESP32's default AP address/subnet mask
-  // required to specify as WiFi.localIP() seems to return 0.0.0.0 when in AP mode
-  IPAddress local_ip_address = IPAddress(192,168,4,1);
-  IPAddress local_subnet_mask = IPAddress(255,255,255,0);
 
   if ( DMXWiFiConfig.APMode() ) {            // WiFi startup
     Serial.print("AP_MODE ");
@@ -413,12 +414,13 @@ void setup() {
 
     if ( digitalRead(STARTUP_MODE_PIN) != 0 ) { 
       WiFi.softAPConfig(DMXWiFiConfig.apIPAddress(), DMXWiFiConfig.apGateway(), DMXWiFiConfig.apSubnet());
-      local_ip_address = DMXWiFiConfig.apIPAddress();
       local_subnet_mask = DMXWiFiConfig.apSubnet();
     } else {
       Serial.print(" default AP settings ");
       Serial.println(DMXWiFiConfig.nodeName());
-    }
+    };
+
+    local_ip_address = WiFi.softAPIP();
 
     Serial.print(" accessPoint SSID ");
     Serial.print(DMXWiFiConfig.SSID());
@@ -631,7 +633,7 @@ uint8_t checkInput(LXDMXWiFi* interface, WiFiUDP* iUDP, uint8_t multicast) {
     xSemaphoreGive( ESP32DMX.lxDataLock );
     
     if ( multicast ) {
-      interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), WiFi.localIP());
+      interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), local_ip_address);
     } else {
       interface->sendDMX(iUDP, DMXWiFiConfig.inputAddress(), INADDR_NONE);
     }
