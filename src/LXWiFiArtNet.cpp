@@ -478,8 +478,8 @@ void LXWiFiArtNet::send_art_poll_reply( UDP* wUDP, uint8_t mode ) {
   if ( _poll_reply_counter > 9999 ) {
   	 _poll_reply_counter = 0;
   }
-  for (int k=108; k<172; k++) {
-  	_reply_buffer[k] = 0;			// zero status string
+  for (int k=26; k<172; k++) {
+  	_reply_buffer[k] = 0;			// zero short name, long name and status string
   }
   sprintf((char*)&_reply_buffer[108], "#0001 [%04d] ", _poll_reply_counter);
   
